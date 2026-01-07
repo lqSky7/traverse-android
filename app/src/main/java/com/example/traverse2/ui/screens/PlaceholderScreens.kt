@@ -76,7 +76,7 @@ private fun PlaceholderScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(20.dp)
-            .padding(bottom = 100.dp),
+            .padding(bottom = 100.dp), 
         contentAlignment = Alignment.Center
     ) {
         Box(

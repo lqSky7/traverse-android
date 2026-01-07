@@ -74,12 +74,12 @@ fun GlassBottomBar(
     // Theme-aware glass style for bottom bar - extra strong blur
     val bottomBarStyle = HazeStyle(
         backgroundColor = if (glassColors.isDark) Color.Black else Color.White,
-        blurRadius = 60.dp,
+        blurRadius = 50.dp,
         tint = HazeTint(
             color = if (glassColors.isDark) 
-                Color.White.copy(alpha = 0.12f) 
-            else 
-                Color.White.copy(alpha = 0.9f)
+                Color.White.copy(alpha = 0.12f)
+            else
+                Color.White.copy(alpha = 0.8f)
         ),
         noiseFactor = if (glassColors.isDark) 0.04f else 0.01f
     )
@@ -114,7 +114,7 @@ fun GlassBottomBar(
                 NavBarItem(
                     item = item,
                     isSelected = selectedItem == item,
-                    onClick = { onItemSelected(item) },
+                    onClick = { onItemSelected(item) }, 
                     glassColors = glassColors
                 )
             }

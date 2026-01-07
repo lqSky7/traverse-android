@@ -57,3 +57,8 @@ data class ErrorResponse(
 data class MessageResponse(
     val message: String
 )
+
+@Serializable
+data class UserResponse(
+    val user: User
+)

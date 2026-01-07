@@ -5,6 +5,7 @@ import com.example.traverse2.data.model.LoginRequest
 import com.example.traverse2.data.model.RegisterRequest
 import com.example.traverse2.data.model.User
 import com.example.traverse2.data.model.UserProfile
+import com.example.traverse2.data.model.UserResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -28,7 +29,7 @@ interface TraverseApi {
     suspend fun logout(): Response<Unit>
     
     @GET("auth/me")
-    suspend fun getCurrentUser(): Response<User>
+    suspend fun getCurrentUser(): Response<UserResponse>
     
     // ========== USERS ==========
     
@@ -43,14 +44,14 @@ interface TraverseApi {
     
     // ========== SOLVES ==========
     
-    @GET("solves/me")
+    @GET("solves")
     suspend fun getMySolves(
-        @Query("page") page: Int = 1,
-        @Query("limit") limit: Int = 20
+        @Query("limit") limit: Int = 50,
+        @Query("offset") offset: Int = 0
     ): Response<SolvesResponse>
     
-    @GET("solves/me/stats")
-    suspend fun getMyStats(): Response<StatsResponse>
+    @GET("solves/stats/summary")
+    suspend fun getSolveStats(): Response<SolveStatsResponse>
     
     // ========== FRIENDS ==========
     
@@ -72,10 +73,25 @@ interface TraverseApi {
     @DELETE("friends/{friendshipId}")
     suspend fun removeFriend(@Path("friendshipId") friendshipId: Int): Response<Unit>
     
+    // ========== ACHIEVEMENTS ==========
+    
+    @GET("achievements")
+    suspend fun getAchievements(): Response<AchievementsResponse>
+    
     // ========== SUBMISSIONS ==========
     
     @POST("submissions")
     suspend fun submitSolution(@Body submission: SubmissionRequest): Response<SubmissionResponse>
+    
+    @GET("submissions")
+    suspend fun getSubmissions(
+        @Query("limit") limit: Int = 50,
+        @Query("offset") offset: Int = 0,
+        @Query("outcome") outcome: String? = null
+    ): Response<SubmissionsResponse>
+    
+    @GET("submissions/stats/summary")
+    suspend fun getSubmissionStats(): Response<SubmissionStatsResponse>
 }
 
 // Additional response models
@@ -96,7 +112,7 @@ data class Solve(
 
 @kotlinx.serialization.Serializable
 data class Problem(
-    val id: Int,
+    val id: Int? = null,
     val platform: String,
     val slug: String,
     val title: String? = null,
@@ -106,19 +122,22 @@ data class Problem(
 
 @kotlinx.serialization.Serializable
 data class Pagination(
-    val page: Int,
+    val total: Int,
     val limit: Int,
-    val totalPages: Int,
-    val totalCount: Int
+    val offset: Int
 )
 
 @kotlinx.serialization.Serializable
-data class StatsResponse(
-    val totalSolved: Int,
+data class SolveStatsResponse(
+    val stats: SolveStats
+)
+
+@kotlinx.serialization.Serializable
+data class SolveStats(
+    val totalSolves: Int,
     val totalXp: Int,
-    val currentStreak: Int,
-    val longestStreak: Int,
-    val byDifficulty: DifficultyStats,
+    val totalStreakDays: Int,
+    val byDifficulty: Map<String, Int>,
     val byPlatform: Map<String, Int>
 )
 
@@ -179,4 +198,65 @@ data class SolveResult(
     val id: Int,
     val xpAwarded: Int,
     val isNewSolve: Boolean
+)
+
+@kotlinx.serialization.Serializable
+data class AchievementsResponse(
+    val achievements: List<Achievement>
+)
+
+@kotlinx.serialization.Serializable
+data class Achievement(
+    val id: Int,
+    val key: String,
+    val name: String,
+    val description: String,
+    val icon: String? = null,
+    val category: String,
+    val unlocked: Boolean,
+    val unlockedAt: String? = null
+)
+
+@kotlinx.serialization.Serializable
+data class SubmissionsResponse(
+    val submissions: List<SubmissionItem>,
+    val pagination: PaginationInfo
+)
+
+@kotlinx.serialization.Serializable
+data class SubmissionItem(
+    val id: Int,
+    val problem: Problem,
+    val language: String,
+    val outcome: String,
+    val happenedAt: String,
+    val timeTaken: Int? = null,
+    val numberOfTries: Int? = null
+)
+
+@kotlinx.serialization.Serializable
+data class PaginationInfo(
+    val total: Int,
+    val limit: Int,
+    val offset: Int
+)
+
+@kotlinx.serialization.Serializable
+data class SubmissionStatsResponse(
+    val stats: SubmissionStats
+)
+
+@kotlinx.serialization.Serializable
+data class SubmissionStats(
+    val total: Int,
+    val accepted: Int,
+    val failed: Int,
+    val acceptanceRate: String,
+    val languageBreakdown: List<LanguageStat>
+)
+
+@kotlinx.serialization.Serializable
+data class LanguageStat(
+    val language: String,
+    val count: Int
 )

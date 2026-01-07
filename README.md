@@ -21,6 +21,8 @@ Updated UI implementation. In development. README will be updated soon.
 
 ./gradlew installDebug
 
+./gradlew clean
+
 ```
 
 ## Roadmap
