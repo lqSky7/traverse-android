@@ -89,6 +89,8 @@ import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
+import java.time.LocalDate
+import com.example.traverse2.ui.components.StreakDay
 
 data class DifficultyData(val easy: Int, val medium: Int, val hard: Int)
 data class PlatformData(val name: String, val count: Int, val color: Color)
@@ -97,7 +99,7 @@ data class CategoryData(val name: String, val count: Int)
 data class RecentSolve(val problemName: String, val platform: String, val difficulty: String, val timeAgo: String)
 data class AchievementData(val name: String, val description: String, val icon: String?, val category: String, val unlocked: Boolean)
 data class ProblemItem(val name: String, val platform: String, val difficulty: String, val solved: Boolean)
-data class StreakData(val currentStreak: Int, val longestStreak: Int, val totalActiveDays: Int, val averagePerWeek: Float)
+data class StreakData(val currentStreak: Int, val longestStreak: Int, val totalActiveDays: Int, val averagePerWeek: Float, val streakDays: List<StreakDay> = emptyList())
 
 @Composable
 fun HomeContent(
@@ -259,12 +261,24 @@ fun HomeContent(
                 streak = user.currentStreak,
                 hazeState = hazeState,
                 onClick = {
+                    // Generate streak days from calendarSolveDates
+                    val today = LocalDate.now()
+                    val calendarSolveDates = uiState.calendarSolveDates
+                    val streakDays = (0 until 35).map { daysAgo ->
+                        val date = today.minusDays(daysAgo.toLong())
+                        StreakDay(
+                            date = date,
+                            isActive = calendarSolveDates.contains(date),
+                            isToday = daysAgo == 0
+                        )
+                    }
                     onStreakDataReady(
                         StreakData(
                             currentStreak = user.currentStreak,
                             longestStreak = user.longestStreak,
                             totalActiveDays = solveStats?.totalStreakDays ?: 0,
-                            averagePerWeek = if (solveStats != null) solveStats.totalSolves / 4f else 0f
+                            averagePerWeek = if (solveStats != null) solveStats.totalSolves / 4f else 0f,
+                            streakDays = streakDays
                         )
                     )
                 }

@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.traverse2.ui.components.GlassTopBar
@@ -59,8 +60,8 @@ fun AchievementsScreen(
             .background(
                 brush = androidx.compose.ui.graphics.Brush.linearGradient(
                     colors = listOf(
-                        if (glassColors.isDark) Color(0xFF0a0e27) else Color(0xFFf5f5f7),
-                        if (glassColors.isDark) Color(0xFF1a1f3a) else Color(0xFFe8e8ed)
+                        if (glassColors.isDark) Color(0xFF000000) else Color(0xFFf5f5f7),
+                        if (glassColors.isDark) Color(0xFF0A0A0A) else Color(0xFFe8e8ed)
                     )
                 )
             )
@@ -234,15 +235,16 @@ private fun AchievementCardDetailed(
     if (achievement.name.isEmpty()) {
         return
     }
-    
+
     val cardBackground = if (glassColors.isDark) Color.Black else Color.White
     val cardTint = if (glassColors.isDark) Color(0x30000000) else Color(0x30FFFFFF)
     val unlockedColor = Color(0xFF22C55E)
     val lockedColor = glassColors.textSecondary.copy(alpha = 0.4f)
-    
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .height(140.dp) // Fixed height for uniform card size
             .clip(RoundedCornerShape(16.dp))
             .hazeChild(
                 state = hazeState,
@@ -257,8 +259,9 @@ private fun AchievementCardDetailed(
             .padding(12.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             // Icon/Status
             Box(
@@ -278,20 +281,29 @@ private fun AchievementCardDetailed(
                     modifier = Modifier.size(24.dp)
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
-            // Name
-            Text(
-                text = achievement.name,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = glassColors.textPrimary,
-                maxLines = 2
-            )
-            
+
+            // Name with fixed height to prevent layout shifts
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = achievement.name,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = glassColors.textPrimary,
+                    maxLines = 2,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 14.sp
+                )
+            }
+
             Spacer(modifier = Modifier.height(4.dp))
-            
+
             // Status
             Text(
                 text = if (achievement.unlocked) "Unlocked" else "Locked",

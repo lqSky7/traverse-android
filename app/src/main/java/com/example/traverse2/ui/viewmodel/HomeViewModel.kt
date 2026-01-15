@@ -8,10 +8,15 @@ import com.example.traverse2.data.api.Solve
 import com.example.traverse2.data.api.SolveStats
 import com.example.traverse2.data.api.SubmissionStats
 import com.example.traverse2.data.model.User
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 data class HomeUiState(
     val isLoading: Boolean = true,
@@ -20,7 +25,8 @@ data class HomeUiState(
     val solveStats: SolveStats? = null,
     val submissionStats: SubmissionStats? = null,
     val recentSolves: List<Solve> = emptyList(),
-    val achievements: List<Achievement> = emptyList()
+    val achievements: List<Achievement> = emptyList(),
+    val calendarSolveDates: Set<LocalDate> = emptySet()
 )
 
 class HomeViewModel : ViewModel() {
@@ -65,6 +71,48 @@ class HomeViewModel : ViewModel() {
                 val recentSolves = if (recentSolvesResponse.isSuccessful) {
                     recentSolvesResponse.body()?.solves ?: emptyList()
                 } else emptyList()
+
+                // Fetch both solves and completed revisions for calendar (last 35 days)
+                // Using coroutineScope for parallel fetching
+                val (solveDates, revisionDates) = coroutineScope {
+                    val solvesDeferred = async {
+                        val response = RetrofitClient.api.getMySolves(limit = 100, offset = 0)
+                        if (response.isSuccessful) {
+                            val solves = response.body()?.solves ?: emptyList()
+                            solves.mapNotNull { solve ->
+                                try {
+                                    val instant = Instant.parse(solve.solvedAt)
+                                    instant.atZone(ZoneId.systemDefault()).toLocalDate()
+                                } catch (e: Exception) {
+                                    null
+                                }
+                            }.toSet()
+                        } else emptySet()
+                    }
+                    
+                    val revisionsDeferred = async {
+                        // Fetch completed revisions
+                        val response = RetrofitClient.api.getRevisionsGrouped(includeCompleted = true)
+                        if (response.isSuccessful) {
+                            val groups = response.body()?.groups ?: emptyList()
+                            groups.flatMap { it.revisions }
+                                .filter { it.completedAt != null }
+                                .mapNotNull { revision ->
+                                    try {
+                                        val instant = Instant.parse(revision.completedAt!!)
+                                        instant.atZone(ZoneId.systemDefault()).toLocalDate()
+                                    } catch (e: Exception) {
+                                        null
+                                    }
+                                }.toSet()
+                        } else emptySet()
+                    }
+                    
+                    solvesDeferred.await() to revisionsDeferred.await()
+                }
+                
+                // Combine both solve dates and revision completion dates
+                val calendarSolveDates = solveDates + revisionDates
                 
                 // Fetch achievements
                 val achievementsResponse = RetrofitClient.api.getAchievements()
@@ -79,7 +127,8 @@ class HomeViewModel : ViewModel() {
                     solveStats = solveStats,
                     submissionStats = submissionStats,
                     recentSolves = recentSolves,
-                    achievements = achievements
+                    achievements = achievements,
+                    calendarSolveDates = calendarSolveDates
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(

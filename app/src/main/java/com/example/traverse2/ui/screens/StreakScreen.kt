@@ -66,27 +66,27 @@ fun StreakScreen(
     longestStreak: Int = 0,
     totalActiveDays: Int = 0,
     averagePerWeek: Float = 0f,
-    friends: List<FriendItem> = emptyList()
+    friends: List<FriendItem> = emptyList(),
+    streakDays: List<StreakDay> = emptyList()
 ) {
     val glassColors = TraverseTheme.glassColors
     val scrollState = rememberScrollState()
 
-    // Mock streak calendar data
+    // Use provided streakDays or generate fallback if empty
     val today = LocalDate.now()
-    val streakDays = remember {
-        (0 until 35).map { daysAgo ->
-            val date = today.minusDays(daysAgo.toLong())
-            val isActive = when {
-                daysAgo < currentStreak -> true
-                daysAgo == 8 -> false
-                daysAgo in 9..12 -> true
-                daysAgo == 15 -> true
-                daysAgo in 20..22 -> true
-                daysAgo == 28 -> true
-                daysAgo == 30 -> true
-                else -> false
+    val displayStreakDays = remember(streakDays) {
+        if (streakDays.isNotEmpty()) {
+            streakDays
+        } else {
+            // Fallback: generate from current streak count if no data provided
+            (0 until 35).map { daysAgo ->
+                val date = today.minusDays(daysAgo.toLong())
+                StreakDay(
+                    date = date,
+                    isActive = daysAgo < currentStreak,
+                    isToday = daysAgo == 0
+                )
             }
-            StreakDay(date = date, isActive = isActive, isToday = daysAgo == 0)
         }
     }
     
@@ -132,7 +132,7 @@ fun StreakScreen(
             
             // Activity Calendar
             StreakCalendar(
-                streakDays = streakDays,
+                streakDays = displayStreakDays,
                 currentStreak = currentStreak,
                 hazeState = hazeState,
                 glassColors = glassColors

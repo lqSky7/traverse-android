@@ -96,7 +96,8 @@ fun MainScreen(
                                 longestStreak = streakData!!.longestStreak,
                                 totalActiveDays = streakData!!.totalActiveDays,
                                 averagePerWeek = streakData!!.averagePerWeek,
-                                friends = friendsUiState.friends
+                                friends = friendsUiState.friends,
+                                streakDays = streakData!!.streakDays
                             )
                         }
                     }

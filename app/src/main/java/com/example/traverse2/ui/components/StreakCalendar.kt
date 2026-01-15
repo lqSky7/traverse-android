@@ -45,6 +45,7 @@ import kotlinx.coroutines.delay
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 data class StreakDay(
@@ -63,17 +64,37 @@ fun StreakCalendar(
 ) {
     val cardBackground = if (glassColors.isDark) Color.Black else Color.White
     val cardTint = if (glassColors.isDark) Color(0x30000000) else Color(0x30FFFFFF)
-    
-    // Get the last 5 weeks (35 days) for display
+
+    // Get the current month's calendar view
     val today = LocalDate.now()
-    val startDate = today.minusDays(34)
-    
-    // Generate calendar data
-    val weeks = (0 until 5).map { weekIndex ->
+
+    // Find the first day of the current month
+    val firstDayOfMonth = today.withDayOfMonth(1)
+
+    // Get the day of week offset (Monday = 0, Sunday = 6)
+    val firstDayOffset = (firstDayOfMonth.dayOfWeek.value - 1) // Monday-based (0-6)
+
+    // Get the number of days in the current month
+    val daysInMonth = today.lengthOfMonth()
+
+    // Calculate total cells needed (offset + days in month, rounded up to complete weeks)
+    val totalCells = firstDayOffset + daysInMonth
+    val numWeeks = (totalCells + 6) / 7 // Ceiling division
+
+    // Generate calendar data - properly aligned with day headers
+    val weeks = (0 until numWeeks).map { weekIndex ->
         (0 until 7).map { dayIndex ->
-            val date = startDate.plusDays((weekIndex * 7 + dayIndex).toLong())
-            val streakDay = streakDays.find { it.date == date }
-            streakDay ?: StreakDay(date, isActive = false, isToday = date == today)
+            val cellIndex = weekIndex * 7 + dayIndex
+            val dayOfMonth = cellIndex - firstDayOffset + 1
+
+            if (dayOfMonth < 1 || dayOfMonth > daysInMonth) {
+                // Empty cell (before first day or after last day of month)
+                null
+            } else {
+                val date = firstDayOfMonth.plusDays((dayOfMonth - 1).toLong())
+                val streakDay = streakDays.find { it.date == date }
+                streakDay ?: StreakDay(date, isActive = false, isToday = date == today)
+            }
         }
     }
     
@@ -94,7 +115,7 @@ fun StreakCalendar(
             .padding(20.dp)
     ) {
         Column {
-            // Header
+            // Header with month name
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -109,13 +130,13 @@ fun StreakCalendar(
                     )
                     Spacer(modifier = Modifier.size(8.dp))
                     Text(
-                        text = "Activity",
+                        text = today.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = glassColors.textPrimary
                     )
                 }
-                
+
                 Text(
                     text = "$currentStreak day streak",
                     fontSize = 14.sp,
@@ -127,9 +148,9 @@ fun StreakCalendar(
                     }
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Day of week headers
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -146,9 +167,9 @@ fun StreakCalendar(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // Calendar grid
             weeks.forEachIndexed { weekIndex, week ->
                 Row(
@@ -156,7 +177,7 @@ fun StreakCalendar(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     week.forEachIndexed { dayIndex, day ->
-                        AnimatedCalendarDay(
+                        CalendarDayCell(
                             day = day,
                             glassColors = glassColors,
                             delayMs = (weekIndex * 7 + dayIndex) * 20,
@@ -164,14 +185,14 @@ fun StreakCalendar(
                         )
                     }
                 }
-                
+
                 if (weekIndex < weeks.size - 1) {
                     Spacer(modifier = Modifier.height(6.dp))
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             // Legend
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -195,36 +216,46 @@ fun StreakCalendar(
 }
 
 @Composable
-private fun AnimatedCalendarDay(
-    day: StreakDay,
+private fun CalendarDayCell(
+    day: StreakDay?,
     glassColors: GlassColors,
     delayMs: Int,
     modifier: Modifier = Modifier
 ) {
+    // Empty cell for padding (before first day or after last day of month)
+    if (day == null) {
+        Box(
+            modifier = modifier
+                .aspectRatio(1f)
+                .padding(3.dp)
+        )
+        return
+    }
+
     val scale = remember { Animatable(0f) }
     val alpha = remember { Animatable(0f) }
-    
+
     LaunchedEffect(Unit) {
         delay(delayMs.toLong())
         alpha.animateTo(1f, tween(200, easing = FastOutSlowInEasing))
         scale.animateTo(1f, tween(300, easing = FastOutSlowInEasing))
     }
-    
+
     val activeColor = if (glassColors.isDark) Color(0xFF22C55E) else Color(0xFF16A34A)
     val inactiveColor = if (glassColors.isDark) Color(0x25FFFFFF) else Color(0x15000000)
     val todayBorderColor = if (glassColors.isDark) Color(0xFF60A5FA) else Color(0xFF3B82F6)
-    
+
     val bgColor = when {
         day.isActive -> activeColor
         else -> inactiveColor
     }
-    
+
     val pulseScale by animateFloatAsState(
         targetValue = if (day.isToday && day.isActive) 1.1f else 1f,
         animationSpec = tween(600, easing = FastOutSlowInEasing),
         label = "pulseScale"
     )
-    
+
     Box(
         modifier = modifier
             .aspectRatio(1f)

@@ -364,11 +364,11 @@ private fun StatsGridCard(
                     modifier = Modifier.weight(1f)
                 )
 
-                // Total Streak Days
+                // Current Streak
                 StatBox(
                     icon = Icons.Default.LocalFireDepartment,
-                    value = "${stats?.totalStreakDays ?: 0}",
-                    label = "Streak Days",
+                    value = "${stats?.currentStreak ?: 0}",
+                    label = "Current Streak",
                     iconColor = Color(0xFFFF6B35),
                     glassColors = glassColors,
                     modifier = Modifier.weight(1f)
@@ -381,11 +381,11 @@ private fun StatsGridCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Submissions
+                // Total Streak Days
                 StatBox(
                     icon = Icons.Default.Code,
-                    value = "${stats?.totalSubmissions ?: 0}",
-                    label = "Submissions",
+                    value = "${stats?.totalStreakDays ?: 0}",
+                    label = "Total Active Days",
                     iconColor = Color(0xFF6366F1),
                     glassColors = glassColors,
                     modifier = Modifier.weight(1f)
@@ -489,10 +489,10 @@ private fun StatBox(
 
     Box(
         modifier = modifier
-            .height(90.dp)
+            .height(100.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(bgColor)
-            .padding(14.dp)
+            .padding(12.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -502,7 +502,7 @@ private fun StatBox(
                 imageVector = icon,
                 contentDescription = label,
                 tint = iconColor,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(22.dp)
             )
 
             Column {
@@ -510,13 +510,16 @@ private fun StatBox(
                     text = value,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = glassColors.textPrimary
+                    color = glassColors.textPrimary,
+                    maxLines = 1
                 )
                 Text(
                     text = label,
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
-                    color = labelColor
+                    color = labelColor,
+                    maxLines = 2,
+                    lineHeight = 13.sp
                 )
             }
         }

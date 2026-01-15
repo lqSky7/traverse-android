@@ -806,46 +806,25 @@ private fun RevisionListItem(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },
             modifier = Modifier
-                .clip(RoundedCornerShape(16.dp))
                 .hazeChild(state = hazeState, style = menuGlassStyle)
                 .border(
                     width = if (glassColors.isDark) 1.dp else 1.5.dp,
-                    color = if (glassColors.isDark) 
-                        Color.White.copy(alpha = 0.2f) 
-                    else 
+                    color = if (glassColors.isDark)
+                        Color.White.copy(alpha = 0.2f)
+                    else
                         Color.White.copy(alpha = 0.6f),
                     shape = RoundedCornerShape(16.dp)
-                )
+                ),
+            shape = RoundedCornerShape(16.dp)
         ) {
             DropdownMenuItem(
-                text = { 
-                    Text(
-                        "Complete Revision",
-                        color = glassColors.textPrimary,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium
-                    ) 
-                },
-                onClick = {
-                    showMenu = false
-                    onComplete()
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Complete",
-                        tint = Color(0xFF22C55E)
-                    )
-                }
-            )
-            DropdownMenuItem(
-                text = { 
+                text = {
                     Text(
                         "Delete",
                         color = Color(0xFFEF4444),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Medium
-                    ) 
+                    )
                 },
                 onClick = {
                     showMenu = false
