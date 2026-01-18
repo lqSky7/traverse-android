@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Monochrome version for themed icons (Android 13+) -->
+    <!-- Traverse asterisk logo -->
+    
+    <group
+        android:pivotX="54"
+        android:pivotY="54">
+        
+        <!-- Horizontal bar -->
+        <path
+            android:fillColor="#000000"
+            android:pathData="M30,50 L78,50 L78,58 L30,58 Z" />
+        
+        <!-- Diagonal line going up-left -->
+        <path
+            android:fillColor="#000000"
+            android:pathData="M50,54 L54,50 L38,30 L32,36 Z" />
+        
+        <!-- Diagonal line going up-right -->
+        <path
+            android:fillColor="#000000"
+            android:pathData="M58,50 L54,54 L76,36 L70,30 Z" />
+        
+        <!-- Vertical line going down -->
+        <path
+            android:fillColor="#000000"
+            android:pathData="M50,54 L58,54 L58,78 L50,78 Z" />
+            
+    </group>
+    
+</vector>

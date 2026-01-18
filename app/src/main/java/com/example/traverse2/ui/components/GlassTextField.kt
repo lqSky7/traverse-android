@@ -35,9 +35,6 @@ import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeChild
 import androidx.compose.ui.graphics.Color
 
-/**
- * Glassmorphic text field with animated focus state
- */
 @Composable
 fun GlassTextField(
     value: String,
@@ -67,17 +64,10 @@ fun GlassTextField(
         label = "borderWidth"
     )
     
-    // Animated glow effect
-    val glowAlpha by animateDpAsState(
-        targetValue = if (isFocused) 8.dp else 0.dp,
-        animationSpec = tween(durationMillis = 300),
-        label = "glowAlpha"
-    )
-    
     // Theme-aware glass style for text field
     val textFieldStyle = HazeStyle(
         backgroundColor = if (glassColors.isDark) Color.Black else Color.White,
-        blurRadius = if (glassColors.isDark) 40.dp else 30.dp,
+        blurRadius = 16.dp,
         tint = HazeTint(
             color = if (glassColors.isDark) 
                 Color.White.copy(alpha = 0.1f) 

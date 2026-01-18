@@ -427,7 +427,7 @@ private fun GlassCardContainer(
                 state = hazeState,
                 style = HazeStyle(
                     backgroundColor = cardBackground,
-                    blurRadius = if (glassColors.isDark) 60.dp else 50.dp,
+                    blurRadius = 24.dp,
                     tint = HazeTint(cardTint),
                     noiseFactor = 0.02f
                 )
@@ -497,7 +497,7 @@ private fun StreakCard(streak: Int, hazeState: HazeState, onClick: () -> Unit = 
                 state = hazeState,
                 style = HazeStyle(
                     backgroundColor = Color(0xFFE91E8C),
-                    blurRadius = 40.dp,
+                    blurRadius = 20.dp,
                     tint = HazeTint(Color(0x40E91E8C)),
                     noiseFactor = 0.02f
                 )
@@ -1191,7 +1191,7 @@ private fun ProblemsSummaryCard(
                 state = hazeState,
                 style = HazeStyle(
                     backgroundColor = cardBackground,
-                    blurRadius = if (glassColors.isDark) 60.dp else 50.dp,
+                    blurRadius = 24.dp,
                     tint = HazeTint(cardTint),
                     noiseFactor = 0.02f
                 )

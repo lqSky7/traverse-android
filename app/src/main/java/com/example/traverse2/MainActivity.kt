@@ -27,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
@@ -138,9 +137,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun calculateHoursRemaining(lastSolveTimeStr: String): Int {
         return try {
-            val lastSolveTime = ZonedDateTime.parse(lastSolveTimeStr)
             val now = ZonedDateTime.now()
             val endOfDay = now.toLocalDate().plusDays(1).atStartOfDay(now.zone)
             val hoursUntilMidnight = ChronoUnit.HOURS.between(now, endOfDay).toInt()
@@ -266,13 +265,5 @@ fun TraverseApp(onLoginSuccess: () -> Unit = {}) {
                 }
             )
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun TraverseAppPreview() {
-    TraverseTheme {
-        TraverseApp()
     }
 }

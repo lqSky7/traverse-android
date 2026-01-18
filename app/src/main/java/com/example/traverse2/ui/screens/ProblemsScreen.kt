@@ -293,7 +293,7 @@ private fun GlassCard(
                 state = hazeState,
                 style = HazeStyle(
                     backgroundColor = cardBackground,
-                    blurRadius = if (glassColors.isDark) 60.dp else 50.dp,
+                    blurRadius = 24.dp,
                     tint = HazeTint(cardTint),
                     noiseFactor = 0.02f
                 )

@@ -90,8 +90,6 @@ fun LoginScreen(
     )
 ) {
     val hazeState = remember { HazeState() }
-    val glassColors = TraverseTheme.glassColors
-    val focusManager = LocalFocusManager.current
     
     // Screen navigation state
     var currentScreen by remember { mutableStateOf(AuthScreen.WELCOME) }
@@ -175,7 +173,7 @@ fun LoginScreen(
                         viewModel.clearError()
                         currentScreen = AuthScreen.WELCOME 
                     },
-                    onForgotPassword = { /* TODO */ },
+                    onForgotPassword = { },
                     onCreateAccount = {
                         viewModel.clearError()
                         currentScreen = AuthScreen.REGISTER

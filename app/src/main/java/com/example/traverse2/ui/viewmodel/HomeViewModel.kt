@@ -9,11 +9,13 @@ import com.example.traverse2.data.api.SolveStats
 import com.example.traverse2.data.api.SubmissionStats
 import com.example.traverse2.data.model.User
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -43,93 +45,96 @@ class HomeViewModel : ViewModel() {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             
             try {
-                // Fetch user data
-                val userResponse = RetrofitClient.api.getCurrentUser()
-                if (!userResponse.isSuccessful) {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = "Failed to load user data"
-                    )
-                    return@launch
-                }
-                val user = userResponse.body()!!.user
-                
-                // Fetch solve stats
-                val solveStatsResponse = RetrofitClient.api.getSolveStats()
-                val solveStats = if (solveStatsResponse.isSuccessful) {
-                    solveStatsResponse.body()?.stats
-                } else null
-                
-                // Fetch submission stats
-                val submissionStatsResponse = RetrofitClient.api.getSubmissionStats()
-                val submissionStats = if (submissionStatsResponse.isSuccessful) {
-                    submissionStatsResponse.body()?.stats
-                } else null
-                
-                // Fetch recent solves (limit 4)
-                val recentSolvesResponse = RetrofitClient.api.getMySolves(limit = 4, offset = 0)
-                val recentSolves = if (recentSolvesResponse.isSuccessful) {
-                    recentSolvesResponse.body()?.solves ?: emptyList()
-                } else emptyList()
-
-                // Fetch both solves and completed revisions for calendar (last 35 days)
-                // Using coroutineScope for parallel fetching
-                val (solveDates, revisionDates) = coroutineScope {
-                    val solvesDeferred = async {
-                        val response = RetrofitClient.api.getMySolves(limit = 100, offset = 0)
-                        if (response.isSuccessful) {
-                            val solves = response.body()?.solves ?: emptyList()
-                            solves.mapNotNull { solve ->
-                                try {
-                                    val instant = Instant.parse(solve.solvedAt)
-                                    instant.atZone(ZoneId.systemDefault()).toLocalDate()
-                                } catch (e: Exception) {
-                                    null
-                                }
-                            }.toSet()
-                        } else emptySet()
+                // Fetch all data in parallel using supervisorScope
+                // This allows individual failures without canceling other requests
+                supervisorScope {
+                    // Critical: User data (required)
+                    val userDeferred = async { RetrofitClient.api.getCurrentUser() }
+                    
+                    // Non-critical: Stats and other data (can fail gracefully)
+                    val solveStatsDeferred = async { 
+                        runCatching { RetrofitClient.api.getSolveStats() }.getOrNull() 
+                    }
+                    val submissionStatsDeferred = async { 
+                        runCatching { RetrofitClient.api.getSubmissionStats() }.getOrNull() 
+                    }
+                    val recentSolvesDeferred = async { 
+                        runCatching { RetrofitClient.api.getMySolves(limit = 4, offset = 0) }.getOrNull() 
+                    }
+                    val achievementsDeferred = async { 
+                        runCatching { RetrofitClient.api.getAchievements() }.getOrNull() 
                     }
                     
-                    val revisionsDeferred = async {
-                        // Fetch completed revisions
-                        val response = RetrofitClient.api.getRevisionsGrouped(includeCompleted = true)
-                        if (response.isSuccessful) {
-                            val groups = response.body()?.groups ?: emptyList()
-                            groups.flatMap { it.revisions }
-                                .filter { it.completedAt != null }
-                                .mapNotNull { revision ->
+                    // Calendar data (parallel fetch for solves and revisions)
+                    val calendarSolvesDeferred = async {
+                        runCatching {
+                            val response = RetrofitClient.api.getMySolves(limit = 100, offset = 0)
+                            if (response.isSuccessful) {
+                                response.body()?.solves?.mapNotNull { solve ->
                                     try {
-                                        val instant = Instant.parse(revision.completedAt!!)
-                                        instant.atZone(ZoneId.systemDefault()).toLocalDate()
-                                    } catch (e: Exception) {
-                                        null
-                                    }
-                                }.toSet()
-                        } else emptySet()
+                                        Instant.parse(solve.solvedAt)
+                                            .atZone(ZoneId.systemDefault())
+                                            .toLocalDate()
+                                    } catch (e: Exception) { null }
+                                }?.toSet() ?: emptySet()
+                            } else emptySet()
+                        }.getOrDefault(emptySet())
                     }
                     
-                    solvesDeferred.await() to revisionsDeferred.await()
+                    val calendarRevisionsDeferred = async {
+                        runCatching {
+                            val response = RetrofitClient.api.getRevisionsGrouped(includeCompleted = true)
+                            if (response.isSuccessful) {
+                                response.body()?.groups?.flatMap { it.revisions }
+                                    ?.filter { it.completedAt != null }
+                                    ?.mapNotNull { revision ->
+                                        try {
+                                            Instant.parse(revision.completedAt!!)
+                                                .atZone(ZoneId.systemDefault())
+                                                .toLocalDate()
+                                        } catch (e: Exception) { null }
+                                    }?.toSet() ?: emptySet()
+                            } else emptySet()
+                        }.getOrDefault(emptySet())
+                    }
+                    
+                    // Await user data first (critical)
+                    val userResponse = userDeferred.await()
+                    if (!userResponse.isSuccessful) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = "Failed to load user data"
+                        )
+                        return@supervisorScope
+                    }
+                    val user = userResponse.body()!!.user
+                    
+                    // Await all other results (already running in parallel)
+                    val solveStatsResponse = solveStatsDeferred.await()
+                    val submissionStatsResponse = submissionStatsDeferred.await()
+                    val recentSolvesResponse = recentSolvesDeferred.await()
+                    val achievementsResponse = achievementsDeferred.await()
+                    val solveDates = calendarSolvesDeferred.await()
+                    val revisionDates = calendarRevisionsDeferred.await()
+                    
+                    // Extract data with null-safety
+                    val solveStats = solveStatsResponse?.body()?.stats
+                    val submissionStats = submissionStatsResponse?.body()?.stats
+                    val recentSolves = recentSolvesResponse?.body()?.solves ?: emptyList()
+                    val achievements = achievementsResponse?.body()?.achievements ?: emptyList()
+                    val calendarSolveDates = solveDates + revisionDates
+                    
+                    _uiState.value = HomeUiState(
+                        isLoading = false,
+                        error = null,
+                        user = user,
+                        solveStats = solveStats,
+                        submissionStats = submissionStats,
+                        recentSolves = recentSolves,
+                        achievements = achievements,
+                        calendarSolveDates = calendarSolveDates
+                    )
                 }
-                
-                // Combine both solve dates and revision completion dates
-                val calendarSolveDates = solveDates + revisionDates
-                
-                // Fetch achievements
-                val achievementsResponse = RetrofitClient.api.getAchievements()
-                val achievements = if (achievementsResponse.isSuccessful) {
-                    achievementsResponse.body()?.achievements ?: emptyList()
-                } else emptyList()
-                
-                _uiState.value = HomeUiState(
-                    isLoading = false,
-                    error = null,
-                    user = user,
-                    solveStats = solveStats,
-                    submissionStats = submissionStats,
-                    recentSolves = recentSolves,
-                    achievements = achievements,
-                    calendarSolveDates = calendarSolveDates
-                )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,

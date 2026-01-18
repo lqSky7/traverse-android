@@ -29,7 +29,7 @@ fun GlassCard(
     
     val glassStyle = HazeStyle(
         backgroundColor = if (glassColors.isDark) Color.Black else Color.White,
-        blurRadius = if (glassColors.isDark) 50.dp else 40.dp,
+        blurRadius = 20.dp,
         tint = HazeTint(
             color = if (glassColors.isDark) 
                 Color.White.copy(alpha = 0.12f) 

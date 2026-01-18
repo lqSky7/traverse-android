@@ -2,6 +2,7 @@ package com.example.traverse2.data.api
 
 import com.example.traverse2.data.model.AuthResponse
 import com.example.traverse2.data.model.LoginRequest
+import com.example.traverse2.data.model.MessageResponse
 import com.example.traverse2.data.model.RegisterRequest
 import com.example.traverse2.data.model.User
 import com.example.traverse2.data.model.UserProfile
@@ -635,11 +636,6 @@ data class UpdateProfileResponse(
 data class ChangePasswordRequest(
     val currentPassword: String,
     val newPassword: String
-)
-
-@kotlinx.serialization.Serializable
-data class MessageResponse(
-    val message: String
 )
 
 @kotlinx.serialization.Serializable

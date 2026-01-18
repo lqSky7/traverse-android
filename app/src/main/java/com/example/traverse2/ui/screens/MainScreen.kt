@@ -34,6 +34,7 @@ import com.example.traverse2.ui.components.NavItem
 import com.example.traverse2.ui.theme.TraverseTheme
 import com.example.traverse2.ui.viewmodel.FriendsViewModel
 import com.example.traverse2.ui.viewmodel.HomeViewModel
+import com.example.traverse2.ui.viewmodel.RevisionsViewModel
 import dev.chrisbanes.haze.HazeState
 
 // Sub-screens that can be navigated to from main tabs
@@ -61,6 +62,9 @@ fun MainScreen(
     // Shared FriendsViewModel for friends data
     val friendsViewModel: FriendsViewModel = viewModel()
     val friendsUiState by friendsViewModel.uiState.collectAsState()
+    
+    // Shared RevisionsViewModel to prevent recreation on tab switches
+    val revisionsViewModel: RevisionsViewModel = viewModel()
 
     // Temporary state for passing data to sub-screens
     var streakData by remember { mutableStateOf<StreakData?>(null) }
@@ -116,7 +120,7 @@ fun MainScreen(
                         hazeState = hazeState,
                         user = homeUiState.user,
                         onBack = { currentSubScreen = SubScreen.None },
-                        onProfileUpdated = { updatedUser ->
+                        onProfileUpdated = {
                             homeViewModel.refresh()
                         }
                     )
@@ -148,17 +152,15 @@ fun MainScreen(
                                         currentSubScreen = SubScreen.Streak
                                     },
                                     onAchievementsDataReady = { data ->
-                                        try {
-                                            achievementsData = data
-                                            currentSubScreen = SubScreen.Achievements
-                                        } catch (e: Exception) {
-                                            e.printStackTrace()
-                                            android.util.Log.e("MainScreen", "Error navigating to achievements: ${e.message}")
-                                        }
+                                        achievementsData = data
+                                        currentSubScreen = SubScreen.Achievements
                                     },
                                     viewModel = homeViewModel
                                 )
-                                NavItem.REVISIONS -> RevisionsScreen(hazeState = hazeState)
+                                NavItem.REVISIONS -> RevisionsScreen(
+                                    hazeState = hazeState,
+                                    viewModel = revisionsViewModel
+                                )
                                 NavItem.FRIENDS -> FriendsScreen(
                                     hazeState = hazeState,
                                     onFriendClick = { friend ->

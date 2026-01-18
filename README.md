@@ -1,32 +1,25 @@
 # Traverse
 
-Updated UI implementation. In development. README will be updated soon.
+An Android app that turns DSA practice into a daily habit. Track your coding streaks, compete with friends, and level up your problem-solving skills. Built for the Traverse Ecosystem (see leet-feedback.vercel.app for more details).
 
-## New Features
+## Features
 
-- **Glassmorphic UI** - glass effects using Haze library (lag will be patched in future updates)
-- **Dual Theme Support** - Light (pink) and Dark (black/white) themes
+- **Streak Tracking** - Keep your coding streak alive with daily reminders
+- **XP System** - Earn XP for every problem you solve
+- **Friends & Leaderboards** - Add friends and see who's grinding the hardest
+- **LSTM** - ML-powered revision scheduling to help you remember what you've learned
+- **Multi-Platform** - Works with LeetCode, HackerRank (and more upcoming)
+- **Achievements** - Unlock badges as you hit milestones
 
-## Setup (for now, apk release soon.)
+## Tech Stack
 
-1. Clone the repository
-2. Open in Android Studio
-3. Sync Gradle files
-4. Run on device/emulator (API 24+)
+- Kotlin + Jetpack Compose
+- Material 3 Design
+- Haze (glass effects)
+- Retrofit + OkHttp
+- DataStore for local persistence
 
-## Building
 
-```bash
-./gradlew assembleDebug
+## Backend
 
-./gradlew installDebug
-
-./gradlew clean
-
-```
-
-## Roadmap (undone)
-
-- [ ] Friends
-- [ ] Settings
-- [ ] UI/UX upgrades
+This app works on an Express.js + Prisma + PostgreSQL API.

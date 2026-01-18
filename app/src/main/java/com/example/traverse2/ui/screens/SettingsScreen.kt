@@ -185,7 +185,7 @@ private fun GlassCard(
                 state = hazeState,
                 style = HazeStyle(
                     backgroundColor = cardBackground,
-                    blurRadius = if (glassColors.isDark) 60.dp else 50.dp,
+                    blurRadius = 24.dp,
                     tint = HazeTint(cardTint),
                     noiseFactor = 0.02f
                 )
@@ -421,15 +421,6 @@ private fun ThemeOptionCard(
         label = "borderColor"
     )
     
-    val elevation by animateDpAsState(
-        targetValue = if (isSelected) 8.dp else 0.dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "elevation"
-    )
-    
     Box(
         modifier = modifier
             .scale(scale)
@@ -591,7 +582,7 @@ private fun DeleteAccountCard(
                 state = hazeState,
                 style = HazeStyle(
                     backgroundColor = cardBackground,
-                    blurRadius = if (glassColors.isDark) 60.dp else 50.dp,
+                    blurRadius = 24.dp,
                     tint = HazeTint(cardTint),
                     noiseFactor = 0.02f
                 )
@@ -602,7 +593,7 @@ private fun DeleteAccountCard(
                 color = dangerColor.copy(alpha = 0.3f),
                 shape = RoundedCornerShape(20.dp)
             )
-            .clickable { /* TODO: Show delete confirmation */ }
+            .clickable { }
             .padding(16.dp)
     ) {
         Row(
@@ -661,7 +652,7 @@ private fun ContactUsCard(
                 state = hazeState,
                 style = HazeStyle(
                     backgroundColor = cardBackground,
-                    blurRadius = if (glassColors.isDark) 60.dp else 50.dp,
+                    blurRadius = 24.dp,
                     tint = HazeTint(cardTint),
                     noiseFactor = 0.02f
                 )

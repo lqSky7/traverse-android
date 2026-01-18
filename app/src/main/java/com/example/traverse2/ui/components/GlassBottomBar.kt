@@ -74,7 +74,7 @@ fun GlassBottomBar(
     // Theme-aware glass style for bottom bar - extra strong blur
     val bottomBarStyle = HazeStyle(
         backgroundColor = if (glassColors.isDark) Color.Black else Color.White,
-        blurRadius = 50.dp,
+        blurRadius = 20.dp,
         tint = HazeTint(
             color = if (glassColors.isDark) 
                 Color.White.copy(alpha = 0.12f)

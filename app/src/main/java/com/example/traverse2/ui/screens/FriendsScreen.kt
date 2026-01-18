@@ -258,7 +258,7 @@ private fun GlassTabRow(
                 state = hazeState,
                 style = HazeStyle(
                     backgroundColor = if (glassColors.isDark) Color.Black else Color.White,
-                    blurRadius = 40.dp,
+                    blurRadius = 20.dp,
                     tint = HazeTint(if (glassColors.isDark) Color(0x30000000) else Color(0x30FFFFFF)),
                     noiseFactor = 0.02f
                 )
@@ -415,7 +415,7 @@ private fun FriendCard(
                 state = hazeState,
                 style = HazeStyle(
                     backgroundColor = cardBackground,
-                    blurRadius = if (glassColors.isDark) 60.dp else 50.dp,
+                    blurRadius = 24.dp,
                     tint = HazeTint(cardTint),
                     noiseFactor = 0.02f
                 )
@@ -643,7 +643,7 @@ private fun RequestCard(
                 state = hazeState,
                 style = HazeStyle(
                     backgroundColor = cardBackground,
-                    blurRadius = if (glassColors.isDark) 60.dp else 50.dp,
+                    blurRadius = 24.dp,
                     tint = HazeTint(cardTint),
                     noiseFactor = 0.02f
                 )
@@ -874,7 +874,7 @@ private fun FriendStreakCard(
                 state = hazeState,
                 style = HazeStyle(
                     backgroundColor = cardBackground,
-                    blurRadius = if (glassColors.isDark) 60.dp else 50.dp,
+                    blurRadius = 24.dp,
                     tint = HazeTint(cardTint),
                     noiseFactor = 0.02f
                 )
@@ -979,7 +979,7 @@ private fun AddFriendDialog(
                     state = hazeState,
                     style = HazeStyle(
                         backgroundColor = if (glassColors.isDark) Color.Black else Color.White,
-                        blurRadius = 60.dp,
+                        blurRadius = 24.dp,
                         tint = HazeTint(if (glassColors.isDark) Color(0x40000000) else Color(0x40FFFFFF)),
                         noiseFactor = 0.02f
                     )

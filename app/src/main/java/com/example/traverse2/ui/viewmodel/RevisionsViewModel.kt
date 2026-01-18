@@ -7,10 +7,12 @@ import com.example.traverse2.data.api.RevisionAttemptRequest
 import com.example.traverse2.data.api.RevisionGroup
 import com.example.traverse2.data.api.RevisionItem
 import com.example.traverse2.data.api.RevisionStatsResponse
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 
 data class RevisionsUiState(
     val isLoading: Boolean = true,
@@ -53,37 +55,51 @@ class RevisionsViewModel : ViewModel() {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             
             try {
-                // Fetch normal revisions
-                val normalStatsResponse = RetrofitClient.api.getRevisionStats(type = "normal")
-                val normalGroupedResponse = RetrofitClient.api.getRevisionsGrouped(includeCompleted = false, type = "normal")
-                
-                // Try to fetch ML revisions (may fail if no subscription)
-                val mlStatsResponse = RetrofitClient.api.getRevisionStats(type = "ml")
-                val mlGroupedResponse = RetrofitClient.api.getRevisionsGrouped(includeCompleted = false, type = "ml")
-                
-                val hasMLAccess = mlStatsResponse.isSuccessful && mlGroupedResponse.isSuccessful
-                
-                if (normalStatsResponse.isSuccessful && normalGroupedResponse.isSuccessful) {
-                    _uiState.value = RevisionsUiState(
-                        isLoading = false,
-                        normalStats = normalStatsResponse.body(),
-                        normalGroups = normalGroupedResponse.body()?.groups ?: emptyList(),
-                        mlStats = if (hasMLAccess) mlStatsResponse.body() else null,
-                        mlGroups = if (hasMLAccess) mlGroupedResponse.body()?.groups ?: emptyList() else emptyList(),
-                        hasMLAccess = hasMLAccess,
-                        currentTab = _uiState.value.currentTab,
-                        error = null
-                    )
-                } else {
-                    _uiState.value = RevisionsUiState(
-                        isLoading = false,
-                        normalStats = null,
-                        normalGroups = emptyList(),
-                        mlStats = null,
-                        mlGroups = emptyList(),
-                        hasMLAccess = false,
-                        error = "Failed to load revisions: ${normalStatsResponse.message()}"
-                    )
+                // Fetch all revision data in parallel
+                supervisorScope {
+                    val normalStatsDeferred = async { 
+                        runCatching { RetrofitClient.api.getRevisionStats(type = "normal") }.getOrNull() 
+                    }
+                    val normalGroupedDeferred = async { 
+                        runCatching { RetrofitClient.api.getRevisionsGrouped(includeCompleted = false, type = "normal") }.getOrNull() 
+                    }
+                    val mlStatsDeferred = async { 
+                        runCatching { RetrofitClient.api.getRevisionStats(type = "ml") }.getOrNull() 
+                    }
+                    val mlGroupedDeferred = async { 
+                        runCatching { RetrofitClient.api.getRevisionsGrouped(includeCompleted = false, type = "ml") }.getOrNull() 
+                    }
+                    
+                    // Await all results
+                    val normalStatsResponse = normalStatsDeferred.await()
+                    val normalGroupedResponse = normalGroupedDeferred.await()
+                    val mlStatsResponse = mlStatsDeferred.await()
+                    val mlGroupedResponse = mlGroupedDeferred.await()
+                    
+                    val hasMLAccess = mlStatsResponse?.isSuccessful == true && mlGroupedResponse?.isSuccessful == true
+                    
+                    if (normalStatsResponse?.isSuccessful == true && normalGroupedResponse?.isSuccessful == true) {
+                        _uiState.value = RevisionsUiState(
+                            isLoading = false,
+                            normalStats = normalStatsResponse.body(),
+                            normalGroups = normalGroupedResponse.body()?.groups ?: emptyList(),
+                            mlStats = if (hasMLAccess) mlStatsResponse?.body() else null,
+                            mlGroups = if (hasMLAccess) mlGroupedResponse?.body()?.groups ?: emptyList() else emptyList(),
+                            hasMLAccess = hasMLAccess,
+                            currentTab = _uiState.value.currentTab,
+                            error = null
+                        )
+                    } else {
+                        _uiState.value = RevisionsUiState(
+                            isLoading = false,
+                            normalStats = null,
+                            normalGroups = emptyList(),
+                            mlStats = null,
+                            mlGroups = emptyList(),
+                            hasMLAccess = false,
+                            error = "Failed to load revisions"
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.value = RevisionsUiState(

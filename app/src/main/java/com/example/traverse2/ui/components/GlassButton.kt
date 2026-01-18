@@ -34,9 +34,6 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeChild
 
-/**
- * Glassmorphic button with press animation and loading state
- */
 @Composable
 fun GlassButton(
     text: String,
@@ -55,7 +52,7 @@ fun GlassButton(
     // Theme-aware glass style for button
     val buttonGlassStyle = HazeStyle(
         backgroundColor = if (glassColors.isDark) Color.Black else Color.White,
-        blurRadius = if (glassColors.isDark) 40.dp else 30.dp,
+        blurRadius = 16.dp,
         tint = HazeTint(
             color = if (glassColors.isDark) 
                 Color.White.copy(alpha = 0.12f) 
@@ -158,9 +155,6 @@ fun GlassButton(
     }
 }
 
-/**
- * Text button variant for secondary actions
- */
 @Composable
 fun GlassTextButton(
     text: String,

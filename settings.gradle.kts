@@ -21,4 +21,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "Traverse 2"
 include(":app")
- 
