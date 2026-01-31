@@ -62,6 +62,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import com.example.traverse2.data.api.Solve
 import com.example.traverse2.ui.components.GlassTopBar
 import com.example.traverse2.ui.theme.GlassColors
@@ -79,6 +82,7 @@ private val CATEGORY_NAMES = listOf(
     "Stack", "Queue", "Heap", "HashMap", "Math"
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProblemsScreen(
     hazeState: HazeState,
@@ -88,6 +92,7 @@ fun ProblemsScreen(
     val glassColors = TraverseTheme.glassColors
     val scrollState = rememberScrollState()
     val uiState by viewModel.uiState.collectAsState()
+    val pullToRefreshState = rememberPullToRefreshState()
     
     val progressColor = if (glassColors.isDark) Color.White else Color(0xFFE91E8C)
     val trackColor = if (glassColors.isDark) Color(0x30FFFFFF) else Color(0x30E91E8C)
@@ -123,13 +128,19 @@ fun ProblemsScreen(
                 val totalProblems = uiState.totalProblems.coerceAtLeast(problemsCompleted)
                 val percentage = if (totalProblems > 0) (problemsCompleted.toFloat() / totalProblems * 100).toInt() else 0
                 
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(scrollState)
-                        .padding(horizontal = 20.dp)
-                        .padding(top = 100.dp, bottom = 120.dp)
+                PullToRefreshBox(
+                    isRefreshing = uiState.isLoading,
+                    onRefresh = { viewModel.refresh() },
+                    state = pullToRefreshState,
+                    modifier = Modifier.fillMaxSize()
                 ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(scrollState)
+                            .padding(horizontal = 20.dp)
+                            .padding(top = 100.dp, bottom = 120.dp)
+                    ) {
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     // Stats Card
@@ -591,6 +602,10 @@ private fun SolveListItem(
                                 lineHeight = 18.sp
                             )
                         }
+                    }
+                }
+            }
+        }
                     }
                 }
             }

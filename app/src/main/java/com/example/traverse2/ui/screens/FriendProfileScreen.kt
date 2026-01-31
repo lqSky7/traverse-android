@@ -52,6 +52,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import com.example.traverse2.data.api.FriendAchievementItem
 import com.example.traverse2.data.api.FriendItem
 import com.example.traverse2.data.api.FriendSolveItem
@@ -66,6 +69,7 @@ import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeChild
 import kotlinx.coroutines.delay
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FriendProfileScreen(
     friend: FriendItem,
@@ -76,6 +80,7 @@ fun FriendProfileScreen(
     val glassColors = TraverseTheme.glassColors
     val scrollState = rememberScrollState()
     val profileState by viewModel.friendProfileState.collectAsState()
+    val pullToRefreshState = rememberPullToRefreshState()
 
     var isVisible by remember { mutableStateOf(false) }
 
@@ -105,13 +110,19 @@ fun FriendProfileScreen(
                 )
             }
         } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 20.dp)
-                    .padding(top = 100.dp, bottom = 120.dp)
+            PullToRefreshBox(
+                isRefreshing = profileState.isLoading,
+                onRefresh = { viewModel.loadFriendProfile(friend.username) },
+                state = pullToRefreshState,
+                modifier = Modifier.fillMaxSize()
             ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                        .padding(horizontal = 20.dp)
+                        .padding(top = 100.dp, bottom = 120.dp)
+                ) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Profile Header Card
@@ -158,6 +169,7 @@ fun FriendProfileScreen(
                             glassColors = glassColors
                         )
                     }
+                }
                 }
             }
         }

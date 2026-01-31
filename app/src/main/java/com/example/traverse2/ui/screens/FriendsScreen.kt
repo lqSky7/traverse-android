@@ -65,6 +65,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import com.example.traverse2.data.api.FriendItem
 import com.example.traverse2.data.api.FriendStreakItem
 import com.example.traverse2.data.api.ReceivedFriendRequest
@@ -81,6 +84,7 @@ import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeChild
 import kotlinx.coroutines.delay
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FriendsScreen(
     hazeState: HazeState,
@@ -89,6 +93,7 @@ fun FriendsScreen(
 ) {
     val glassColors = TraverseTheme.glassColors
     val uiState by viewModel.uiState.collectAsState()
+    val pullToRefreshState = rememberPullToRefreshState()
 
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("Friends", "Requests", "Streaks")
@@ -97,11 +102,17 @@ fun FriendsScreen(
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { isVisible = true }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = 60.dp)
+    PullToRefreshBox(
+        isRefreshing = uiState.isLoading,
+        onRefresh = { viewModel.refresh() },
+        state = pullToRefreshState,
+        modifier = Modifier.fillMaxSize()
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 60.dp)
+        ) {
         // Header
         Row(
             modifier = Modifier
@@ -217,6 +228,7 @@ fun FriendsScreen(
                     isVisible = isVisible
                 )
             }
+        }
         }
     }
 

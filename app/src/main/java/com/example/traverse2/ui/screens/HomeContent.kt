@@ -78,6 +78,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import com.example.traverse2.ui.theme.GlassColors
 import com.example.traverse2.ui.theme.TraverseTheme
 import com.example.traverse2.ui.viewmodel.HomeViewModel
@@ -101,6 +104,7 @@ data class AchievementData(val name: String, val description: String, val icon: 
 data class ProblemItem(val name: String, val platform: String, val difficulty: String, val solved: Boolean)
 data class StreakData(val currentStreak: Int, val longestStreak: Int, val totalActiveDays: Int, val averagePerWeek: Float, val streakDays: List<StreakDay> = emptyList())
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeContent(
     hazeState: HazeState,
@@ -115,6 +119,7 @@ fun HomeContent(
     val glassColors = TraverseTheme.glassColors
     val scrollState = rememberScrollState()
     val uiState by viewModel.uiState.collectAsState()
+    val pullToRefreshState = rememberPullToRefreshState()
     
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { isVisible = true }
@@ -222,13 +227,19 @@ fun HomeContent(
     val problemsCompleted = solveStats?.totalSolves ?: 0
     val totalProblems = 100 // Mock value
     
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(horizontal = 20.dp)
-            .padding(top = 60.dp, bottom = 120.dp)
+    PullToRefreshBox(
+        isRefreshing = uiState.isLoading,
+        onRefresh = { viewModel.refresh() },
+        state = pullToRefreshState,
+        modifier = Modifier.fillMaxSize()
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 20.dp)
+                .padding(top = 60.dp, bottom = 120.dp)
+        ) {
         AnimatedVisibility(
             visible = isVisible,
             enter = fadeIn(tween(300)) + slideInVertically(tween(300)) { -20 }
@@ -365,6 +376,7 @@ fun HomeContent(
                     onAchievementsDataReady(emptyList())
                 }
             }
+        }
         }
     }
 }

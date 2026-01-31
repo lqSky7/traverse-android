@@ -85,10 +85,10 @@ object RetrofitClient {
     private val offlineCacheInterceptor = Interceptor { chain ->
         var request = chain.request()
         
-        // If offline, try to use cached response (up to 7 days old)
+        // If offline, try to use cached response (up to 10 days old)
         if (!isNetworkAvailable) {
             val cacheControl = CacheControl.Builder()
-                .maxStale(7, TimeUnit.DAYS)
+                .maxStale(10, TimeUnit.DAYS)
                 .build()
             request = request.newBuilder()
                 .cacheControl(cacheControl)

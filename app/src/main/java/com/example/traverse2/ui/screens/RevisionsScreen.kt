@@ -68,6 +68,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import com.example.traverse2.R
 import com.example.traverse2.data.api.RevisionGroup
 import com.example.traverse2.data.api.RevisionItem
@@ -83,6 +86,7 @@ import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RevisionsScreen(
     hazeState: HazeState,
@@ -91,6 +95,7 @@ fun RevisionsScreen(
     val glassColors = TraverseTheme.glassColors
     val scrollState = rememberScrollState()
     val uiState by viewModel.uiState.collectAsState()
+    val pullToRefreshState = rememberPullToRefreshState()
     
     val currentStats = when (uiState.currentTab) {
         RevisionType.NORMAL -> uiState.normalStats
@@ -103,14 +108,20 @@ fun RevisionsScreen(
     }
     
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(horizontal = 20.dp)
-                .padding(top = 60.dp, bottom = 120.dp)
-                .blur(if (uiState.showPaywall) 8.dp else 0.dp)
+        PullToRefreshBox(
+            isRefreshing = uiState.isLoading,
+            onRefresh = { viewModel.loadRevisions() },
+            state = pullToRefreshState,
+            modifier = Modifier.fillMaxSize()
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 60.dp, bottom = 120.dp)
+                    .blur(if (uiState.showPaywall) 8.dp else 0.dp)
+            ) {
         // Header with refresh button
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -261,6 +272,7 @@ fun RevisionsScreen(
                 }
             }
         }
+            }
         }
         
         // Paywall overlay
