@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Traverse 2"
+rootProject.name = "TraverseAndroid"
 include(":app")

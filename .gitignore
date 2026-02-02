@@ -1,5 +1,6 @@
 # Built application files
 *.apk
+*.aar
 *.ap_
 *.aab
 
@@ -13,59 +14,69 @@
 bin/
 gen/
 out/
+release/
 
 # Gradle files
 .gradle/
 build/
-.kotlin/
 
 # Local configuration file
 local.properties
 
+# Proguard folder
+proguard/
+
+# Log Files
+*.log
+
 # Android Studio
 *.iml
-.idea/caches/
-.idea/libraries/
-.idea/modules.xml
-.idea/workspace.xml
-.idea/navEditor.xml
-.idea/assetWizardSettings.xml
-.idea/gradle.xml
-.idea/jarRepositories.xml
-.idea/misc.xml
-.idea/deploymentTargetSelector.xml
-.idea/runConfigurations.xml
-.idea/appInsightsSettings.xml
-.idea/other.xml
-.idea/migrations.xml
-.idea/kotlinc.xml
-.idea/compiler.xml
-.idea/deviceManager.xml
-.idea/AndroidProjectSystem.xml
+.idea/
+*.ipr
+*.iws
 
-# OS files
+# OS-generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# Captures
-/captures
+# Kotlin
+*.kotlin_module
+.kotlin/
 
-# External native build
-.externalNativeBuild/
-.cxx/
-
-# NDK
-obj/
-
-# Keystore files
+# Signing
 *.jks
 *.keystore
 
-# Google Services (if contains secrets)
-# google-services.json
+# Heap dumps and profiling
+*.hprof
+*.heap
+java_pid*.hprof
 
-# Proguard
-proguard/
+# Large binary files (but keep res/raw assets)
+*.mov
+*.avi
+*.mkv
+*.zip
+*.tar
+*.tar.gz
+*.rar
 
-# Log files
-*.log
+# Crash logs
+crash-*.txt
+hs_err_pid*.log
+
+# NDK
+*.so
+obj/
+
+# Captures
+captures/
+
+# External native build folder
+.externalNativeBuild/
+.cxx/

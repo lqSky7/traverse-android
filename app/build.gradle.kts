@@ -6,26 +6,22 @@ plugins {
 }
 
 android {
-    namespace = "com.example.traverse2"
+    namespace = "com.traverse.android"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.traverse2"
+        applicationId = "com.traverse.android"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        
-        // Backend API URL
-        buildConfigField("String", "API_BASE_URL", "\"https://traverse-backend-api.azurewebsites.net/api/\"")
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -46,51 +42,45 @@ android {
 }
 
 dependencies {
-
+    // Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
+
+    // Compose
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    
-    // Extended Icons
     implementation(libs.androidx.compose.material.icons.extended)
-    
-    // Cool UI Libraries
-    implementation(libs.haze)
-    implementation(libs.haze.materials)
-    implementation(libs.lottie.compose)
-    implementation(libs.shimmer)
-    
+
     // Navigation
     implementation(libs.androidx.navigation.compose)
-    
-    // ViewModel
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
-    
-    // Serialization
-    implementation(libs.kotlinx.serialization.json)
-    
+
     // Networking
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.okhttp)
-    implementation(libs.okhttp.logging)
-    
-    // DataStore
-    implementation(libs.androidx.datastore.preferences)
-    
-    // Charts - Vico
-    implementation(libs.vico.compose)
-    implementation(libs.vico.compose.m3)
-    implementation(libs.vico.core)
-    
-    // Image Loading - Coil
+    implementation(libs.okhttp.logging.interceptor)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.coroutines.android)
+
+    // Security (for encrypted token storage)
+    implementation(libs.androidx.security.crypto)
+
+    // Image Loading
     implementation(libs.coil.compose)
-    
+
+    // Video/Media
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.ui)
+
+    // Charts
+
+
+    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
