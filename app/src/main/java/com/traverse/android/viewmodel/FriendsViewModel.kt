@@ -19,6 +19,8 @@ data class FriendsUiState(
     val receivedRequests: List<FriendRequest> = emptyList(),
     val sentRequests: List<FriendRequest> = emptyList(),
     val isFromCache: Boolean = false,
+    // Current user (self)
+    val currentUser: com.traverse.android.data.User? = null,
     // Friend Streaks
     val friendStreaks: List<FriendStreak> = emptyList(),
     val receivedStreakRequests: List<FriendStreakRequest> = emptyList(),
@@ -31,12 +33,33 @@ data class FriendsUiState(
 )
 
 /**
- * Get top 3 friends for leaderboard, sorted by weighted score (streak has more weight)
+ * Get top friends + self for leaderboard, sorted by weighted score (streak has more weight).
+ * Always includes the current user ("You") in the ranking.
  */
 fun FriendsUiState.getLeaderboard(): List<Friend> {
-    return friends
+    val allEntries = friends.toMutableList()
+    currentUser?.let { user ->
+        val selfAsFriend = Friend(
+            friendshipId = "self",
+            friendedAt = null,
+            id = user.id,
+            username = user.username,
+            currentStreak = user.currentStreak,
+            totalXp = user.totalXp,
+            visibility = user.visibility
+        )
+        allEntries.add(selfAsFriend)
+    }
+    return allEntries
         .sortedByDescending { friend -> friend.currentStreak * 10 + friend.totalXp / 100 }
-        .take(3)
+        .take(5)
+}
+
+/**
+ * Check if a friend entry represents the current user
+ */
+fun FriendsUiState.isSelf(friend: Friend): Boolean {
+    return currentUser?.id == friend.id
 }
 
 /**
@@ -113,6 +136,7 @@ class FriendsViewModel(application: Application) : AndroidViewModel(application)
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
         
         try {
+            val currentUserDeferred = viewModelScope.async { networkService.getCurrentUser() }
             val friendsDeferred = viewModelScope.async { networkService.getFriends() }
             val receivedDeferred = viewModelScope.async { networkService.getReceivedFriendRequests() }
             val sentDeferred = viewModelScope.async { networkService.getSentFriendRequests() }
@@ -120,6 +144,7 @@ class FriendsViewModel(application: Application) : AndroidViewModel(application)
             val receivedStreakDeferred = viewModelScope.async { networkService.getReceivedFriendStreakRequests() }
             val sentStreakDeferred = viewModelScope.async { networkService.getSentFriendStreakRequests() }
             
+            val currentUserResult = currentUserDeferred.await()
             val friendsResult = friendsDeferred.await()
             val receivedResult = receivedDeferred.await()
             val sentResult = sentDeferred.await()
@@ -142,6 +167,7 @@ class FriendsViewModel(application: Application) : AndroidViewModel(application)
                 state.copy(
                     isLoading = false,
                     errorMessage = (friendsResult as? NetworkResult.Error)?.message,
+                    currentUser = (currentUserResult as? NetworkResult.Success)?.data,
                     friends = (friendsResult as? NetworkResult.Success)?.data?.friends ?: emptyList(),
                     receivedRequests = (receivedResult as? NetworkResult.Success)?.data?.requests ?: emptyList(),
                     sentRequests = (sentResult as? NetworkResult.Success)?.data?.requests ?: emptyList(),
@@ -165,6 +191,7 @@ class FriendsViewModel(application: Application) : AndroidViewModel(application)
     private fun refreshInBackground() {
         viewModelScope.launch {
             try {
+                val currentUserDeferred = async { networkService.getCurrentUser() }
                 val friendsDeferred = async { networkService.getFriends() }
                 val receivedDeferred = async { networkService.getReceivedFriendRequests() }
                 val sentDeferred = async { networkService.getSentFriendRequests() }
@@ -172,6 +199,7 @@ class FriendsViewModel(application: Application) : AndroidViewModel(application)
                 val receivedStreakDeferred = async { networkService.getReceivedFriendStreakRequests() }
                 val sentStreakDeferred = async { networkService.getSentFriendStreakRequests() }
                 
+                val currentUserResult = currentUserDeferred.await()
                 val friendsResult = friendsDeferred.await()
                 val receivedResult = receivedDeferred.await()
                 val sentResult = sentDeferred.await()
@@ -179,6 +207,9 @@ class FriendsViewModel(application: Application) : AndroidViewModel(application)
                 val receivedStreakResult = receivedStreakDeferred.await()
                 val sentStreakResult = sentStreakDeferred.await()
                 
+                if (currentUserResult is NetworkResult.Success) {
+                    _uiState.update { it.copy(currentUser = currentUserResult.data) }
+                }
                 if (friendsResult is NetworkResult.Success) {
                     cacheManager.cacheFriends(friendsResult.data)
                     _uiState.update { it.copy(friends = friendsResult.data.friends) }

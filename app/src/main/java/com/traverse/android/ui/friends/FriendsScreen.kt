@@ -74,6 +74,7 @@ import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.viewmodel.FriendsViewModel
 import com.traverse.android.viewmodel.getLeaderboard
+import com.traverse.android.viewmodel.isSelf
 import com.traverse.android.viewmodel.getTotalPendingCount
 import com.traverse.android.viewmodel.getFriendStreakCount
 
@@ -291,6 +292,7 @@ private fun FriendsMainContent(
                             item {
                                 LeaderboardCard(
                                     leaderboard = leaderboard,
+                                    uiState = uiState,
                                     onFriendClick = onNavigateToProfile
                                 )
                             }
@@ -352,6 +354,7 @@ private fun FriendsMainContent(
 @Composable
 private fun LeaderboardCard(
     leaderboard: List<Friend>,
+    uiState: com.traverse.android.viewmodel.FriendsUiState,
     onFriendClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -406,10 +409,12 @@ private fun LeaderboardCard(
             // Leaderboard entries
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 leaderboard.forEachIndexed { index, friend ->
+                    val isSelf = uiState.isSelf(friend)
                     LeaderboardRow(
                         rank = index + 1,
                         friend = friend,
-                        onClick = { onFriendClick(friend.username) }
+                        isSelf = isSelf,
+                        onClick = { if (!isSelf) onFriendClick(friend.username) }
                     )
                 }
             }
@@ -421,6 +426,7 @@ private fun LeaderboardCard(
 private fun LeaderboardRow(
     rank: Int,
     friend: Friend,
+    isSelf: Boolean = false,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -431,11 +437,13 @@ private fun LeaderboardRow(
         else -> Color.Gray to Color.Gray.copy(alpha = 0.08f)
     }
 
+    val effectiveBgColor = if (isSelf) AccentPastel.copy(alpha = 0.15f) else bgColor
+
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(bgColor)
+            .background(effectiveBgColor)
             .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -489,16 +497,38 @@ private fun LeaderboardRow(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            Text(
-                text = friend.username,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontFamily = BelfastGroteskBlackFamily,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = friend.username,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontFamily = BelfastGroteskBlackFamily,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (isSelf) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(AccentPastel.copy(alpha = 0.3f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "You",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontFamily = BelfastGroteskBlackFamily,
+                                fontWeight = FontWeight.Bold,
+                                color = AccentPastel
+                            )
+                        )
+                    }
+                }
+            }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -524,23 +554,23 @@ private fun LeaderboardRow(
             }
         }
 
-        // Streak with better styling
-        Column(
-            horizontalAlignment = Alignment.End
+        // Streak with fire icon
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
+            Icon(
+                imageVector = Icons.Default.LocalFireDepartment,
+                contentDescription = null,
+                tint = HardPastel,
+                modifier = Modifier.size(22.dp)
+            )
             Text(
                 text = "${friend.currentStreak}",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontFamily = BelfastGroteskBlackFamily,
                     fontWeight = FontWeight.Black,
                     color = rankColor
-                )
-            )
-            Text(
-                text = "STREAK",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    color = Color.White.copy(alpha = 0.5f),
-                    fontWeight = FontWeight.Bold
                 )
             )
         }
