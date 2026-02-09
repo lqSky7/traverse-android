@@ -503,19 +503,19 @@ private fun LeaderboardRow(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Streak
+                // XP
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.LocalFireDepartment,
+                        imageVector = Icons.Default.Star,
                         contentDescription = null,
-                        tint = HardPastel,
+                        tint = GoldColor,
                         modifier = Modifier.size(14.dp)
                     )
                     Text(
-                        text = "${friend.currentStreak}",
+                        text = "${friend.totalXp}",
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = Color.White.copy(alpha = 0.7f)
                         )
@@ -524,12 +524,12 @@ private fun LeaderboardRow(
             }
         }
 
-        // XP with better styling
+        // Streak with better styling
         Column(
             horizontalAlignment = Alignment.End
         ) {
             Text(
-                text = "${friend.totalXp}",
+                text = "${friend.currentStreak}",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontFamily = BelfastGroteskBlackFamily,
                     fontWeight = FontWeight.Black,
@@ -537,7 +537,7 @@ private fun LeaderboardRow(
                 )
             )
             Text(
-                text = "XP",
+                text = "STREAK",
                 style = MaterialTheme.typography.labelSmall.copy(
                     color = Color.White.copy(alpha = 0.5f),
                     fontWeight = FontWeight.Bold
