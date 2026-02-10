@@ -76,7 +76,7 @@ fun MainNavigation(
             popExitTransition = { ExitTransition.None }
         ) {
             composable(MainRoute.Home.route) {
-                HomeScreen(viewModel = homeViewModel)
+                HomeScreen(viewModel = homeViewModel, friendsViewModel = friendsViewModel)
             }
             composable(MainRoute.Revisions.route) {
                 RevisionsScreen(viewModel = revisionsViewModel)
