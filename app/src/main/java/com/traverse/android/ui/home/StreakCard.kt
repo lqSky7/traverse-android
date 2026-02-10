@@ -1,9 +1,11 @@
 package com.traverse.android.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +23,7 @@ fun StreakCard(
     streak: Int,
     solvedToday: Boolean,
     isDarkTheme: Boolean = true,
+    onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val streakMessage = when {
@@ -29,15 +32,16 @@ fun StreakCard(
         else -> "Get back to work!"
     }
     
-    // White bg in dark mode, dark bg in light mode (inverted)
-    val backgroundColor = if (isDarkTheme) Color.White else Color(0xFF1A1A1A)
-    val textColor = if (isDarkTheme) Color.Black else Color.White
+    // Dark card background to match dark theme
+    val backgroundColor = Color(0xFF1A1A1A)
+    val textColor = Color.White
     
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(backgroundColor)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 24.dp, vertical = 24.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -73,6 +77,17 @@ fun StreakCard(
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = textColor.copy(alpha = 0.8f)
                 )
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        if (onClick != null) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "View streak details",
+                tint = textColor.copy(alpha = 0.5f),
+                modifier = Modifier.size(28.dp)
             )
         }
     }
