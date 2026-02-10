@@ -442,6 +442,7 @@ private fun LeaderboardRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .height(72.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(effectiveBgColor)
             .clickable { onClick() }

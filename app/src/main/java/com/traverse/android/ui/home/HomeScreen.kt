@@ -45,14 +45,18 @@ object HomeDestinations {
     const val HOME = "home_main"
     const val ALL_SOLVES = "all_solves"
     const val ALL_ACHIEVEMENTS = "all_achievements"
+    const val STREAK = "streak"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel, modifier: Modifier = Modifier
+    viewModel: HomeViewModel,
+    friendsViewModel: com.traverse.android.viewmodel.FriendsViewModel? = null,
+    modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val friendsUiState = friendsViewModel?.uiState?.collectAsStateWithLifecycle()
     val navController = rememberNavController()
     val isDarkTheme = isSystemInDarkTheme()
 
@@ -70,6 +74,7 @@ fun HomeScreen(
                 onRefresh = { viewModel.refresh() },
                 onNavigateToSolves = { navController.navigate(HomeDestinations.ALL_SOLVES) },
                 onNavigateToAchievements = { navController.navigate(HomeDestinations.ALL_ACHIEVEMENTS) },
+                onNavigateToStreak = { navController.navigate(HomeDestinations.STREAK) },
                 modifier = modifier
             )
         }
@@ -85,6 +90,18 @@ fun HomeScreen(
                 stats = uiState.achievementStats?.stats,
                 onBack = { navController.popBackStack() })
         }
+
+        composable(HomeDestinations.STREAK) {
+            StreakScreen(
+                currentStreak = uiState.userStats?.stats?.currentStreak ?: 0,
+                totalStreakDays = uiState.solveStats?.stats?.totalStreakDays ?: 0,
+                solvedToday = hasSolvedToday(uiState.recentSolves),
+                solveDates = uiState.recentSolves.map { it.solvedAt.take(10) }.distinct(),
+                frozenDates = uiState.frozenDates,
+                friendStreaks = friendsUiState?.value?.friendStreaks ?: emptyList(),
+                onBack = { navController.popBackStack() }
+            )
+        }
     }
 }
 
@@ -96,6 +113,7 @@ private fun HomeMainContent(
     onRefresh: () -> Unit,
     onNavigateToSolves: () -> Unit,
     onNavigateToAchievements: () -> Unit,
+    onNavigateToStreak: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val currentDate = remember {
@@ -155,12 +173,13 @@ private fun HomeMainContent(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Streak Card (inverted colors)
+                    // Streak Card (inverted colors) - clickable to navigate to Streak screen
                     uiState.userStats?.let { userStats ->
                         StreakCard(
                             streak = userStats.stats.currentStreak,
                             solvedToday = hasSolvedToday(uiState.recentSolves),
-                            isDarkTheme = isDarkTheme
+                            isDarkTheme = isDarkTheme,
+                            onClick = onNavigateToStreak
                         )
                     }
 
@@ -221,11 +240,6 @@ private fun HomeMainContent(
                             solves = uiState.recentSolves, onClick = onNavigateToSolves
                         )
                     }
-
-                    // Activity Heatmap (full width)
-                    SolveHeatmapCard(
-                        solves = uiState.recentSolves, frozenDates = uiState.frozenDates
-                    )
 
                     // Bottom spacing for floating tab bar
                     Spacer(modifier = Modifier.height(80.dp))
