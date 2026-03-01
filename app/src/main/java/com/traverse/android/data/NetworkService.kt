@@ -220,7 +220,10 @@ sealed class NetworkResult<out T> {
 
 class NetworkService private constructor(context: Context) {
     
-    private val tokenManager = TokenManager.getInstance(context)
+    // initialize lazily so that TokenManager construction (which may throw)
+    // doesn't crash the application during ViewModel creation. also avoids
+    // doing crypto work if networking is never used (e.g. during some tests).
+    private val tokenManager by lazy { TokenManager.getInstance(context) }
     
     private val json = Json {
         ignoreUnknownKeys = true
@@ -230,7 +233,13 @@ class NetworkService private constructor(context: Context) {
     
     private val authInterceptor = Interceptor { chain ->
         val originalRequest = chain.request()
-        val token = tokenManager.getToken()
+        val token = try {
+            tokenManager.getToken()
+        } catch (e: Exception) {
+            // if token manager setup failed we just don't send a token
+            android.util.Log.e("NetworkService", "error reading auth token", e)
+            null
+        }
         
         val newRequest = if (token != null) {
             originalRequest.newBuilder()
@@ -717,7 +726,11 @@ class NetworkService private constructor(context: Context) {
         }
     }
     
-    fun isAuthenticated(): Boolean = tokenManager.isAuthenticated()
+    fun isAuthenticated(): Boolean = try {
+        tokenManager.isAuthenticated()
+    } catch (_: Exception) {
+        false
+    }
     
     private fun parseError(e: Exception): String {
         return when (e) {

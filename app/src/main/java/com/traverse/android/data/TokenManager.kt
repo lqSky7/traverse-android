@@ -11,17 +11,35 @@ import androidx.security.crypto.MasterKey
  */
 class TokenManager private constructor(context: Context) {
     
-    private val masterKey = MasterKey.Builder(context)
-        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-        .build()
-    
-    private val sharedPreferences: SharedPreferences = EncryptedSharedPreferences.create(
-        context,
-        "traverse_secure_prefs",
-        masterKey,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
+    // backing preferences instance. we try to use encrypted storage but fall back
+    // to a plain shared preferences if something goes wrong (e.g. on devices
+    // without the required crypto provider or during tests).
+    private val sharedPreferences: SharedPreferences
+
+    init {
+        sharedPreferences = try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+
+            EncryptedSharedPreferences.create(
+                context.applicationContext,
+                "traverse_secure_prefs",
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        } catch (e: Exception) {
+            // encryption initialization failed, fall back to normal prefs so the
+            // app can still start. this prevents the ViewModel factory from
+            // crashing and gives us a chance to recover later.
+            android.util.Log.e("TokenManager", "Unable to create encrypted prefs, using fallback", e)
+            context.applicationContext.getSharedPreferences(
+                "traverse_secure_prefs",
+                Context.MODE_PRIVATE
+            )
+        }
+    }
     
     fun saveToken(token: String): Boolean {
         return sharedPreferences.edit()
