@@ -15,6 +15,7 @@ import com.traverse.android.viewmodel.AuthViewModel
 sealed class AuthRoute(val route: String) {
     data object Login : AuthRoute("login")
     data object Register : AuthRoute("register")
+    data object PasswordReset : AuthRoute("password_reset")
 }
 
 @Composable
@@ -64,6 +65,11 @@ fun AuthNavigation(
                         launchSingleTop = true
                     }
                 },
+                onNavigateToPasswordReset = {
+                    navController.navigate(AuthRoute.PasswordReset.route) {
+                        launchSingleTop = true
+                    }
+                },
                 onClearError = authViewModel::clearError
             )
         }
@@ -79,6 +85,17 @@ fun AuthNavigation(
                     navController.popBackStack()
                 },
                 onClearError = authViewModel::clearError
+            )
+        }
+        
+        composable(route = AuthRoute.PasswordReset.route) {
+            PasswordResetScreen(
+                onBack = {
+                    navController.popBackStack()
+                },
+                onComplete = {
+                    navController.popBackStack(AuthRoute.Login.route, inclusive = false)
+                }
             )
         }
     }

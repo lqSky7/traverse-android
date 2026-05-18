@@ -62,6 +62,7 @@ fun LoginScreen(
     errorMessage: String?,
     onLogin: (username: String, password: String) -> Unit,
     onNavigateToRegister: () -> Unit,
+    onNavigateToPasswordReset: () -> Unit,
     onClearError: () -> Unit
 ) {
     var username by remember { mutableStateOf("") }
@@ -223,6 +224,22 @@ fun LoginScreen(
                 }
                 
                 Spacer(modifier = Modifier.height(24.dp))
+                
+                // Forgot password link
+                TextButton(
+                    onClick = onNavigateToPasswordReset,
+                    enabled = !isLoading
+                ) {
+                    Text(
+                        text = "Forgot Password?",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium
+                        )
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
                 
                 // Sign up link
                 TextButton(

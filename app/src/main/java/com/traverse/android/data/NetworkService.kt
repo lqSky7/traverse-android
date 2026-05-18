@@ -62,6 +62,12 @@ interface TraverseApi {
     @POST("auth/change-password")
     suspend fun changePassword(@Body request: ChangePasswordRequest): MessageResponse
     
+    @POST("auth/password-reset/request")
+    suspend fun requestPasswordReset(@Body request: PasswordResetRequest): PasswordResetRequestResponse
+    
+    @POST("auth/password-reset/confirm")
+    suspend fun confirmPasswordReset(@Body request: PasswordResetConfirmRequest): PasswordResetConfirmResponse
+    
     @retrofit2.http.HTTP(method = "DELETE", path = "auth/account", hasBody = true)
     suspend fun deleteAccount(@Body request: DeleteAccountRequest): MessageResponse
     

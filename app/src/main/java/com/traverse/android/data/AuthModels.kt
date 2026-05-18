@@ -54,3 +54,30 @@ data class LoginResponse(
 data class ErrorResponse(
     val error: String
 )
+
+// MARK: - Password Reset Models
+
+@Serializable
+data class PasswordResetRequest(
+    val username: String
+)
+
+@Serializable
+data class PasswordResetConfirmRequest(
+    val username: String,
+    val code: String,
+    val newPassword: String
+)
+
+@Serializable
+data class PasswordResetRequestResponse(
+    val status: String,
+    val message: String,
+    val expiresInMinutes: Int? = null
+)
+
+@Serializable
+data class PasswordResetConfirmResponse(
+    val status: String,
+    val message: String
+)
