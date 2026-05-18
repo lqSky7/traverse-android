@@ -272,16 +272,17 @@ private fun RevisionsListContent(
         isRefreshing = uiState.isLoading,
         modifier = modifier
     ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                end = 16.dp,
-                top = if (uiState.stats != null) 90.dp else 16.dp,
-                bottom = 100.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = if (uiState.stats != null) 90.dp else 16.dp,
+                    bottom = 100.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 // Loading State
                 if (uiState.isLoading && uiState.revisionGroups.isEmpty()) {
                     item {

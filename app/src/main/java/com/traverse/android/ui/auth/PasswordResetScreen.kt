@@ -69,6 +69,7 @@ fun PasswordResetScreen(
     
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
     
     val gradient = remember(currentStep) {
         when (currentStep) {
@@ -124,7 +125,7 @@ fun PasswordResetScreen(
                             PasswordResetRequest(username.trim())
                         )
                         when (response) {
-                            is NetworkResult.Success -> {
+                            is NetworkResult.Success<*> -> {
                                 expiresInMinutes = response.data.expiresInMinutes
                                 statusMessage = response.data.message
                                 statusTone = StatusTone.SUCCESS
@@ -155,7 +156,7 @@ fun PasswordResetScreen(
                             )
                         )
                         when (response) {
-                            is NetworkResult.Success -> {
+                            is NetworkResult.Success<*> -> {
                                 statusMessage = response.data.message
                                 statusTone = StatusTone.SUCCESS
                                 currentStep = RecoveryStep.COMPLETE
