@@ -84,6 +84,7 @@ dependencies {
 
     // QR Code
     implementation(libs.zxing.core)
+    implementation(libs.mlkit.barcode.scanning)
 
     // Camera
     implementation(libs.camera.camera2)

@@ -25,10 +25,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PeopleOutline
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.PersonSearch
+import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.PersonAdd
@@ -40,6 +43,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -105,6 +110,8 @@ fun FriendsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val navController = rememberNavController()
+    var showQRCode by remember { mutableStateOf(false) }
+    var showQRScanner by remember { mutableStateOf(false) }
 
     NavHost(
         navController = navController,
@@ -123,6 +130,8 @@ fun FriendsScreen(
                 },
                 onShowRequestsSheet = { viewModel.showRequestsSheet() },
                 onShowSearchSheet = { viewModel.showSearchSheet() },
+                onShowQRCode = { showQRCode = true },
+                onShowQRScanner = { showQRScanner = true },
                 modifier = modifier
             )
         }
@@ -167,6 +176,28 @@ fun FriendsScreen(
             }
         )
     }
+    
+    // QR Code Sheet
+    if (showQRCode) {
+        uiState.currentUser?.let { user ->
+            QRCodeSheet(
+                username = user.username,
+                onDismiss = { showQRCode = false }
+            )
+        }
+    }
+    
+    // QR Scanner
+    if (showQRScanner) {
+        QRScannerScreen(
+            currentUsername = uiState.currentUser?.username ?: "",
+            onBack = { showQRScanner = false },
+            onUserScanned = { username ->
+                showQRScanner = false
+                navController.navigate(FriendsDestinations.userProfile(username))
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -177,10 +208,13 @@ private fun FriendsMainContent(
     onNavigateToProfile: (String) -> Unit,
     onShowRequestsSheet: () -> Unit,
     onShowSearchSheet: () -> Unit,
+    onShowQRCode: () -> Unit,
+    onShowQRScanner: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val leaderboard = uiState.getLeaderboard()
     val receivedCount = uiState.getTotalPendingCount()
+    var showMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -194,6 +228,48 @@ private fun FriendsMainContent(
                     )
                 },
                 actions = {
+                    // QR Menu
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "More options"
+                            )
+                        }
+                        
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Show My QR Code") },
+                                onClick = {
+                                    showMenu = false
+                                    onShowQRCode()
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.QrCode,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Scan QR Code") },
+                                onClick = {
+                                    showMenu = false
+                                    onShowQRScanner()
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.QrCodeScanner,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                        }
+                    }
+                    
                     // Search button
                     IconButton(onClick = onShowSearchSheet) {
                         Icon(
