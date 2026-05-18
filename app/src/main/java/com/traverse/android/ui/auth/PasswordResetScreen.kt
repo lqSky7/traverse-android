@@ -125,7 +125,7 @@ fun PasswordResetScreen(
                             username.trim()
                         )
                         when (response) {
-                            is NetworkResult.Success<*> -> {
+                            is NetworkResult.Success -> {
                                 expiresInMinutes = response.data.expiresInMinutes
                                 statusMessage = response.data.message
                                 statusTone = StatusTone.SUCCESS
@@ -154,7 +154,7 @@ fun PasswordResetScreen(
                             newPassword = newPassword
                         )
                         when (response) {
-                            is NetworkResult.Success<*> -> {
+                            is NetworkResult.Success -> {
                                 statusMessage = response.data.message
                                 statusTone = StatusTone.SUCCESS
                                 currentStep = RecoveryStep.COMPLETE
