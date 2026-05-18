@@ -466,6 +466,15 @@ class NetworkService private constructor(context: Context) {
         }
     }
     
+    suspend fun getRevisionAnalytics(): NetworkResult<RevisionAnalyticsResponse> {
+        return try {
+            val response = api.getRevisionAnalytics()
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
     suspend fun completeRevision(id: Int): NetworkResult<CompleteRevisionResponse> {
         return try {
             val response = api.completeRevision(id)

@@ -32,6 +32,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
 import com.traverse.android.data.PasswordResetConfirmRequest
 import com.traverse.android.data.PasswordResetRequest
@@ -118,13 +120,21 @@ fun PasswordResetScreen(
             try {
                 when (currentStep) {
                     RecoveryStep.ACCOUNT -> {
-                        val response = NetworkService.api.requestPasswordReset(
+                        val response = NetworkService.getInstance(context).requestPasswordReset(
                             PasswordResetRequest(username.trim())
                         )
-                        expiresInMinutes = response.expiresInMinutes
-                        statusMessage = response.message
-                        statusTone = StatusTone.SUCCESS
-                        currentStep = RecoveryStep.CODE
+                        when (response) {
+                            is NetworkResult.Success -> {
+                                expiresInMinutes = response.data.expiresInMinutes
+                                statusMessage = response.data.message
+                                statusTone = StatusTone.SUCCESS
+                                currentStep = RecoveryStep.CODE
+                            }
+                            is NetworkResult.Error -> {
+                                statusMessage = response.message
+                                statusTone = StatusTone.ERROR
+                            }
+                        }
                     }
                     RecoveryStep.CODE -> {
                         // Just validate code format and move to password step
@@ -137,16 +147,24 @@ fun PasswordResetScreen(
                         }
                     }
                     RecoveryStep.PASSWORD -> {
-                        val response = NetworkService.api.confirmPasswordReset(
+                        val response = NetworkService.getInstance(context).confirmPasswordReset(
                             PasswordResetConfirmRequest(
                                 username = username.trim(),
                                 code = code.trim(),
                                 newPassword = newPassword
                             )
                         )
-                        statusMessage = response.message
-                        statusTone = StatusTone.SUCCESS
-                        currentStep = RecoveryStep.COMPLETE
+                        when (response) {
+                            is NetworkResult.Success -> {
+                                statusMessage = response.data.message
+                                statusTone = StatusTone.SUCCESS
+                                currentStep = RecoveryStep.COMPLETE
+                            }
+                            is NetworkResult.Error -> {
+                                statusMessage = response.message
+                                statusTone = StatusTone.ERROR
+                            }
+                        }
                     }
                     RecoveryStep.COMPLETE -> {
                         onComplete()
