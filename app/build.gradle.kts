@@ -78,7 +78,17 @@ dependencies {
     implementation(libs.media3.ui)
 
     // Charts
+    implementation(libs.vico.compose)
+    implementation(libs.vico.compose.m3)
+    implementation(libs.vico.core)
 
+    // QR Code
+    implementation(libs.zxing.core)
+
+    // Camera
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
 
     // Testing
     testImplementation(libs.junit)
