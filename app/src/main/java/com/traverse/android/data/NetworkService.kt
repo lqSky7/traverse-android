@@ -381,6 +381,30 @@ class NetworkService private constructor(context: Context) {
         }
     }
     
+    suspend fun requestPasswordReset(username: String): NetworkResult<PasswordResetRequestResponse> {
+        return try {
+            val response = api.requestPasswordReset(PasswordResetRequest(username))
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
+    suspend fun confirmPasswordReset(
+        username: String,
+        code: String,
+        newPassword: String
+    ): NetworkResult<PasswordResetConfirmResponse> {
+        return try {
+            val response = api.confirmPasswordReset(
+                PasswordResetConfirmRequest(username, code, newPassword)
+            )
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
     suspend fun deleteAccount(password: String): NetworkResult<MessageResponse> {
         return try {
             val response = api.deleteAccount(DeleteAccountRequest(password))

@@ -122,7 +122,7 @@ fun PasswordResetScreen(
                 when (currentStep) {
                     RecoveryStep.ACCOUNT -> {
                         val response = NetworkService.getInstance(context).requestPasswordReset(
-                            PasswordResetRequest(username.trim())
+                            username.trim()
                         )
                         when (response) {
                             is NetworkResult.Success<*> -> {
@@ -149,11 +149,9 @@ fun PasswordResetScreen(
                     }
                     RecoveryStep.PASSWORD -> {
                         val response = NetworkService.getInstance(context).confirmPasswordReset(
-                            PasswordResetConfirmRequest(
-                                username = username.trim(),
-                                code = code.trim(),
-                                newPassword = newPassword
-                            )
+                            username = username.trim(),
+                            code = code.trim(),
+                            newPassword = newPassword
                         )
                         when (response) {
                             is NetworkResult.Success<*> -> {
