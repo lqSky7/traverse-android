@@ -17,6 +17,9 @@ data class RevisionsUiState(
     val errorMessage: String? = null,
     val revisionGroups: List<RevisionGroup> = emptyList(),
     val stats: RevisionStatsResponse? = null,
+    val analytics: RevisionAnalyticsResponse? = null,
+    val isAnalyticsLoading: Boolean = false,
+    val analyticsError: String? = null,
     val showCompletedRevisions: Boolean = false,
     val useMLMode: Boolean = false,
     val isFromCache: Boolean = false,
@@ -227,6 +230,7 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
                             _uiState.update { it.copy(useMLMode = true, isSubscribed = true) }
                             cacheManager.cacheRevisionMode("ml")
                             loadData(forceRefresh = true)
+                            loadAnalytics() // Load analytics when enabling ML mode
                         } else {
                             // User is not subscribed - show upgrade dialog
                             _uiState.update { it.copy(showProUpgradeDialog = true, isSubscribed = false) }
@@ -242,6 +246,41 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
             _uiState.update { it.copy(useMLMode = false) }
             cacheManager.cacheRevisionMode("normal")
             loadData(forceRefresh = true)
+        }
+    }
+    
+    fun loadAnalytics() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isAnalyticsLoading = true, analyticsError = null) }
+            
+            try {
+                when (val result = networkService.getRevisionAnalytics()) {
+                    is NetworkResult.Success -> {
+                        _uiState.update { 
+                            it.copy(
+                                analytics = result.data,
+                                isAnalyticsLoading = false,
+                                analyticsError = null
+                            )
+                        }
+                    }
+                    is NetworkResult.Error -> {
+                        _uiState.update { 
+                            it.copy(
+                                isAnalyticsLoading = false,
+                                analyticsError = result.message
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update { 
+                    it.copy(
+                        isAnalyticsLoading = false,
+                        analyticsError = e.message ?: "Failed to load analytics"
+                    )
+                }
+            }
         }
     }
     

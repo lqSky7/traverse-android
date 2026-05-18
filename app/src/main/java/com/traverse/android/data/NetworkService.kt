@@ -115,6 +115,15 @@ interface TraverseApi {
         @Body request: RevisionAttemptRequest
     ): RevisionAttemptResponse
     
+    @GET("revisions/analytics")
+    suspend fun getRevisionAnalytics(): RevisionAnalyticsResponse
+    
+    @GET("revisions/today")
+    suspend fun getRevisionToday(): RevisionTodayResponse
+    
+    @POST("revisions/recalibrate")
+    suspend fun recalibrateRevisions(): RevisionRecalibrationResponse
+    
     // MARK: - Friends API
     
     @GET("friends")

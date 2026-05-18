@@ -66,6 +66,14 @@ fun RevisionsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
+    var selectedTab by remember { mutableStateOf(0) } // 0 = Upcoming, 1 = Analytics
+    
+    // Load analytics when ML mode is enabled and analytics tab is selected
+    androidx.compose.runtime.LaunchedEffect(uiState.useMLMode, selectedTab) {
+        if (uiState.useMLMode && selectedTab == 1 && uiState.analytics == null && !uiState.isAnalyticsLoading) {
+            viewModel.loadAnalytics()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -160,23 +168,120 @@ fun RevisionsScreen(
                 }
             )
         }) { padding ->
-        PullToRefreshBox(
-            onRefresh = { viewModel.refresh() },
-            isRefreshing = uiState.isLoading,
+        Column(
             modifier = modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = if (uiState.stats != null) 90.dp else 16.dp,
-                    bottom = 100.dp
-                ),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
+            // Tab Row for ML Mode
+            if (uiState.useMLMode && uiState.isSubscribed) {
+                androidx.compose.material3.TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    androidx.compose.material3.Tab(
+                        selected = selectedTab == 0,
+                        onClick = { selectedTab = 0 },
+                        text = { Text("Upcoming") }
+                    )
+                    androidx.compose.material3.Tab(
+                        selected = selectedTab == 1,
+                        onClick = { selectedTab = 1 },
+                        text = { Text("Analytics") }
+                    )
+                }
+            }
+            
+            // Content based on selected tab
+            when {
+                uiState.useMLMode && selectedTab == 1 -> {
+                    // Analytics Tab
+                    when {
+                        uiState.isAnalyticsLoading -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                        uiState.analyticsError != null -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = uiState.analyticsError ?: "Failed to load analytics",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Button(onClick = { viewModel.loadAnalytics() }) {
+                                        Text("Retry")
+                                    }
+                                }
+                            }
+                        }
+                        uiState.analytics != null -> {
+                            MLAnalyticsScreen(
+                                analytics = uiState.analytics!!,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        else -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("No analytics data available")
+                            }
+                        }
+                    }
+                }
+                else -> {
+                    // Upcoming Tab (default view)
+                    RevisionsListContent(
+                        uiState = uiState,
+                        viewModel = viewModel,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+        }
+    }
+    
+    // Pro Upgrade Dialog
+    if (uiState.showProUpgradeDialog) {
+        ProUpgradeSheet(onDismiss = { viewModel.dismissProUpgradeDialog() })
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RevisionsListContent(
+    uiState: com.traverse.android.viewmodel.RevisionsUiState,
+    viewModel: RevisionsViewModel,
+    modifier: Modifier = Modifier
+) {
+    PullToRefreshBox(
+        onRefresh = { viewModel.refresh() },
+        isRefreshing = uiState.isLoading,
+        modifier = modifier
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = if (uiState.stats != null) 90.dp else 16.dp,
+                bottom = 100.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
                 // Loading State
                 if (uiState.isLoading && uiState.revisionGroups.isEmpty()) {
                     item {
@@ -246,15 +351,6 @@ fun RevisionsScreen(
                         .padding(top = 8.dp)
                 )
             }
-        }
-
-        // Show Pro Upgrade Sheet when needed
-        if (uiState.showProUpgradeDialog) {
-            ProUpgradeSheet(
-                onDismiss = {
-                    viewModel.dismissProUpgradeDialog()
-                }
-            )
         }
     }
 }

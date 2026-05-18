@@ -140,3 +140,109 @@ data class MLPrediction(
     val nextReviewIntervalDays: Double,
     val confidence: String
 )
+
+// MARK: - ML Analytics
+@Serializable
+data class RevisionAnalyticsResponse(
+    val overview: RevisionAnalyticsOverview,
+    val stabilityDistribution: RevisionStabilityDistribution,
+    val accuracyTrend: List<RevisionAccuracyPoint>,
+    val projectedLoad: List<RevisionProjectedLoad>,
+    val intervalGrowth: List<RevisionIntervalGrowth>,
+    val retentionHeatmap: List<RevisionRetentionItem>,
+    val streaks: RevisionAnalyticsStreaks
+)
+
+@Serializable
+data class RevisionAnalyticsOverview(
+    val totalProblemsTracked: Int,
+    val masteredProblems: Int,
+    val leechProblems: Int,
+    val averageStability: Double,
+    val averageRetrievability: Double
+)
+
+@Serializable
+data class RevisionStabilityDistribution(
+    val critical: Int,
+    val weak: Int,
+    val developing: Int,
+    val strong: Int,
+    val mastered: Int
+)
+
+@Serializable
+data class RevisionAccuracyPoint(
+    val date: String,
+    val successRate: Double,
+    val totalAttempts: Int
+)
+
+@Serializable
+data class RevisionProjectedLoad(
+    val date: String,
+    val dueCount: Int,
+    val overdueCount: Int
+)
+
+@Serializable
+data class RevisionIntervalGrowth(
+    val month: String,
+    val avgInterval: Double,
+    val count: Int
+)
+
+@Serializable
+data class RevisionRetentionItem(
+    val problemId: Int,
+    val problemTitle: String,
+    val problemSlug: String,
+    val platform: String,
+    val difficulty: String,
+    val retrievability: Double,
+    val stability: Double,
+    @SerialName("difficulty_D")
+    val difficultyD: Double,
+    val lapses: Int,
+    val lastReviewAt: String? = null,
+    val isLeech: Boolean
+)
+
+@Serializable
+data class RevisionAnalyticsStreaks(
+    val totalRevisionsCompleted: Int,
+    val totalAttempts: Int,
+    val overallSuccessRate: Double
+)
+
+// MARK: - Today Summary
+@Serializable
+data class RevisionTodayResponse(
+    val completed: Int,
+    val remaining: Int,
+    val maxDaily: Int,
+    val canDoMore: Boolean
+)
+
+// MARK: - ML Recalibration
+@Serializable
+data class RevisionRecalibrationResponse(
+    val message: String,
+    val rescheduled: Int,
+    val totalPending: Int,
+    val maxDaily: Int,
+    val dailyBreakdown: List<RecalibrationDailyBreakdown>,
+    val recommendations: List<RecalibrationRecommendation>
+)
+
+@Serializable
+data class RecalibrationDailyBreakdown(
+    val date: String,
+    val count: Int
+)
+
+@Serializable
+data class RecalibrationRecommendation(
+    val type: String,
+    val message: String
+)
