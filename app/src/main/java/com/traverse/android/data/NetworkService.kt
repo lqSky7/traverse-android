@@ -35,7 +35,7 @@ data class GitHubRelease(
 }
 
 // API Base URLs
-private const val TRAVERSE_API_URL = "https://traverse-backend-api.azurewebsites.net/api/"
+private const val TRAVERSE_API_URL = "https://155-248-241-153.sslip.io/"
 private const val GITHUB_API_URL = "https://api.github.com/"
 
 /**

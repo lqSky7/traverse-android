@@ -51,31 +51,9 @@ source code. Happy coding! 🚀
 
 This repository includes a GitHub Actions workflow that automatically builds and releases APKs when you push tags.
 
-### Setting up GitHub Secrets
+### Setting up GitHub Releases
 
-To enable automatic APK signing and releases, you need to configure the following secrets in your GitHub repository:
-
-1. Go to your repository on GitHub
-2. Navigate to **Settings** → **Secrets and variables** → **Actions**
-3. Add the following secrets:
-
-#### Required Secrets:
-
-- **`SIGNING_KEY`**: Base64-encoded keystore file
-  ```bash
-  # Generate keystore (if you don't have one)
-  keytool -genkey -v -keystore my-release-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias my-key-alias
-  
-  # Convert to base64
-  base64 my-release-key.jks | tr -d '\n' > keystore.txt
-  # Copy the content of keystore.txt to SIGNING_KEY secret
-  ```
-
-- **`ALIAS`**: Your keystore alias (e.g., `my-key-alias`)
-
-- **`KEY_STORE_PASSWORD`**: Password for the keystore
-
-- **`KEY_PASSWORD`**: Password for the key alias
+No signing secrets are required for CI/CD. The workflow builds and publishes the unsigned release APK automatically.
 
 ### Creating a Release
 
@@ -91,9 +69,8 @@ git push origin v1.5.0
 
 The workflow will:
 1. Build the release APK
-2. Sign it with your keystore
-3. Create a GitHub release with the APK attached
-4. Generate release notes automatically
+2. Publish `app-release-unsigned.apk` to the GitHub release
+3. Generate release notes automatically
 
 ### Manual Build
 
