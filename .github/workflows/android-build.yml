@@ -7,6 +7,10 @@ on:
       - 'v*'
   pull_request:
     branches: [ master, main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -29,32 +33,19 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew assembleRelease
       
-    - name: Sign APK
-      if: startsWith(github.ref, 'refs/tags/v')
-      uses: r0adkll/sign-android-release@v1
-      id: sign_app
-      with:
-        releaseDirectory: app/build/outputs/apk/release
-        signingKeyBase64: ${{ secrets.SIGNING_KEY }}
-        alias: ${{ secrets.ALIAS }}
-        keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
-        keyPassword: ${{ secrets.KEY_PASSWORD }}
-      env:
-        BUILD_TOOLS_VERSION: "34.0.0"
-        
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
-        name: traverse-android-apk
-        path: app/build/outputs/apk/release/*.apk
+        name: traverse-android-unsigned-apk
+        path: app/build/outputs/apk/release/app-release-unsigned.apk
         retention-days: 30
         
-    - name: Create Release
+    - name: Publish unsigned APK to GitHub Release
       if: startsWith(github.ref, 'refs/tags/v')
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          app/build/outputs/apk/release/*.apk
+          app/build/outputs/apk/release/app-release-unsigned.apk
         generate_release_notes: true
         draft: false
         prerelease: false

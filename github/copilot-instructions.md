@@ -135,7 +135,7 @@ KEY_PROFILE_IMAGE, KEY_PROFILE_IMAGE_file
 
 ### Base URL
 ```
-https://traverse-backend-api.azurewebsites.net/api/
+https://155-248-241-153.sslip.io/
 ```
 
 ### Authentication
