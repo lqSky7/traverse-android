@@ -379,11 +379,7 @@ private fun RevisionItem(
     if (showCoachSheet) {
         RevisionCoachSheet(
             revision = revision,
-            onDismiss = { showCoachSheet = false },
-            onOpenProblem = {
-                openProblemUrl(context, revision.problem.platform, revision.problem.slug)
-                showCoachSheet = false
-            }
+            onDismiss = { showCoachSheet = false }
         )
     }
 

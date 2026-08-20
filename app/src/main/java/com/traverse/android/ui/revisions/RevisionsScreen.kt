@@ -59,7 +59,8 @@ fun RevisionsScreen(
     // Full screen Exam Mode takeover
     if (uiState.isExamModeActive) {
         ExamModeActiveView(
-            onStopExamMode = { viewModel.setExamMode(false) }
+            isResuming = false,
+            onResume = { viewModel.setExamMode(false) }
         )
         return
     }
@@ -362,10 +363,9 @@ fun RevisionsScreen(
     // Daily Review Limit Sheet
     if (showDailyLimitSheet) {
         DailyReviewLimitSheet(
-            initialLimit = uiState.dailyReviewLimit,
-            totalDue = uiState.stats?.dueToday ?: 0,
+            currentLimit = uiState.dailyReviewLimit,
             onDismiss = { showDailyLimitSheet = false },
-            onLimitSaved = {
+            onLimitUpdated = {
                 viewModel.refresh()
             }
         )

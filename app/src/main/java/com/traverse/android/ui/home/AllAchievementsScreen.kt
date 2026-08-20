@@ -415,7 +415,7 @@ private fun ExpandableAchievementCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = achievement.title,
+                        text = achievement.name,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             color = if (achievement.unlocked) Color.White else Color.White.copy(alpha = 0.5f)
