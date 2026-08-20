@@ -79,6 +79,7 @@ fun FriendsUiState.getFriendStreakCount(username: String): Int? {
 class FriendsViewModel(application: Application) : AndroidViewModel(application) {
     
     private val networkService by lazy { NetworkService.getInstance(application) }
+    private val dataManager by lazy { DataManager.getInstance(application) }
     private val cacheManager by lazy { CacheManager.getInstance(application) }
     
     private val _uiState = MutableStateFlow(FriendsUiState())
@@ -87,6 +88,38 @@ class FriendsViewModel(application: Application) : AndroidViewModel(application)
     private var loadJob: Job? = null
     
     init {
+        // Observe DataManager flows for real-time reactivity
+        viewModelScope.launch {
+            dataManager.friends.collect { friends ->
+                _uiState.update { it.copy(friends = friends) }
+            }
+        }
+        viewModelScope.launch {
+            dataManager.receivedRequests.collect { reqs ->
+                _uiState.update { it.copy(receivedRequests = reqs) }
+            }
+        }
+        viewModelScope.launch {
+            dataManager.sentRequests.collect { reqs ->
+                _uiState.update { it.copy(sentRequests = reqs) }
+            }
+        }
+        viewModelScope.launch {
+            dataManager.receivedStreakRequests.collect { reqs ->
+                _uiState.update { it.copy(receivedStreakRequests = reqs) }
+            }
+        }
+        viewModelScope.launch {
+            dataManager.sentStreakRequests.collect { reqs ->
+                _uiState.update { it.copy(sentStreakRequests = reqs) }
+            }
+        }
+        viewModelScope.launch {
+            dataManager.friendStreaks.collect { streaks ->
+                _uiState.update { it.copy(friendStreaks = streaks) }
+            }
+        }
+
         loadData()
     }
     
