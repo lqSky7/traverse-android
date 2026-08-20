@@ -32,6 +32,10 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
       
+    - name: Generate Release Keystore
+      run: |
+        keytool -genkey -v -keystore release.keystore -alias traverse -keyalg RSA -keysize 2048 -validity 10000 -storepass traverse -keypass traverse -dname "CN=Traverse, OU=Mobile, O=Traverse, L=SF, S=CA, C=US"
+
     - name: Build Signed APK with Gradle
       run: ./gradlew assembleRelease --stacktrace
       

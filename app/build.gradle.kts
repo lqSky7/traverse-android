@@ -21,8 +21,15 @@ android {
 
     signingConfigs {
         create("release") {
-            // Inherit from debug by default so that CI release builds are signed and directly installable on physical devices
-            initWith(getByName("debug"))
+            val keystoreFile = rootProject.file("release.keystore")
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+                storePassword = "traverse"
+                keyAlias = "traverse"
+                keyPassword = "traverse"
+            } else {
+                initWith(getByName("debug"))
+            }
         }
     }
 
