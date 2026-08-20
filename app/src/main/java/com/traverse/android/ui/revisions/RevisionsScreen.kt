@@ -65,8 +65,14 @@ fun RevisionsScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val dataManager = remember { com.traverse.android.data.DataManager.getInstance(context) }
+    val currentUser = remember { dataManager.userStats.value?.username ?: "" }
+
     var showMenu by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) } // 0 = Upcoming, 1 = Analytics
+    var showCalendarSheet by remember { mutableStateOf(false) }
+    var showMLControlsSheet by remember { mutableStateOf(false) }
     
     // Load analytics when ML mode is enabled and analytics tab is selected
     androidx.compose.runtime.LaunchedEffect(uiState.useMLMode, selectedTab) {
@@ -99,7 +105,7 @@ fun RevisionsScreen(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false },
                             containerColor = CardBackground,
-                            modifier = Modifier.width(220.dp)
+                            modifier = Modifier.width(230.dp)
                         ) {
                             DropdownMenuItem(
                                 text = {
@@ -130,11 +136,6 @@ fun RevisionsScreen(
                                 modifier = Modifier.padding(horizontal = 4.dp)
                             )
 
-                            HorizontalDivider(
-                                modifier = Modifier.padding(vertical = 4.dp),
-                                color = Color.White.copy(alpha = 0.1f)
-                            )
-
                             DropdownMenuItem(
                                 text = {
                                     Row(
@@ -148,7 +149,7 @@ fun RevisionsScreen(
                                         )
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Text(
-                                            "ML-Based Scheduling",
+                                            "ML Scheduling",
                                             style = MaterialTheme.typography.bodyMedium.copy(
                                                 fontFamily = BelfastGroteskBlackFamily,
                                                 fontWeight = FontWeight.Bold,
@@ -160,6 +161,61 @@ fun RevisionsScreen(
                                 onClick = {
                                     viewModel.toggleMLMode()
                                     showMenu = false
+                                },
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+
+                            HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 4.dp),
+                                color = Color.White.copy(alpha = 0.1f)
+                            )
+
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        "ML Controls & Pause",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontFamily = BelfastGroteskBlackFamily,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFFE040FB)
+                                        )
+                                    )
+                                },
+                                onClick = {
+                                    showMLControlsSheet = true
+                                    showMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.CalendarMonth,
+                                        contentDescription = null,
+                                        tint = Color(0xFFE040FB)
+                                    )
+                                },
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        "Calendar Feed Sync",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontFamily = BelfastGroteskBlackFamily,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF00E676)
+                                        )
+                                    )
+                                },
+                                onClick = {
+                                    showCalendarSheet = true
+                                    showMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.CalendarMonth,
+                                        contentDescription = null,
+                                        tint = Color(0xFF00E676)
+                                    )
                                 },
                                 modifier = Modifier.padding(horizontal = 4.dp)
                             )
@@ -257,6 +313,22 @@ fun RevisionsScreen(
     // Pro Upgrade Dialog
     if (uiState.showProUpgradeDialog) {
         ProUpgradeSheet(onDismiss = { viewModel.dismissProUpgradeDialog() })
+    }
+
+    // Calendar Export Sheet
+    if (showCalendarSheet) {
+        CalendarExportSheet(
+            username = currentUser,
+            onDismiss = { showCalendarSheet = false }
+        )
+    }
+
+    // ML Controls Sheet
+    if (showMLControlsSheet) {
+        MLControlsSheet(
+            onDismiss = { showMLControlsSheet = false },
+            onUpdated = { viewModel.refresh() }
+        )
     }
 }
 
