@@ -8,6 +8,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -24,6 +25,7 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -32,12 +34,16 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.sp
 import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
-import com.traverse.android.data.PasswordResetConfirmRequest
-import com.traverse.android.data.PasswordResetRequest
+import com.traverse.android.ui.theme.Peach
 import kotlinx.coroutines.launch
+
+private val RoundedShape = RoundedCornerShape(24.dp)
+private val AccentPastel = Color(0xFFB8D4E3)
+private val EasyPastel = Color(0xFFA8E6CF)
+private val HardPastel = Color(0xFFFFAAA5)
 
 enum class RecoveryStep {
     ACCOUNT, CODE, PASSWORD, COMPLETE
@@ -70,23 +76,6 @@ fun PasswordResetScreen(
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
-    
-    val gradient = remember(currentStep) {
-        when (currentStep) {
-            RecoveryStep.ACCOUNT -> listOf(
-                Color(0xFFDB2777), Color(0xFF9333EA), Color(0xFF6366F1)
-            )
-            RecoveryStep.CODE -> listOf(
-                Color(0xFF6366F1), Color(0xFF3B82F6), Color(0xFF06B6D4)
-            )
-            RecoveryStep.PASSWORD -> listOf(
-                Color(0xFF10B981), Color(0xFF14B8A6), Color(0xFF06B6D4)
-            )
-            RecoveryStep.COMPLETE -> listOf(
-                Color(0xFF10B981), Color(0xFF14B8A6), Color(0xFF06B6D4)
-            )
-        }
-    }
     
     val canSubmit = remember(currentStep, username, code, newPassword, confirmPassword, isLoading) {
         if (isLoading) return@remember false
@@ -138,7 +127,6 @@ fun PasswordResetScreen(
                         }
                     }
                     RecoveryStep.CODE -> {
-                        // Just validate code format and move to password step
                         if (code.trim().length == 6) {
                             currentStep = RecoveryStep.PASSWORD
                             statusMessage = null
@@ -178,83 +166,92 @@ fun PasswordResetScreen(
         }
     }
     
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = { handleBack() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
-            )
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = gradient,
-                        startY = 0f,
-                        endY = 1500f
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.surface,
+                        MaterialTheme.colorScheme.surfaceContainer
                     )
                 )
-                .padding(paddingValues)
-        ) {
+            )
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {},
+                    navigationIcon = {
+                        IconButton(onClick = { handleBack() }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent
+                    )
+                )
+            },
+            containerColor = Color.Transparent
+        ) { paddingValues ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 32.dp)
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp)
-                    .padding(top = 40.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                    .imePadding(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Title
-                Text(
-                    text = "Reset Password",
-                    style = MaterialTheme.typography.displaySmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                )
-                
-                Text(
-                    text = "Stay in the flow. We'll verify your account, confirm the code, then bring you right back to sign in.",
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        color = Color.White.copy(alpha = 0.9f)
-                    )
-                )
-                
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                // Step Indicators
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    RecoveryStep.entries.filter { it != RecoveryStep.COMPLETE }.forEach { step ->
-                        val isActive = step.ordinal <= currentStep.ordinal
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(4.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(
-                                    if (isActive) Color.White
-                                    else Color.White.copy(alpha = 0.3f)
-                                )
-                        )
-                    }
-                }
+                // Title
+                Text(
+                    text = "traverse",
+                    style = MaterialTheme.typography.displayLarge.copy(
+                        fontSize = 48.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = (-2).sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Reset Password",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+                
+                Spacer(modifier = Modifier.height(28.dp))
+                
+                // Step Progress Indicators
+                if (currentStep != RecoveryStep.COMPLETE) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        RecoveryStep.entries.filter { it != RecoveryStep.COMPLETE }.forEach { step ->
+                            val isActive = step.ordinal <= currentStep.ordinal
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(4.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (isActive) AccentPastel
+                                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                                    )
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
                 
                 // Status Message
                 statusMessage?.let { message ->
@@ -263,9 +260,10 @@ fun PasswordResetScreen(
                         tone = statusTone,
                         expiresInMinutes = if (currentStep == RecoveryStep.CODE) expiresInMinutes else null
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
                 
-                // Content based on step
+                // Step Content
                 AnimatedContent(
                     targetState = currentStep,
                     transitionSpec = {
@@ -274,20 +272,40 @@ fun PasswordResetScreen(
                     },
                     label = "step_content"
                 ) { step ->
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
                         when (step) {
                             RecoveryStep.ACCOUNT -> {
-                                StepHeader(
-                                    icon = Icons.Default.Person,
-                                    title = "Account",
-                                    description = "Enter your username to receive a verification code"
+                                Text(
+                                    text = "Enter your username to receive a 6-digit verification code.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
                                 )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
                                 
                                 OutlinedTextField(
                                     value = username,
                                     onValueChange = { username = it },
                                     label = { Text("Username") },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.Person,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
                                     singleLine = true,
+                                    shape = RoundedShape,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = AccentPastel,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                    ),
                                     keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Text,
                                         imeAction = ImeAction.Done
@@ -298,33 +316,39 @@ fun PasswordResetScreen(
                                             if (canSubmit) handleSubmit()
                                         }
                                     ),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedContainerColor = Color.White.copy(alpha = 0.1f),
-                                        unfocusedContainerColor = Color.White.copy(alpha = 0.05f),
-                                        focusedTextColor = Color.White,
-                                        unfocusedTextColor = Color.White,
-                                        focusedBorderColor = Color.White,
-                                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
-                                        focusedLabelColor = Color.White,
-                                        unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
-                                        cursorColor = Color.White
-                                    )
+                                    enabled = !isLoading
                                 )
                             }
                             
                             RecoveryStep.CODE -> {
-                                StepHeader(
-                                    icon = Icons.Default.MailOutline,
-                                    title = "Verification",
-                                    description = "Enter the 6-digit code sent to your email"
+                                Text(
+                                    text = "Enter the 6-digit verification code sent to your registered email.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
                                 )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
                                 
                                 OutlinedTextField(
                                     value = code,
                                     onValueChange = { if (it.length <= 6) code = it.filter { c -> c.isDigit() } },
                                     label = { Text("6-Digit Code") },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.MailOutline,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
                                     singleLine = true,
+                                    shape = RoundedShape,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = AccentPastel,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                    ),
                                     keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Number,
                                         imeAction = ImeAction.Done
@@ -335,34 +359,48 @@ fun PasswordResetScreen(
                                             if (canSubmit) handleSubmit()
                                         }
                                     ),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedContainerColor = Color.White.copy(alpha = 0.1f),
-                                        unfocusedContainerColor = Color.White.copy(alpha = 0.05f),
-                                        focusedTextColor = Color.White,
-                                        unfocusedTextColor = Color.White,
-                                        focusedBorderColor = Color.White,
-                                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
-                                        focusedLabelColor = Color.White,
-                                        unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
-                                        cursorColor = Color.White
-                                    )
+                                    enabled = !isLoading
                                 )
                             }
                             
                             RecoveryStep.PASSWORD -> {
-                                StepHeader(
-                                    icon = Icons.Default.Lock,
-                                    title = "New Password",
-                                    description = "Choose a strong password (minimum 8 characters)"
+                                Text(
+                                    text = "Choose a strong new password (minimum 8 characters).",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
                                 )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
                                 
                                 OutlinedTextField(
                                     value = newPassword,
                                     onValueChange = { newPassword = it },
                                     label = { Text("New Password") },
-                                    singleLine = true,
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.Lock,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
+                                    trailingIcon = {
+                                        IconButton(onClick = { showPassword = !showPassword }) {
+                                            Icon(
+                                                imageVector = if (showPassword) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                                contentDescription = if (showPassword) "Hide password" else "Show password"
+                                            )
+                                        }
+                                    },
                                     visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                                    singleLine = true,
+                                    shape = RoundedShape,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = AccentPastel,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                    ),
                                     keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Password,
                                         imeAction = ImeAction.Next
@@ -370,35 +408,42 @@ fun PasswordResetScreen(
                                     keyboardActions = KeyboardActions(
                                         onNext = { focusManager.moveFocus(FocusDirection.Down) }
                                     ),
-                                    trailingIcon = {
-                                        IconButton(onClick = { showPassword = !showPassword }) {
-                                            Icon(
-                                                imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                                contentDescription = if (showPassword) "Hide password" else "Show password",
-                                                tint = Color.White.copy(alpha = 0.7f)
-                                            )
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedContainerColor = Color.White.copy(alpha = 0.1f),
-                                        unfocusedContainerColor = Color.White.copy(alpha = 0.05f),
-                                        focusedTextColor = Color.White,
-                                        unfocusedTextColor = Color.White,
-                                        focusedBorderColor = Color.White,
-                                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
-                                        focusedLabelColor = Color.White,
-                                        unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
-                                        cursorColor = Color.White
-                                    )
+                                    enabled = !isLoading
                                 )
                                 
                                 OutlinedTextField(
                                     value = confirmPassword,
                                     onValueChange = { confirmPassword = it },
-                                    label = { Text("Confirm Password") },
-                                    singleLine = true,
+                                    label = { Text("Confirm New Password") },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.Lock,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
+                                    trailingIcon = {
+                                        IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
+                                            Icon(
+                                                imageVector = if (showConfirmPassword) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                                contentDescription = if (showConfirmPassword) "Hide password" else "Show password"
+                                            )
+                                        }
+                                    },
                                     visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                                    singleLine = true,
+                                    shape = RoundedShape,
+                                    isError = confirmPassword.isNotEmpty() && newPassword != confirmPassword,
+                                    supportingText = if (confirmPassword.isNotEmpty() && newPassword != confirmPassword) {
+                                        { Text("Passwords don't match", color = HardPastel) }
+                                    } else null,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = AccentPastel,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                        errorBorderColor = HardPastel,
+                                        errorLabelColor = HardPastel
+                                    ),
                                     keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Password,
                                         imeAction = ImeAction.Done
@@ -409,64 +454,48 @@ fun PasswordResetScreen(
                                             if (canSubmit) handleSubmit()
                                         }
                                     ),
-                                    trailingIcon = {
-                                        IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
-                                            Icon(
-                                                imageVector = if (showConfirmPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                                contentDescription = if (showConfirmPassword) "Hide password" else "Show password",
-                                                tint = Color.White.copy(alpha = 0.7f)
-                                            )
-                                        }
-                                    },
-                                    isError = confirmPassword.isNotEmpty() && newPassword != confirmPassword,
-                                    supportingText = if (confirmPassword.isNotEmpty() && newPassword != confirmPassword) {
-                                        { Text("Passwords don't match", color = Color(0xFFFFCDD2)) }
-                                    } else null,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedContainerColor = Color.White.copy(alpha = 0.1f),
-                                        unfocusedContainerColor = Color.White.copy(alpha = 0.05f),
-                                        focusedTextColor = Color.White,
-                                        unfocusedTextColor = Color.White,
-                                        focusedBorderColor = Color.White,
-                                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
-                                        focusedLabelColor = Color.White,
-                                        unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
-                                        cursorColor = Color.White,
-                                        errorBorderColor = Color(0xFFEF5350),
-                                        errorLabelColor = Color(0xFFFFCDD2)
-                                    )
+                                    enabled = !isLoading
                                 )
                             }
                             
                             RecoveryStep.COMPLETE -> {
                                 Column(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 16.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.spacedBy(16.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CheckCircle,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(80.dp)
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(72.dp)
+                                            .clip(CircleShape)
+                                            .background(EasyPastel.copy(alpha = 0.15f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = EasyPastel,
+                                            modifier = Modifier.size(44.dp)
+                                        )
+                                    }
                                     
                                     Text(
                                         text = "Password Reset Complete",
-                                        style = MaterialTheme.typography.headlineSmall.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White
+                                        style = MaterialTheme.typography.titleLarge.copy(
+                                            fontWeight = FontWeight.Bold
                                         ),
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         textAlign = TextAlign.Center
                                     )
                                     
                                     Text(
                                         text = "Your password has been successfully reset. You can now sign in with your new password.",
-                                        style = MaterialTheme.typography.bodyLarge.copy(
-                                            color = Color.White.copy(alpha = 0.9f)
-                                        ),
-                                        textAlign = TextAlign.Center
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.padding(horizontal = 16.dp)
                                     )
                                 }
                             }
@@ -474,81 +503,66 @@ fun PasswordResetScreen(
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(28.dp))
                 
                 // Submit Button
                 Button(
                     onClick = { handleSubmit() },
-                    enabled = canSubmit && !isLoading,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
+                    shape = RoundedShape,
+                    enabled = canSubmit && !isLoading,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = gradient[1],
-                        disabledContainerColor = Color.White.copy(alpha = 0.3f),
-                        disabledContentColor = Color.White.copy(alpha = 0.5f)
-                    ),
-                    shape = RoundedCornerShape(12.dp)
+                        containerColor = AccentPastel,
+                        contentColor = Color.White
+                    )
                 ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = gradient[1],
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text(
-                            text = when (currentStep) {
-                                RecoveryStep.ACCOUNT -> "Send Code"
-                                RecoveryStep.CODE -> "Verify Code"
-                                RecoveryStep.PASSWORD -> "Reset Password"
-                                RecoveryStep.COMPLETE -> "Back to Sign In"
-                            },
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(24.dp)
                             )
-                        )
+                        } else {
+                            Text(
+                                text = when (currentStep) {
+                                    RecoveryStep.ACCOUNT -> "Send Code"
+                                    RecoveryStep.CODE -> "Verify Code"
+                                    RecoveryStep.PASSWORD -> "Reset Password"
+                                    RecoveryStep.COMPLETE -> "Back to Sign In"
+                                },
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
                     }
                 }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Back to login link
+                TextButton(
+                    onClick = onBack,
+                    enabled = !isLoading
+                ) {
+                    Text(
+                        text = "Return to Sign In",
+                        color = Peach,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Medium
+                        )
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
-    }
-}
-
-@Composable
-private fun StepHeader(
-    icon: ImageVector,
-    title: String,
-    description: String
-) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(32.dp)
-            )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            )
-        }
-        Text(
-            text = description,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                color = Color.White.copy(alpha = 0.9f)
-            )
-        )
     }
 }
 
@@ -558,60 +572,49 @@ private fun StatusCallout(
     tone: StatusTone,
     expiresInMinutes: Int? = null
 ) {
-    val (backgroundColor, iconColor, icon) = when (tone) {
-        StatusTone.NEUTRAL -> Triple(
-            Color.White.copy(alpha = 0.1f),
-            Color.White,
-            Icons.Default.Info
-        )
-        StatusTone.SUCCESS -> Triple(
-            Color(0xFF10B981).copy(alpha = 0.2f),
-            Color(0xFF10B981),
-            Icons.Default.CheckCircle
-        )
-        StatusTone.WARNING -> Triple(
-            Color(0xFFF59E0B).copy(alpha = 0.2f),
-            Color(0xFFF59E0B),
-            Icons.Default.Warning
-        )
-        StatusTone.ERROR -> Triple(
-            Color(0xFFEF4444).copy(alpha = 0.2f),
-            Color(0xFFEF4444),
-            Icons.Default.Error
-        )
+    val (iconColor, icon) = when (tone) {
+        StatusTone.NEUTRAL -> Pair(AccentPastel, Icons.Default.Info)
+        StatusTone.SUCCESS -> Pair(EasyPastel, Icons.Default.CheckCircle)
+        StatusTone.WARNING -> Pair(Peach, Icons.Default.Warning)
+        StatusTone.ERROR -> Pair(HardPastel, Icons.Default.Error)
     }
     
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(backgroundColor)
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Top
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = iconColor,
-            modifier = Modifier.size(24.dp)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         )
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color.White,
-                    fontWeight = FontWeight.Medium
-                )
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(22.dp)
             )
-            expiresInMinutes?.let {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = "Code expires in $it minutes",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = Color.White.copy(alpha = 0.7f)
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium
                     )
                 )
+                expiresInMinutes?.let {
+                    Text(
+                        text = "Code expires in $it minutes",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                }
             }
         }
     }
 }
+
