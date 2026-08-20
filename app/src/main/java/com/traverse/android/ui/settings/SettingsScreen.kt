@@ -143,9 +143,9 @@ fun SettingsScreen(
         EditProfileSheet(
             user = user,
             onDismiss = { showEditProfileSheet = false },
-            onSave = { email, visibility, onComplete ->
+            onSave = { email, visibility, maxDailyReviews, onComplete ->
                 scope.launch {
-                    when (val result = networkService.updateProfile(email, null, visibility)) {
+                    when (val result = networkService.updateProfile(email, null, visibility, maxDailyReviews)) {
                         is NetworkResult.Success -> {
                             // Refresh user data
                             when (val userResult = networkService.getCurrentUser()) {
@@ -641,10 +641,11 @@ private fun BentoCellWide(
 private fun EditProfileSheet(
     user: User?,
     onDismiss: () -> Unit,
-    onSave: (email: String?, visibility: String?, onComplete: (String?) -> Unit) -> Unit
+    onSave: (email: String?, visibility: String?, maxDailyReviews: Int?, onComplete: (String?) -> Unit) -> Unit
 ) {
     var email by remember { mutableStateOf(user?.email ?: "") }
-    var visibility by remember { mutableStateOf(user?.visibility ?: "public") }
+    var visibility by remember { mutableStateOf(user?.visibility ?: "PUBLIC") }
+    var maxDailyReviews by remember { mutableFloatStateOf(user?.maxDailyReviews?.toFloat() ?: 20f) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     
@@ -692,14 +693,43 @@ private fun EditProfileSheet(
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    listOf("public", "friends", "private").forEach { option ->
+                    listOf("PUBLIC", "FRIENDS_ONLY", "PRIVATE").forEach { option ->
                         FilterChip(
-                            selected = visibility == option,
+                            selected = visibility.equals(option, ignoreCase = true),
                             onClick = { visibility = option },
-                            label = { Text(option.replaceFirstChar { it.uppercase() }) }
+                            label = { Text(option.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }) }
                         )
                     }
                 }
+            }
+
+            // Max Daily Reviews Target
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Daily Review Limit",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            color = Color.White.copy(alpha = 0.7f)
+                        )
+                    )
+                    Text(
+                        text = "${maxDailyReviews.toInt()} problems",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF00E676)
+                        )
+                    )
+                }
+                Slider(
+                    value = maxDailyReviews,
+                    onValueChange = { maxDailyReviews = it },
+                    valueRange = 5f..50f,
+                    steps = 8
+                )
             }
             
             errorMessage?.let {
@@ -718,7 +748,8 @@ private fun EditProfileSheet(
                     errorMessage = null
                     onSave(
                         email.ifBlank { null },
-                        visibility
+                        visibility,
+                        maxDailyReviews.toInt()
                     ) { error ->
                         isLoading = false
                         errorMessage = error
