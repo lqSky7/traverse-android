@@ -296,12 +296,25 @@ fun MistakeTagsDetailScreen(
                             .padding(top = 40.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = if (searchText.isEmpty()) "No mistakes recorded! 🎉" else "No matching mistake tags found.",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                color = Color.White.copy(alpha = 0.6f)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (searchText.isEmpty()) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = EasyPastel,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Text(
+                                text = if (searchText.isEmpty()) "No mistakes recorded" else "No matching mistake tags found.",
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    color = Color.White.copy(alpha = 0.6f)
+                                )
                             )
-                        )
+                        }
                     }
                 }
             } else {

@@ -485,7 +485,18 @@ fun RevisionCoachSheet(
                             context.startActivity(intent)
                         }
                     ) {
-                        Text("Get a free Gemini API Key →", color = AccentPastel)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text("Get a free Gemini API Key", color = AccentPastel)
+                            Icon(
+                                imageVector = Icons.Default.OpenInNew,
+                                contentDescription = null,
+                                tint = AccentPastel,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                 }
             },
