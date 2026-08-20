@@ -133,6 +133,8 @@ private fun RevisionItem(
     val context = LocalContext.current
     var showContextMenu by remember { mutableStateOf(false) }
     var showMLSheet by remember { mutableStateOf(false) }
+    var showRescheduleSheet by remember { mutableStateOf(false) }
+    var showCodeHistorySheet by remember { mutableStateOf(false) }
     
     val difficultyColor = when (revision.problem.difficulty.lowercase()) {
         "easy" -> EasyPastel
@@ -146,6 +148,7 @@ private fun RevisionItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable { showContextMenu = true }
             .alpha(if (revision.isCompleted) 0.6f else 1f)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -246,14 +249,60 @@ private fun RevisionItem(
                 }
             }
             
-            // Context menu for ML mode
-            if (useMLMode && !revision.isCompleted) {
-                DropdownMenu(
-                    expanded = showContextMenu,
-                    onDismissRequest = { showContextMenu = false }
-                ) {
+            // Context menu
+            DropdownMenu(
+                expanded = showContextMenu,
+                onDismissRequest = { showContextMenu = false },
+                containerColor = CardBackground
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Open Problem", color = Color.White) },
+                    onClick = {
+                        openProblemUrl(context, revision.problem.platform, revision.problem.slug)
+                        showContextMenu = false
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.OpenInNew,
+                            contentDescription = null,
+                            tint = Color(0xFF00E676)
+                        )
+                    }
+                )
+
+                DropdownMenuItem(
+                    text = { Text("Attempt History", color = Color.White) },
+                    onClick = {
+                        showCodeHistorySheet = true
+                        showContextMenu = false
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Code,
+                            contentDescription = null,
+                            tint = Color(0xFF7C4DFF)
+                        )
+                    }
+                )
+
+                if (!revision.isCompleted) {
                     DropdownMenuItem(
-                        text = { Text("Delete Revision") },
+                        text = { Text("Reschedule", color = Color.White) },
+                        onClick = {
+                            showRescheduleSheet = true
+                            showContextMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.CalendarMonth,
+                                contentDescription = null,
+                                tint = Color(0xFFFF9100)
+                            )
+                        }
+                    )
+
+                    DropdownMenuItem(
+                        text = { Text("Delete Revision", color = HardPastel) },
                         onClick = {
                             onDelete()
                             showContextMenu = false
@@ -280,6 +329,23 @@ private fun RevisionItem(
                 openProblemUrl(context, revision.problem.platform, revision.problem.slug)
                 showMLSheet = false
             }
+        )
+    }
+
+    // Reschedule Sheet
+    if (showRescheduleSheet) {
+        RescheduleSheet(
+            revision = revision,
+            onDismiss = { showRescheduleSheet = false },
+            onRescheduled = { /* refreshed by viewmodel */ }
+        )
+    }
+
+    // Code Attempt History Sheet
+    if (showCodeHistorySheet) {
+        AttemptCodeHistorySheet(
+            revision = revision,
+            onDismiss = { showCodeHistorySheet = false }
         )
     }
 }
