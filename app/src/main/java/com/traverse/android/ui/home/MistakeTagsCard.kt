@@ -33,12 +33,16 @@ fun MistakeTagsCard(
     onViewAll: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val mistakeSolves = solves.filter { it.mistakeTags.isNotEmpty() }
+    val mistakeSolves = solves.filter {
+        val tags = it.mistakeTags ?: it.submission.mistakeTags
+        !tags.isNullOrEmpty()
+    }
     
     // Count tags
     val tagCounts = mutableMapOf<String, Int>()
     mistakeSolves.forEach { solve ->
-        solve.mistakeTags.forEach { tag ->
+        val tags = solve.mistakeTags ?: solve.submission.mistakeTags ?: emptyList()
+        tags.forEach { tag ->
             tagCounts[tag] = (tagCounts[tag] ?: 0) + 1
         }
     }
