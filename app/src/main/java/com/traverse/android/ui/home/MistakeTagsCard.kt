@@ -1,9 +1,11 @@
 package com.traverse.android.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -27,7 +29,8 @@ private val TagColors = listOf(
 @Composable
 fun MistakeTagsCard(
     solves: List<Solve>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onViewAll: () -> Unit = {}
 ) {
     val tagCounts = mutableMapOf<String, Int>()
     solves.forEach { solve ->
@@ -39,7 +42,9 @@ fun MistakeTagsCard(
     val maxCount = topTags.maxOfOrNull { it.value } ?: 1
     
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onViewAll() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = CardBackground)
     ) {
@@ -60,6 +65,13 @@ fun MistakeTagsCard(
                 Text(
                     text = "${tagCounts.size} types",
                     style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = "View Details",
+                    tint = Color.White.copy(alpha = 0.4f),
+                    modifier = Modifier.size(16.dp)
                 )
             }
             

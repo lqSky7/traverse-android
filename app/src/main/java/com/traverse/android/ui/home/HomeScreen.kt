@@ -46,6 +46,7 @@ object HomeDestinations {
     const val ALL_SOLVES = "all_solves"
     const val ALL_ACHIEVEMENTS = "all_achievements"
     const val STREAK = "streak"
+    const val MISTAKE_ANALYSIS = "mistake_analysis"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,6 +76,7 @@ fun HomeScreen(
                 onNavigateToSolves = { navController.navigate(HomeDestinations.ALL_SOLVES) },
                 onNavigateToAchievements = { navController.navigate(HomeDestinations.ALL_ACHIEVEMENTS) },
                 onNavigateToStreak = { navController.navigate(HomeDestinations.STREAK) },
+                onNavigateToMistakes = { navController.navigate(HomeDestinations.MISTAKE_ANALYSIS) },
                 modifier = modifier
             )
         }
@@ -102,6 +104,13 @@ fun HomeScreen(
                 onBack = { navController.popBackStack() }
             )
         }
+
+        composable(HomeDestinations.MISTAKE_ANALYSIS) {
+            MistakeTagsDetailScreen(
+                solves = uiState.recentSolves,
+                onBack = { navController.popBackStack() }
+            )
+        }
     }
 }
 
@@ -114,6 +123,7 @@ private fun HomeMainContent(
     onNavigateToSolves: () -> Unit,
     onNavigateToAchievements: () -> Unit,
     onNavigateToStreak: () -> Unit,
+    onNavigateToMistakes: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val currentDate = remember {
@@ -231,7 +241,10 @@ private fun HomeMainContent(
 
                     // Mistake Tags
                     if (uiState.recentSolves.isNotEmpty()) {
-                        MistakeTagsCard(solves = uiState.recentSolves)
+                        MistakeTagsCard(
+                            solves = uiState.recentSolves,
+                            onViewAll = onNavigateToMistakes
+                        )
                     }
 
                     // Recent Solves (clickable)
