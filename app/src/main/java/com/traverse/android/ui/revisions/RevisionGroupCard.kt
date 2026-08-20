@@ -26,37 +26,38 @@ import com.traverse.android.data.RevisionGroup
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-// Pastel colors matching Android app's monochromish-pastel theme
 private val EasyPastel = Color(0xFFA8E6CF)
 private val MediumPastel = Color(0xFFFFD3B6)
 private val HardPastel = Color(0xFFFFAAA5)
 private val AccentPastel = Color(0xFFB8D4E3)
+private val PurplePastel = Color(0xFFC084FC)
 private val CardBackground = Color(0xFF1A1A1A)
 
 @Composable
 fun RevisionGroupCard(
     group: RevisionGroup,
-    useMLMode: Boolean,
     completingId: Int?,
     onComplete: (Int) -> Unit,
-    onDelete: (Int) -> Unit,
+    onDeleteSingle: (Int) -> Unit,
+    onDeleteProblem: (Int) -> Unit,
+    onRescheduleDays: (Int, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val today = LocalDate.now()
     val groupDate = group.displayDate
-    
+
     val (dateIcon, dateColor) = when {
         groupDate == today -> Icons.Default.Schedule to AccentPastel
         groupDate == today.plusDays(1) -> Icons.Default.Event to AccentPastel
         groupDate.isBefore(today) -> Icons.Default.Warning to HardPastel
         else -> Icons.Default.CalendarMonth to Color.White.copy(alpha = 0.5f)
     }
-    
+
     val formattedDate = remember(group.date) {
         val formatter = DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy")
         groupDate.format(formatter).uppercase()
     }
-    
+
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -91,7 +92,7 @@ fun RevisionGroupCard(
                 )
             )
         }
-        
+
         // Revisions Card
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -102,12 +103,13 @@ fun RevisionGroupCard(
                 group.revisions.forEachIndexed { index, revision ->
                     RevisionItem(
                         revision = revision,
-                        useMLMode = useMLMode,
                         isCompleting = completingId == revision.id,
                         onComplete = { onComplete(revision.id) },
-                        onDelete = { onDelete(revision.id) }
+                        onDeleteSingle = { onDeleteSingle(revision.id) },
+                        onDeleteProblem = { onDeleteProblem(revision.problem.id) },
+                        onRescheduleDays = { days -> onRescheduleDays(revision.id, days) }
                     )
-                    
+
                     // Divider between items
                     if (index < group.revisions.size - 1) {
                         HorizontalDivider(
@@ -125,26 +127,28 @@ fun RevisionGroupCard(
 @Composable
 private fun RevisionItem(
     revision: Revision,
-    useMLMode: Boolean,
     isCompleting: Boolean,
     onComplete: () -> Unit,
-    onDelete: () -> Unit
+    onDeleteSingle: () -> Unit,
+    onDeleteProblem: () -> Unit,
+    onRescheduleDays: (Int) -> Unit
 ) {
     val context = LocalContext.current
     var showContextMenu by remember { mutableStateOf(false) }
-    var showMLSheet by remember { mutableStateOf(false) }
+    var showCoachSheet by remember { mutableStateOf(false) }
+    var showSchedulingInfoSheet by remember { mutableStateOf(false) }
     var showRescheduleSheet by remember { mutableStateOf(false) }
     var showCodeHistorySheet by remember { mutableStateOf(false) }
-    
+
     val difficultyColor = when (revision.problem.difficulty.lowercase()) {
         "easy" -> EasyPastel
         "medium" -> MediumPastel
         "hard" -> HardPastel
         else -> Color.Gray
     }
-    
+
     val buttonColor = if (revision.isOverdue) HardPastel else AccentPastel
-    
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -161,9 +165,9 @@ private fun RevisionItem(
                 .clip(RoundedCornerShape(2.dp))
                 .background(difficultyColor)
         )
-        
+
         Spacer(modifier = Modifier.width(12.dp))
-        
+
         // Problem info
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -175,9 +179,9 @@ private fun RevisionItem(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-            
+
             Spacer(modifier = Modifier.height(6.dp))
-            
+
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = revision.problem.platform.replaceFirstChar { it.uppercase() },
@@ -199,9 +203,9 @@ private fun RevisionItem(
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.width(12.dp))
-        
+
         // Action button
         Box {
             when {
@@ -213,48 +217,44 @@ private fun RevisionItem(
                         modifier = Modifier.size(28.dp)
                     )
                 }
-                
-                useMLMode -> {
+
+                else -> {
                     IconButton(
-                        onClick = { showMLSheet = true }
+                        onClick = { showCoachSheet = true }
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Psychology,
-                            contentDescription = "ML Attempt",
-                            tint = buttonColor,
-                            modifier = Modifier.size(28.dp)
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = "AI Coach & Hints",
+                            tint = PurplePastel,
+                            modifier = Modifier.size(26.dp)
                         )
                     }
                 }
-                
-                else -> {
-                    IconButton(
-                        onClick = onComplete,
-                        enabled = !isCompleting
-                    ) {
-                        if (isCompleting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Outlined.Circle,
-                                contentDescription = "Complete",
-                                tint = buttonColor,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                    }
-                }
             }
-            
-            // Context menu
+
+            // Context menu matching iOS 1:1
             DropdownMenu(
                 expanded = showContextMenu,
                 onDismissRequest = { showContextMenu = false },
                 containerColor = CardBackground
             ) {
+                // 1. AI Revision Coach & Hints
+                DropdownMenuItem(
+                    text = { Text("AI Revision Coach & Hints", color = PurplePastel, fontWeight = FontWeight.SemiBold) },
+                    onClick = {
+                        showCoachSheet = true
+                        showContextMenu = false
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = PurplePastel
+                        )
+                    }
+                )
+
+                // 2. Open Problem
                 DropdownMenuItem(
                     text = { Text("Open Problem", color = Color.White) },
                     onClick = {
@@ -270,6 +270,7 @@ private fun RevisionItem(
                     }
                 )
 
+                // 3. Attempt History
                 DropdownMenuItem(
                     text = { Text("Attempt History", color = Color.White) },
                     onClick = {
@@ -280,31 +281,85 @@ private fun RevisionItem(
                         Icon(
                             imageVector = Icons.Default.Code,
                             contentDescription = null,
-                            tint = Color(0xFF7C4DFF)
+                            tint = AccentPastel
                         )
                     }
                 )
 
+                // 4. ML Scheduling Details
+                DropdownMenuItem(
+                    text = { Text("FSRS Spaced Repetition", color = Color.White) },
+                    onClick = {
+                        showSchedulingInfoSheet = true
+                        showContextMenu = false
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Psychology,
+                            contentDescription = null,
+                            tint = MediumPastel
+                        )
+                    }
+                )
+
+                HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+
                 if (!revision.isCompleted) {
+                    // 5. Reschedule 7 Days Later
                     DropdownMenuItem(
-                        text = { Text("Reschedule", color = Color.White) },
+                        text = { Text("Reschedule 7 Days Later", color = Color.White) },
                         onClick = {
-                            showRescheduleSheet = true
+                            onRescheduleDays(7)
                             showContextMenu = false
                         },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.CalendarMonth,
                                 contentDescription = null,
-                                tint = Color(0xFFFF9100)
+                                tint = AccentPastel
                             )
                         }
                     )
 
+                    // 6. Reschedule 14 Days Later
                     DropdownMenuItem(
-                        text = { Text("Delete Revision", color = HardPastel) },
+                        text = { Text("Reschedule 14 Days Later", color = Color.White) },
                         onClick = {
-                            onDelete()
+                            onRescheduleDays(14)
+                            showContextMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Event,
+                                contentDescription = null,
+                                tint = AccentPastel
+                            )
+                        }
+                    )
+
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+
+                    // 7. Remove from Revision List (Destructive)
+                    DropdownMenuItem(
+                        text = { Text("Remove from Revision List", color = HardPastel) },
+                        onClick = {
+                            onDeleteProblem()
+                            showContextMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.DeleteSweep,
+                                contentDescription = null,
+                                tint = HardPastel
+                            )
+                        }
+                    )
+
+                    // 8. Delete Single Revision (Destructive)
+                    DropdownMenuItem(
+                        text = { Text("Delete Single ML Revision", color = HardPastel) },
+                        onClick = {
+                            onDeleteSingle()
                             showContextMenu = false
                         },
                         leadingIcon = {
@@ -319,16 +374,23 @@ private fun RevisionItem(
             }
         }
     }
-    
-    // ML Attempt Sheet
-    if (showMLSheet) {
-        MLAttemptSheet(
+
+    // AI Revision Coach Sheet
+    if (showCoachSheet) {
+        RevisionCoachSheet(
             revision = revision,
-            onDismiss = { showMLSheet = false },
-            onOpenProblem = { 
+            onDismiss = { showCoachSheet = false },
+            onOpenProblem = {
                 openProblemUrl(context, revision.problem.platform, revision.problem.slug)
-                showMLSheet = false
+                showCoachSheet = false
             }
+        )
+    }
+
+    // FSRS Spaced Repetition Info Sheet
+    if (showSchedulingInfoSheet) {
+        MLSchedulingInfoSheet(
+            onDismiss = { showSchedulingInfoSheet = false }
         )
     }
 
@@ -337,7 +399,7 @@ private fun RevisionItem(
         RescheduleSheet(
             revision = revision,
             onDismiss = { showRescheduleSheet = false },
-            onRescheduled = { /* refreshed by viewmodel */ }
+            onRescheduled = { /* ViewModel refreshes */ }
         )
     }
 
@@ -357,10 +419,10 @@ private fun openProblemUrl(context: android.content.Context, platform: String, s
         "hackerrank" to "https://www.hackerrank.com/challenges/",
         "takeuforward" to "https://takeuforward.org/practice/"
     )
-    
+
     val baseUrl = baseUrls[platform.lowercase()] ?: return
     val url = "$baseUrl$slug"
-    
+
     try {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         context.startActivity(intent)

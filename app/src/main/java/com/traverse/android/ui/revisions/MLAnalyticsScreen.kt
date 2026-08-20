@@ -1,8 +1,10 @@
 package com.traverse.android.ui.revisions
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -14,12 +16,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.traverse.android.data.RevisionAnalyticsOverview
 import com.traverse.android.data.RevisionAnalyticsResponse
+import com.traverse.android.data.RevisionAnalyticsStreaks
+import com.traverse.android.data.RevisionRetentionItem
+import com.traverse.android.data.RevisionStabilityDistribution
+import com.traverse.android.data.RevisionTopicMetric
+import com.traverse.android.data.WeeklyCompletion
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import kotlin.math.roundToInt
 
-// Pastel colors matching Android app's monochromish-pastel theme
 private val EasyPastel = Color(0xFFA8E6CF)
 private val MediumPastel = Color(0xFFFFD3B6)
 private val HardPastel = Color(0xFFFFAAA5)
@@ -31,6 +40,10 @@ fun MLAnalyticsScreen(
     analytics: RevisionAnalyticsResponse,
     modifier: Modifier = Modifier
 ) {
+    var showAllTopicsSheet by remember { mutableStateOf(false) }
+    var showAllAtRiskSheet by remember { mutableStateOf(false) }
+    var infoSheetData by remember { mutableStateOf<Pair<String, String>?>(null) }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -38,265 +51,165 @@ fun MLAnalyticsScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Overview Section
-        OverviewSection(analytics.overview)
-        
-        // Stability Distribution
-        StabilityDistributionSection(analytics.stabilityDistribution)
-        
-        // Streaks Section
-        StreaksSection(analytics.streaks)
-        
-        // Accuracy Trend
-        if (analytics.accuracyTrend.isNotEmpty()) {
-            AccuracyTrendSection(analytics.accuracyTrend)
+        // 1. Overview Card (3 column layout)
+        RevisionOverviewCard(
+            overview = analytics.overview,
+            streaks = analytics.streaks
+        )
+
+        // 2. Retention Health Distribution Card (Vertical Bars)
+        RevisionStabilityDistributionCard(
+            distribution = analytics.stabilityDistribution,
+            onInfoClick = {
+                infoSheetData = "Retention Health" to "Distribution of your tracked DSA problems across FSRS memory stability tiers: Critical (<2d), Weak (2-7d), Developing (7-21d), Strong (21-60d), and Mastered (60d+)."
+            }
+        )
+
+        // 3. Weekly Activity Bar Chart
+        if (analytics.weeklyCompletion.isNotEmpty()) {
+            WeeklyCompletionCard(
+                weeklyCompletion = analytics.weeklyCompletion,
+                onInfoClick = {
+                    infoSheetData = "Weekly Activity" to "Tracks the total volume of spaced repetition problem reviews completed each week over the last 4 weeks."
+                }
+            )
         }
-        
-        // Projected Load
-        if (analytics.projectedLoad.isNotEmpty()) {
-            ProjectedLoadSection(analytics.projectedLoad)
+
+        // 4. Topic Mastery & Speed Card
+        if (analytics.topicBreakdown.isNotEmpty()) {
+            RevisionTopicBreakdownCard(
+                topics = analytics.topicBreakdown,
+                onViewAll = { showAllTopicsSheet = true },
+                onInfoClick = {
+                    infoSheetData = "Topic Mastery & Speed" to "Shows memory retention rates and average solution speed across distinct DSA categories."
+                }
+            )
         }
-        
-        // Interval Growth
-        if (analytics.intervalGrowth.isNotEmpty()) {
-            IntervalGrowthSection(analytics.intervalGrowth)
-        }
-        
-        // Retention Heatmap
+
+        // 5. At-Risk Problems Card
         if (analytics.retentionHeatmap.isNotEmpty()) {
-            RetentionHeatmapSection(analytics.retentionHeatmap)
-        }
-    }
-}
-
-@Composable
-private fun OverviewSection(overview: com.traverse.android.data.RevisionAnalyticsOverview) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(
-                text = "Overview",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = BelfastGroteskBlackFamily,
-                    color = Color.White
-                )
+            RevisionRetentionRiskCard(
+                items = analytics.retentionHeatmap,
+                onViewAll = { showAllAtRiskSheet = true },
+                onInfoClick = {
+                    infoSheetData = "At-Risk Problems" to "Highlights 'Leeches' (problems forgotten multiple times) and problems with retention dropping below 60% that require immediate review."
+                }
             )
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                MetricCard(
-                    title = "Total Tracked",
-                    value = overview.totalProblemsTracked.toString(),
-                    icon = Icons.Default.Psychology,
-                    color = AccentPastel,
-                    modifier = Modifier.weight(1f)
-                )
-                MetricCard(
-                    title = "Mastered",
-                    value = overview.masteredProblems.toString(),
-                    icon = Icons.Default.EmojiEvents,
-                    color = EasyPastel,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                MetricCard(
-                    title = "Leeches",
-                    value = overview.leechProblems.toString(),
-                    icon = Icons.Default.Warning,
-                    color = HardPastel,
-                    modifier = Modifier.weight(1f)
-                )
-                MetricCard(
-                    title = "Avg Stability",
-                    value = "${(overview.averageStability * 100).roundToInt()}%",
-                    icon = Icons.Default.TrendingUp,
-                    color = MediumPastel,
-                    modifier = Modifier.weight(1f)
-                )
-            }
         }
+
+        Spacer(modifier = Modifier.height(60.dp))
+    }
+
+    // All Topics Sheet
+    if (showAllTopicsSheet) {
+        AllTopicsSheet(
+            topics = analytics.topicBreakdown,
+            onDismiss = { showAllTopicsSheet = false }
+        )
+    }
+
+    // All At Risk Problems Sheet
+    if (showAllAtRiskSheet) {
+        AllAtRiskProblemsSheet(
+            items = analytics.retentionHeatmap,
+            onDismiss = { showAllAtRiskSheet = false }
+        )
+    }
+
+    // Info Sheet
+    infoSheetData?.let { (title, desc) ->
+        AnalyticsInfoSheet(
+            title = title,
+            description = desc,
+            onDismiss = { infoSheetData = null }
+        )
     }
 }
 
+// MARK: - 1. Revision Overview Card
 @Composable
-private fun MetricCard(
-    title: String,
-    value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    color: Color,
-    modifier: Modifier = Modifier
+private fun RevisionOverviewCard(
+    overview: RevisionAnalyticsOverview,
+    streaks: RevisionAnalyticsStreaks
 ) {
     Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.15f)
-        ),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(24.dp)
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    color = Color.White.copy(alpha = 0.7f)
-                )
-            )
-        }
-    }
-}
-
-@Composable
-private fun StabilityDistributionSection(distribution: com.traverse.android.data.RevisionStabilityDistribution) {
-    Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBackground)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(
-                text = "Stability Distribution",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = BelfastGroteskBlackFamily,
-                    color = Color.White
-                )
-            )
-            
-            val total = distribution.critical + distribution.weak + distribution.developing + 
-                       distribution.strong + distribution.mastered
-            
-            if (total > 0) {
-                StabilityBar(
-                    label = "Critical",
-                    count = distribution.critical,
-                    total = total,
-                    color = Color(0xFFEF4444)
-                )
-                StabilityBar(
-                    label = "Weak",
-                    count = distribution.weak,
-                    total = total,
-                    color = HardPastel
-                )
-                StabilityBar(
-                    label = "Developing",
-                    count = distribution.developing,
-                    total = total,
-                    color = MediumPastel
-                )
-                StabilityBar(
-                    label = "Strong",
-                    count = distribution.strong,
-                    total = total,
-                    color = AccentPastel
-                )
-                StabilityBar(
-                    label = "Mastered",
-                    count = distribution.mastered,
-                    total = total,
-                    color = EasyPastel
-                )
-            } else {
-                Text(
-                    text = "No data available yet",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        color = Color.White.copy(alpha = 0.5f)
-                    )
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun StabilityBar(
-    label: String,
-    count: Int,
-    total: Int,
-    color: Color
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color.White,
-                    fontWeight = FontWeight.Medium
-                )
-            )
-            Text(
-                text = "$count (${(count.toFloat() / total * 100).roundToInt()}%)",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color.White.copy(alpha = 0.7f)
-                )
-            )
-        }
-        
-        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(8.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(Color.White.copy(alpha = 0.1f))
+                .padding(vertical = 20.dp, horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(count.toFloat() / total)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(color)
-            )
+            // Tracked
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "${overview.totalProblemsTracked}",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = BelfastGroteskBlackFamily,
+                        color = Color.White
+                    )
+                )
+                Text(
+                    text = "Tracked",
+                    style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
+                )
+            }
+
+            VerticalDivider(color = Color.White.copy(alpha = 0.12f), modifier = Modifier.height(36.dp))
+
+            // Avg Retrievability
+            val retrievabilityPct = (overview.averageRetrievability * 100).roundToInt()
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "$retrievabilityPct%",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = BelfastGroteskBlackFamily,
+                        color = AccentPastel
+                    )
+                )
+                Text(
+                    text = "Avg Retrievability",
+                    style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
+                )
+            }
+
+            VerticalDivider(color = Color.White.copy(alpha = 0.12f), modifier = Modifier.height(36.dp))
+
+            // Completed
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "${streaks.totalRevisionsCompleted}",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = BelfastGroteskBlackFamily,
+                        color = EasyPastel
+                    )
+                )
+                Text(
+                    text = "Completed",
+                    style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
+                )
+            }
         }
     }
 }
 
+// MARK: - 2. Stability Distribution (Retention Health)
 @Composable
-private fun StreaksSection(streaks: com.traverse.android.data.RevisionAnalyticsStreaks) {
+private fun RevisionStabilityDistributionCard(
+    distribution: RevisionStabilityDistribution,
+    onInfoClick: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBackground)
     ) {
         Column(
             modifier = Modifier
@@ -304,329 +217,612 @@ private fun StreaksSection(streaks: com.traverse.android.data.RevisionAnalyticsS
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Performance",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = BelfastGroteskBlackFamily,
-                    color = Color.White
-                )
-            )
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                MetricCard(
-                    title = "Completed",
-                    value = streaks.totalRevisionsCompleted.toString(),
-                    icon = Icons.Default.CheckCircle,
-                    color = EasyPastel,
-                    modifier = Modifier.weight(1f)
-                )
-                MetricCard(
-                    title = "Success Rate",
-                    value = "${(streaks.overallSuccessRate * 100).roundToInt()}%",
-                    icon = Icons.Default.TrendingUp,
-                    color = AccentPastel,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AccuracyTrendSection(accuracyTrend: List<com.traverse.android.data.RevisionAccuracyPoint>) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "Accuracy Trend",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = BelfastGroteskBlackFamily,
-                    color = Color.White
-                )
-            )
-            
-            Text(
-                text = "Last ${accuracyTrend.size} data points",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color.White.copy(alpha = 0.7f)
-                )
-            )
-            
-            // Simple list view (charts would require Vico library integration)
-            accuracyTrend.takeLast(5).forEach { point ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = point.date,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = Color.White.copy(alpha = 0.7f)
-                        )
-                    )
-                    Text(
-                        text = "${(point.successRate * 100).roundToInt()}% (${point.totalAttempts} attempts)",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = Color.White,
-                            fontWeight = FontWeight.Medium
-                        )
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProjectedLoadSection(projectedLoad: List<com.traverse.android.data.RevisionProjectedLoad>) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "Projected Load",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = BelfastGroteskBlackFamily,
-                    color = Color.White
-                )
-            )
-            
-            Text(
-                text = "Next ${projectedLoad.size} days",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color.White.copy(alpha = 0.7f)
-                )
-            )
-            
-            projectedLoad.take(7).forEach { load ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = load.date,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = Color.White.copy(alpha = 0.7f)
-                        )
-                    )
-                    Text(
-                        text = "${load.dueCount} due${if (load.overdueCount > 0) " (+${load.overdueCount} overdue)" else ""}",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = if (load.overdueCount > 0) HardPastel else Color.White,
-                            fontWeight = FontWeight.Medium
-                        )
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun IntervalGrowthSection(intervalGrowth: List<com.traverse.android.data.RevisionIntervalGrowth>) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "Interval Growth",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = BelfastGroteskBlackFamily,
-                    color = Color.White
-                )
-            )
-            
-            Text(
-                text = "Average review intervals by month",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color.White.copy(alpha = 0.7f)
-                )
-            )
-            
-            intervalGrowth.forEach { growth ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = growth.month,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = Color.White.copy(alpha = 0.7f)
-                        )
-                    )
-                    Text(
-                        text = "${growth.avgInterval.roundToInt()} days (${growth.count} reviews)",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = Color.White,
-                            fontWeight = FontWeight.Medium
-                        )
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RetentionHeatmapSection(retentionHeatmap: List<com.traverse.android.data.RevisionRetentionItem>) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "Retention Heatmap",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = BelfastGroteskBlackFamily,
-                    color = Color.White
-                )
-            )
-            
-            Text(
-                text = "Top ${retentionHeatmap.size} problems by retention",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color.White.copy(alpha = 0.7f)
-                )
-            )
-            
-            retentionHeatmap.take(10).forEach { item ->
-                RetentionItem(item)
-            }
-        }
-    }
-}
-
-@Composable
-private fun RetentionItem(item: com.traverse.android.data.RevisionRetentionItem) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.05f)
-        ),
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = item.problemTitle,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = Color.White,
-                            fontWeight = FontWeight.Medium
-                        )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ShowChart,
+                        contentDescription = null,
+                        tint = AccentPastel,
+                        modifier = Modifier.size(20.dp)
                     )
                     Text(
-                        text = "${item.platform} • ${item.difficulty}",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = Color.White.copy(alpha = 0.6f)
+                        text = "Retention Health",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = BelfastGroteskBlackFamily,
+                            color = Color.White
                         )
                     )
                 }
-                
-                if (item.isLeech) {
+                IconButton(onClick = onInfoClick, modifier = Modifier.size(24.dp)) {
                     Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = "Leech",
-                        tint = HardPastel,
-                        modifier = Modifier.size(20.dp)
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "Info",
+                        tint = Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
-            
+
+            val buckets = listOf(
+                Triple("Critical", distribution.critical, Color(0xFFEF4444)),
+                Triple("Weak", distribution.weak, HardPastel),
+                Triple("Developing", distribution.developing, MediumPastel),
+                Triple("Strong", distribution.strong, AccentPastel),
+                Triple("Mastered", distribution.mastered, EasyPastel)
+            )
+
+            val maxCount = (buckets.maxOfOrNull { it.second } ?: 1).coerceAtLeast(1)
+
+            // Vertical Bars Chart
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(130.dp)
+                    .padding(top = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                buckets.forEach { (label, count, color) ->
+                    val barHeightFraction = (count.toFloat() / maxCount).coerceIn(0.06f, 1f)
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Bottom,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                    ) {
+                        // Count on top of bar
+                        Text(
+                            text = if (count > 0) "$count" else "",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = color
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        // The Bar
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.6f)
+                                .fillMaxHeight(barHeightFraction)
+                                .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                                .background(color)
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Label
+                        Text(
+                            text = label.take(4),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontSize = 10.sp
+                            ),
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 3. Weekly Activity Card
+@Composable
+private fun WeeklyCompletionCard(
+    weeklyCompletion: List<WeeklyCompletion>,
+    onInfoClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBackground)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(
-                        text = "Retrievability",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = Color.White.copy(alpha = 0.5f)
-                        )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CalendarToday,
+                        contentDescription = null,
+                        tint = EasyPastel,
+                        modifier = Modifier.size(20.dp)
                     )
                     Text(
-                        text = "${(item.retrievability * 100).roundToInt()}%",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = Color.White,
-                            fontWeight = FontWeight.Medium
-                        )
-                    )
-                }
-                
-                Column {
-                    Text(
-                        text = "Stability",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = Color.White.copy(alpha = 0.5f)
-                        )
-                    )
-                    Text(
-                        text = "${(item.stability * 100).roundToInt()}%",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = Color.White,
-                            fontWeight = FontWeight.Medium
+                        text = "Weekly Activity",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = BelfastGroteskBlackFamily,
+                            color = Color.White
                         )
                     )
                 }
-                
-                Column {
-                    Text(
-                        text = "Lapses",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = Color.White.copy(alpha = 0.5f)
+                IconButton(onClick = onInfoClick, modifier = Modifier.size(24.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "Info",
+                        tint = Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            val totalCompletions = weeklyCompletion.sumOf { it.count }
+            val currentWeekCount = weeklyCompletion.lastOrNull()?.count ?: 0
+            val previousWeekCount = weeklyCompletion.dropLast(1).lastOrNull()?.count ?: 0
+            val delta = currentWeekCount - previousWeekCount
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "$totalCompletions completed (4w)",
+                    style = MaterialTheme.typography.bodySmall.copy(color = Color.White.copy(alpha = 0.6f))
+                )
+
+                if (delta != 0) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (delta > 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
+                            contentDescription = null,
+                            tint = if (delta > 0) EasyPastel else HardPastel,
+                            modifier = Modifier.size(16.dp)
                         )
+                        Text(
+                            text = "${if (delta > 0) "+$delta" else "$delta"} this wk",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = if (delta > 0) EasyPastel else HardPastel
+                            )
+                        )
+                    }
+                }
+            }
+
+            val maxCount = (weeklyCompletion.maxOfOrNull { it.count } ?: 1).coerceAtLeast(1)
+            val weekLabels = listOf("3w ago", "2w ago", "Last wk", "This wk")
+
+            // 4 Bars
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp)
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                weeklyCompletion.takeLast(4).forEachIndexed { idx, item ->
+                    val isCurrentWeek = idx == weeklyCompletion.takeLast(4).size - 1
+                    val barHeightFraction = (item.count.toFloat() / maxCount).coerceIn(0.06f, 1f)
+                    val barColor = if (isCurrentWeek) EasyPastel else EasyPastel.copy(alpha = 0.45f)
+                    val label = weekLabels.getOrNull(idx) ?: item.week
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Bottom,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                    ) {
+                        Text(
+                            text = if (item.count > 0) "${item.count}" else "",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = barColor
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.5f)
+                                .fillMaxHeight(barHeightFraction)
+                                .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                                .background(barColor)
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = Color.White.copy(alpha = if (isCurrentWeek) 0.9f else 0.5f),
+                                fontWeight = if (isCurrentWeek) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 11.sp
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 4. Topic Mastery & Speed Card
+@Composable
+private fun RevisionTopicBreakdownCard(
+    topics: List<RevisionTopicMetric>,
+    onViewAll: () -> Unit,
+    onInfoClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBackground)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Folder,
+                        contentDescription = null,
+                        tint = MediumPastel,
+                        modifier = Modifier.size(20.dp)
                     )
                     Text(
-                        text = item.lapses.toString(),
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = if (item.lapses > 3) HardPastel else Color.White,
-                            fontWeight = FontWeight.Medium
+                        text = "Topic Mastery & Speed",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = BelfastGroteskBlackFamily,
+                            color = Color.White
                         )
+                    )
+                }
+                IconButton(onClick = onInfoClick, modifier = Modifier.size(24.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "Info",
+                        tint = Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            // Top 4 Topics
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                topics.take(4).forEach { topic ->
+                    val retentionPct = (topic.averageRetention * 100).roundToInt()
+                    val retentionColor = when {
+                        retentionPct >= 80 -> EasyPastel
+                        retentionPct >= 60 -> MediumPastel
+                        else -> HardPastel
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = topic.topic,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color.White
+                                    )
+                                )
+                                Text(
+                                    text = "• ${topic.problemCount}",
+                                    style = MaterialTheme.typography.bodySmall.copy(color = Color.White.copy(alpha = 0.45f))
+                                )
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (topic.averageTimeMinutes > 0) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color.White.copy(alpha = 0.08f)
+                                    ) {
+                                        Text(
+                                            text = "${"%.1f".format(topic.averageTimeMinutes)}m",
+                                            fontSize = 11.sp,
+                                            color = Color.White.copy(alpha = 0.75f),
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "$retentionPct%",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = retentionColor
+                                    )
+                                )
+                            }
+                        }
+
+                        // Progress Bar
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(5.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(Color.White.copy(alpha = 0.08f))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .fillMaxWidth(fraction = topic.averageRetention.toFloat().coerceIn(0.05f, 1f))
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(retentionColor)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // View All Topics footer button
+            if (topics.size > 4) {
+                HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onViewAll() }
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "View All Topics (${topics.size})",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = AccentPastel
+                        )
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = AccentPastel,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 5. At-Risk Problems Card
+@Composable
+private fun RevisionRetentionRiskCard(
+    items: List<RevisionRetentionItem>,
+    onViewAll: () -> Unit,
+    onInfoClick: () -> Unit
+) {
+    val leechesCount = items.count { it.isLeech }
+    val lowRetentionCount = items.count { it.retrievability < 0.6 }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBackground)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = HardPastel,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "At-Risk Problems",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = BelfastGroteskBlackFamily,
+                            color = Color.White
+                        )
+                    )
+                }
+                IconButton(onClick = onInfoClick, modifier = Modifier.size(24.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "Info",
+                        tint = Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            // Top Badges
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFEF4444).copy(alpha = 0.15f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Leeches", fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
+                        Text(
+                            text = "$leechesCount",
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFEF4444)
+                        )
+                    }
+                }
+
+                Surface(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MediumPastel.copy(alpha = 0.15f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Below 60%", fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
+                        Text(
+                            text = "$lowRetentionCount",
+                            fontWeight = FontWeight.Bold,
+                            color = MediumPastel
+                        )
+                    }
+                }
+            }
+
+            // Focus Items List (sorted by leeches first, then lowest retrievability)
+            val focusItems = items.sortedWith(
+                compareByDescending<RevisionRetentionItem> { it.isLeech }
+                    .thenBy { it.retrievability }
+                    .thenByDescending { it.lapses }
+            ).take(5)
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                focusItems.forEach { item ->
+                    val retrievabilityPct = (item.retrievability * 100).roundToInt()
+                    val dotColor = when {
+                        item.isLeech || retrievabilityPct < 50 -> Color(0xFFEF4444)
+                        retrievabilityPct < 70 -> MediumPastel
+                        else -> EasyPastel
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Dot
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(dotColor)
+                        )
+
+                        // Title
+                        Text(
+                            text = item.problemTitle,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = Color.White,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        // Mini progress bar
+                        Box(
+                            modifier = Modifier
+                                .width(48.dp)
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(Color.White.copy(alpha = 0.1f))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .fillMaxWidth(fraction = item.retrievability.toFloat().coerceIn(0.05f, 1f))
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(dotColor)
+                            )
+                        }
+
+                        // Percentage
+                        Text(
+                            text = "$retrievabilityPct%",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = dotColor
+                            ),
+                            modifier = Modifier.width(36.dp)
+                        )
+                    }
+                }
+            }
+
+            // View All Button
+            if (items.size > 5) {
+                HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onViewAll() }
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "View All At-Risk Problems (${items.size})",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = AccentPastel
+                        )
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = AccentPastel,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }

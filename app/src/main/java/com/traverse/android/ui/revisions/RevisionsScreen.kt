@@ -1,43 +1,15 @@
 package com.traverse.android.ui.revisions
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,17 +17,18 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.traverse.android.data.RevisionStatsResponse
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.viewmodel.RevisionsViewModel
 
-// Pastel colors matching Android app's monochromish-pastel theme
 private val EasyPastel = Color(0xFFA8E6CF)
 private val MediumPastel = Color(0xFFFFD3B6)
 private val HardPastel = Color(0xFFFFAAA5)
 private val AccentPastel = Color(0xFFB8D4E3)
+private val PurplePastel = Color(0xFFC084FC)
 private val CardBackground = Color(0xFF1A1A1A)
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,12 +46,22 @@ fun RevisionsScreen(
     var selectedTab by remember { mutableStateOf(0) } // 0 = Upcoming, 1 = Analytics
     var showCalendarSheet by remember { mutableStateOf(false) }
     var showMLControlsSheet by remember { mutableStateOf(false) }
-    
-    // Load analytics when ML mode is enabled and analytics tab is selected
-    androidx.compose.runtime.LaunchedEffect(uiState.useMLMode, selectedTab) {
-        if (uiState.useMLMode && selectedTab == 1 && uiState.analytics == null && !uiState.isAnalyticsLoading) {
+    var showDailyLimitSheet by remember { mutableStateOf(false) }
+    var showSchedulingInfoSheet by remember { mutableStateOf(false) }
+
+    // Load analytics when analytics tab is selected
+    LaunchedEffect(selectedTab) {
+        if (selectedTab == 1 && uiState.analytics == null && !uiState.isAnalyticsLoading) {
             viewModel.loadAnalytics()
         }
+    }
+
+    // Full screen Exam Mode takeover
+    if (uiState.isExamModeActive) {
+        ExamModeActiveView(
+            onStopExamMode = { viewModel.setExamMode(false) }
+        )
+        return
     }
 
     Scaffold(
@@ -93,6 +76,16 @@ fun RevisionsScreen(
                     )
                 },
                 actions = {
+                    // Daily Review Cap / Limit Action
+                    IconButton(onClick = { showDailyLimitSheet = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Tune,
+                            contentDescription = "Daily Review Limit",
+                            tint = AccentPastel
+                        )
+                    }
+
+                    // More Menu
                     Box {
                         IconButton(onClick = { showMenu = true }) {
                             Icon(
@@ -107,6 +100,7 @@ fun RevisionsScreen(
                             containerColor = CardBackground,
                             modifier = Modifier.width(230.dp)
                         ) {
+                            // 1. Show Completed Toggle
                             DropdownMenuItem(
                                 text = {
                                     Row(
@@ -136,31 +130,28 @@ fun RevisionsScreen(
                                 modifier = Modifier.padding(horizontal = 4.dp)
                             )
 
+                            // 2. Exam Mode Toggle
                             DropdownMenuItem(
                                 text = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Checkbox(
-                                            checked = uiState.useMLMode,
-                                            onCheckedChange = null,
-                                            modifier = Modifier.size(20.dp)
+                                    Text(
+                                        if (uiState.isExamModeActive) "Deactivate Exam Mode" else "Activate Exam Mode",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontFamily = BelfastGroteskBlackFamily,
+                                            fontWeight = FontWeight.Bold,
+                                            color = AccentPastel
                                         )
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Text(
-                                            "ML Scheduling",
-                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                fontFamily = BelfastGroteskBlackFamily,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color.White
-                                            )
-                                        )
-                                    }
+                                    )
                                 },
                                 onClick = {
-                                    viewModel.toggleMLMode()
+                                    viewModel.setExamMode(!uiState.isExamModeActive)
                                     showMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.School,
+                                        contentDescription = null,
+                                        tint = AccentPastel
+                                    )
                                 },
                                 modifier = Modifier.padding(horizontal = 4.dp)
                             )
@@ -170,6 +161,33 @@ fun RevisionsScreen(
                                 color = Color.White.copy(alpha = 0.1f)
                             )
 
+                            // 3. FSRS Info
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        "FSRS Spaced Repetition",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontFamily = BelfastGroteskBlackFamily,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MediumPastel
+                                        )
+                                    )
+                                },
+                                onClick = {
+                                    showSchedulingInfoSheet = true
+                                    showMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Psychology,
+                                        contentDescription = null,
+                                        tint = MediumPastel
+                                    )
+                                },
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+
+                            // 4. ML Controls & Pause
                             DropdownMenuItem(
                                 text = {
                                     Text(
@@ -177,7 +195,7 @@ fun RevisionsScreen(
                                         style = MaterialTheme.typography.bodyMedium.copy(
                                             fontFamily = BelfastGroteskBlackFamily,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFFE040FB)
+                                            color = PurplePastel
                                         )
                                     )
                                 },
@@ -189,12 +207,13 @@ fun RevisionsScreen(
                                     Icon(
                                         imageVector = Icons.Default.CalendarMonth,
                                         contentDescription = null,
-                                        tint = Color(0xFFE040FB)
+                                        tint = PurplePastel
                                     )
                                 },
                                 modifier = Modifier.padding(horizontal = 4.dp)
                             )
 
+                            // 5. Calendar Export
                             DropdownMenuItem(
                                 text = {
                                     Text(
@@ -223,35 +242,44 @@ fun RevisionsScreen(
                     }
                 }
             )
-        }) { padding ->
+        }
+    ) { padding ->
         Column(
             modifier = modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Tab Row for ML Mode
-            if (uiState.useMLMode && uiState.isSubscribed) {
-                androidx.compose.material3.TabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    androidx.compose.material3.Tab(
-                        selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
-                        text = { Text("Upcoming") }
-                    )
-                    androidx.compose.material3.Tab(
-                        selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
-                        text = { Text("Analytics") }
-                    )
-                }
+            // Tab Row (Upcoming vs Analytics)
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    text = {
+                        Text(
+                            text = "Upcoming",
+                            fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                )
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    text = {
+                        Text(
+                            text = "Analytics",
+                            fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                )
             }
-            
+
             // Content based on selected tab
-            when {
-                uiState.useMLMode && selectedTab == 1 -> {
+            when (selectedTab) {
+                1 -> {
                     // Analytics Tab
                     when {
                         uiState.isAnalyticsLoading -> {
@@ -299,7 +327,7 @@ fun RevisionsScreen(
                     }
                 }
                 else -> {
-                    // Upcoming Tab (default view)
+                    // Upcoming Tab
                     RevisionsListContent(
                         uiState = uiState,
                         viewModel = viewModel,
@@ -309,8 +337,8 @@ fun RevisionsScreen(
             }
         }
     }
-    
-    // Pro Upgrade Dialog
+
+    // Pro Upgrade Dialog if not subscribed
     if (uiState.showProUpgradeDialog) {
         ProUpgradeSheet(onDismiss = { viewModel.dismissProUpgradeDialog() })
     }
@@ -328,6 +356,25 @@ fun RevisionsScreen(
         MLControlsSheet(
             onDismiss = { showMLControlsSheet = false },
             onUpdated = { viewModel.refresh() }
+        )
+    }
+
+    // Daily Review Limit Sheet
+    if (showDailyLimitSheet) {
+        DailyReviewLimitSheet(
+            initialLimit = uiState.dailyReviewLimit,
+            totalDue = uiState.stats?.dueToday ?: 0,
+            onDismiss = { showDailyLimitSheet = false },
+            onLimitSaved = {
+                viewModel.refresh()
+            }
+        )
+    }
+
+    // FSRS Spaced Repetition Info Sheet
+    if (showSchedulingInfoSheet) {
+        MLSchedulingInfoSheet(
+            onDismiss = { showSchedulingInfoSheet = false }
         )
     }
 }
@@ -406,10 +453,11 @@ private fun RevisionsListContent(
                     ) { group ->
                         RevisionGroupCard(
                             group = group,
-                            useMLMode = uiState.useMLMode,
                             completingId = uiState.completingRevisionId,
                             onComplete = { viewModel.completeRevision(it) },
-                            onDelete = { viewModel.deleteRevision(it) }
+                            onDeleteSingle = { viewModel.deleteRevision(it) },
+                            onDeleteProblem = { viewModel.deleteProblemRevisions(it) },
+                            onRescheduleDays = { id, days -> viewModel.rescheduleRevision(id, days) }
                         )
                     }
                 }

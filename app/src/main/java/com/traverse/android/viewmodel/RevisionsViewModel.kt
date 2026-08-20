@@ -21,25 +21,27 @@ data class RevisionsUiState(
     val isAnalyticsLoading: Boolean = false,
     val analyticsError: String? = null,
     val showCompletedRevisions: Boolean = false,
-    val useMLMode: Boolean = false,
+    val useMLMode: Boolean = true,
     val isFromCache: Boolean = false,
     val completingRevisionId: Int? = null,
     val deletingRevisionId: Int? = null,
     val isSubscribed: Boolean = false,
-    val showProUpgradeDialog: Boolean = false
+    val showProUpgradeDialog: Boolean = false,
+    val isExamModeActive: Boolean = false,
+    val dailyReviewLimit: Int = 10
 )
 
 class RevisionsViewModel(application: Application) : AndroidViewModel(application) {
-    
+
     private val networkService by lazy { NetworkService.getInstance(application) }
     private val dataManager by lazy { DataManager.getInstance(application) }
     private val cacheManager by lazy { CacheManager.getInstance(application) }
-    
+
     private val _uiState = MutableStateFlow(RevisionsUiState())
     val uiState: StateFlow<RevisionsUiState> = _uiState.asStateFlow()
-    
+
     private var loadJob: Job? = null
-    
+
     init {
         // Observe DataManager flows for real-time reactivity
         viewModelScope.launch {
@@ -53,25 +55,29 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
 
-        // Restore subscription status and ML mode from cache
+        // Restore subscription status, ML mode, and Exam Mode from cache
         val isSubscribed = cacheManager.getSubscriptionStatus()
-        val savedMode = cacheManager.getRevisionMode()
-        _uiState.update { 
+        val isExamMode = cacheManager.getExamMode()
+
+        _uiState.update {
             it.copy(
                 isSubscribed = isSubscribed,
-                useMLMode = savedMode == "ml" && isSubscribed
-            ) 
+                useMLMode = true,
+                isExamModeActive = isExamMode,
+                showProUpgradeDialog = !isSubscribed
+            )
         }
-        
+
         checkSubscriptionStatus()
         loadData()
+        loadAnalytics()
     }
-    
-    private fun checkSubscriptionStatus(forceCheck: Boolean = false) {
+
+    fun checkSubscriptionStatus(forceCheck: Boolean = false) {
         if (!forceCheck && !cacheManager.shouldCheckSubscription()) {
             return
         }
-        
+
         viewModelScope.launch {
             try {
                 when (val result = networkService.getSubscriptionStatus()) {
@@ -79,15 +85,10 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
                         val isActive = result.data.isSubscriptionActive
                         cacheManager.cacheSubscriptionStatus(isActive)
                         _uiState.update { state ->
-                            var newState = state.copy(isSubscribed = isActive)
-                            // If ML mode is on but user is not subscribed, turn it off
-                            if (state.useMLMode && !isActive) {
-                                cacheManager.cacheRevisionMode("normal")
-                                newState = newState.copy(useMLMode = false)
-                                // Reload with normal mode
-                                loadData(forceRefresh = true)
-                            }
-                            newState
+                            state.copy(
+                                isSubscribed = isActive,
+                                showProUpgradeDialog = !isActive
+                            )
                         }
                     }
                     is NetworkResult.Error -> {
@@ -95,22 +96,20 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
                     }
                 }
             } catch (e: Exception) {
-                // Silent failure - keep cached value
+                // Silent failure
             }
         }
     }
-    
+
     fun loadData(forceRefresh: Boolean = false) {
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
-            val mode = if (_uiState.value.useMLMode) "ml" else "normal"
-            
-            // If force refresh, clear cache first
+            val mode = "ml"
+
             if (forceRefresh) {
                 cacheManager.invalidateRevisionCache()
             }
-            
-            // Try cache first if not forcing refresh
+
             if (!forceRefresh) {
                 val cachedData = loadFromCache(mode)
                 if (cachedData) {
@@ -118,15 +117,15 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
                     return@launch
                 }
             }
-            
+
             loadFromNetwork(mode)
         }
     }
-    
+
     private fun loadFromCache(mode: String): Boolean {
         val groups = cacheManager.getRevisionGroups(mode)
         val stats = cacheManager.getRevisionStats(mode)
-        
+
         if (groups != null) {
             _uiState.update { state ->
                 state.copy(
@@ -141,32 +140,31 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
         }
         return false
     }
-    
+
     private suspend fun loadFromNetwork(mode: String) {
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-        
+
         try {
-            val groupsDeferred = viewModelScope.async { 
+            val groupsDeferred = viewModelScope.async {
                 networkService.getGroupedRevisions(
                     includeCompleted = _uiState.value.showCompletedRevisions,
                     type = mode
                 )
             }
-            val statsDeferred = viewModelScope.async { 
-                networkService.getRevisionStats(type = mode) 
+            val statsDeferred = viewModelScope.async {
+                networkService.getRevisionStats(type = mode)
             }
-            
+
             val groupsResult = groupsDeferred.await()
             val statsResult = statsDeferred.await()
-            
-            // Cache successful responses
+
             if (groupsResult is NetworkResult.Success) {
                 cacheManager.cacheRevisionGroups(groupsResult.data, mode)
             }
             if (statsResult is NetworkResult.Success) {
                 cacheManager.cacheRevisionStats(statsResult.data, mode)
             }
-            
+
             _uiState.update { state ->
                 state.copy(
                     isLoading = false,
@@ -176,33 +174,33 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
                     isFromCache = false
                 )
             }
-            
+
         } catch (e: Exception) {
-            _uiState.update { 
+            _uiState.update {
                 it.copy(
-                    isLoading = false, 
+                    isLoading = false,
                     errorMessage = e.message ?: "Unknown error"
                 )
             }
         }
     }
-    
+
     private fun refreshInBackground(mode: String) {
         viewModelScope.launch {
             try {
-                val groupsDeferred = async { 
+                val groupsDeferred = async {
                     networkService.getGroupedRevisions(
                         includeCompleted = _uiState.value.showCompletedRevisions,
                         type = mode
                     )
                 }
-                val statsDeferred = async { 
-                    networkService.getRevisionStats(type = mode) 
+                val statsDeferred = async {
+                    networkService.getRevisionStats(type = mode)
                 }
-                
+
                 val groupsResult = groupsDeferred.await()
                 val statsResult = statsDeferred.await()
-                
+
                 if (groupsResult is NetworkResult.Success) {
                     cacheManager.cacheRevisionGroups(groupsResult.data, mode)
                     _uiState.update { it.copy(revisionGroups = groupsResult.data.groups) }
@@ -211,64 +209,28 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
                     cacheManager.cacheRevisionStats(statsResult.data, mode)
                     _uiState.update { it.copy(stats = statsResult.data) }
                 }
-                
+
                 _uiState.update { it.copy(isFromCache = false) }
-                
+
             } catch (e: Exception) {
                 // Silent failure for background refresh
             }
         }
     }
-    
+
     fun toggleShowCompleted() {
         _uiState.update { it.copy(showCompletedRevisions = !it.showCompletedRevisions) }
         loadData(forceRefresh = true)
     }
-    
-    fun toggleMLMode() {
-        val currentState = _uiState.value
-        
-        if (!currentState.useMLMode) {
-            // User is trying to enable ML mode
-            viewModelScope.launch {
-                // Force check subscription status
-                when (val result = networkService.getSubscriptionStatus()) {
-                    is NetworkResult.Success -> {
-                        val isActive = result.data.isSubscriptionActive
-                        cacheManager.cacheSubscriptionStatus(isActive)
-                        
-                        if (isActive) {
-                            // User is subscribed - enable ML mode
-                            _uiState.update { it.copy(useMLMode = true, isSubscribed = true) }
-                            cacheManager.cacheRevisionMode("ml")
-                            loadData(forceRefresh = true)
-                            loadAnalytics() // Load analytics when enabling ML mode
-                        } else {
-                            // User is not subscribed - show upgrade dialog
-                            _uiState.update { it.copy(showProUpgradeDialog = true, isSubscribed = false) }
-                        }
-                    }
-                    is NetworkResult.Error -> {
-                        _uiState.update { it.copy(errorMessage = "Failed to check subscription status") }
-                    }
-                }
-            }
-        } else {
-            // User is turning off ML mode - no need to check subscription
-            _uiState.update { it.copy(useMLMode = false) }
-            cacheManager.cacheRevisionMode("normal")
-            loadData(forceRefresh = true)
-        }
-    }
-    
+
     fun loadAnalytics() {
         viewModelScope.launch {
             _uiState.update { it.copy(isAnalyticsLoading = true, analyticsError = null) }
-            
+
             try {
                 when (val result = networkService.getRevisionAnalytics()) {
                     is NetworkResult.Success -> {
-                        _uiState.update { 
+                        _uiState.update {
                             it.copy(
                                 analytics = result.data,
                                 isAnalyticsLoading = false,
@@ -277,7 +239,7 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
                         }
                     }
                     is NetworkResult.Error -> {
-                        _uiState.update { 
+                        _uiState.update {
                             it.copy(
                                 isAnalyticsLoading = false,
                                 analyticsError = result.message
@@ -286,7 +248,7 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
                     }
                 }
             } catch (e: Exception) {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isAnalyticsLoading = false,
                         analyticsError = e.message ?: "Failed to load analytics"
@@ -295,65 +257,96 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
     }
-    
+
     fun dismissProUpgradeDialog() {
         _uiState.update { it.copy(showProUpgradeDialog = false) }
     }
-    
+
     fun refresh() {
         viewModelScope.launch {
-            // Clear cache and reload fresh data
             cacheManager.invalidateRevisionCache()
-            
-            // Force network loading
-            val mode = if (_uiState.value.useMLMode) "ml" else "normal"
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            loadFromNetwork(mode)
+            loadData(forceRefresh = true)
+            loadAnalytics()
         }
     }
-    
+
     fun completeRevision(revisionId: Int) {
         viewModelScope.launch {
             _uiState.update { it.copy(completingRevisionId = revisionId) }
-            
+
             when (val result = networkService.completeRevision(revisionId)) {
                 is NetworkResult.Success -> {
-                    // Invalidate cache and reload
                     cacheManager.invalidateRevisionCache()
                     loadData(forceRefresh = true)
+                    loadAnalytics()
                 }
                 is NetworkResult.Error -> {
                     _uiState.update { it.copy(errorMessage = result.message) }
                 }
             }
-            
+
             _uiState.update { it.copy(completingRevisionId = null) }
         }
     }
-    
+
     fun deleteRevision(revisionId: Int) {
         viewModelScope.launch {
             _uiState.update { it.copy(deletingRevisionId = revisionId) }
-            
+
             when (val result = networkService.deleteRevision(revisionId)) {
                 is NetworkResult.Success -> {
-                    // Invalidate cache and reload
                     cacheManager.invalidateRevisionCache()
                     loadData(forceRefresh = true)
+                    loadAnalytics()
                 }
                 is NetworkResult.Error -> {
                     _uiState.update { it.copy(errorMessage = result.message) }
                 }
             }
-            
+
             _uiState.update { it.copy(deletingRevisionId = null) }
         }
     }
-    
+
+    fun deleteProblemRevisions(problemId: Int) {
+        viewModelScope.launch {
+            when (val result = networkService.deleteProblemRevisions(problemId)) {
+                is NetworkResult.Success -> {
+                    cacheManager.invalidateRevisionCache()
+                    loadData(forceRefresh = true)
+                    loadAnalytics()
+                }
+                is NetworkResult.Error -> {
+                    _uiState.update { it.copy(errorMessage = result.message) }
+                }
+            }
+        }
+    }
+
+    fun rescheduleRevision(revisionId: Int, days: Int) {
+        viewModelScope.launch {
+            when (val result = networkService.rescheduleRevision(revisionId, days)) {
+                is NetworkResult.Success -> {
+                    cacheManager.invalidateRevisionCache()
+                    loadData(forceRefresh = true)
+                    loadAnalytics()
+                }
+                is NetworkResult.Error -> {
+                    _uiState.update { it.copy(errorMessage = result.message) }
+                }
+            }
+        }
+    }
+
+    fun setExamMode(active: Boolean) {
+        cacheManager.cacheExamMode(active)
+        _uiState.update { it.copy(isExamModeActive = active) }
+    }
+
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
     }
-    
+
     fun invalidateAllCache() {
         cacheManager.clearAllCache()
     }
