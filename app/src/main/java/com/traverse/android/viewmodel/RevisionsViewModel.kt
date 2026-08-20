@@ -32,6 +32,7 @@ data class RevisionsUiState(
 class RevisionsViewModel(application: Application) : AndroidViewModel(application) {
     
     private val networkService by lazy { NetworkService.getInstance(application) }
+    private val dataManager by lazy { DataManager.getInstance(application) }
     private val cacheManager by lazy { CacheManager.getInstance(application) }
     
     private val _uiState = MutableStateFlow(RevisionsUiState())
@@ -40,17 +41,28 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
     private var loadJob: Job? = null
     
     init {
+        // Observe DataManager flows for real-time reactivity
+        viewModelScope.launch {
+            dataManager.revisionGroups.collect { groups ->
+                _uiState.update { it.copy(revisionGroups = groups) }
+            }
+        }
+        viewModelScope.launch {
+            dataManager.revisionStats.collect { stats ->
+                _uiState.update { it.copy(stats = stats) }
+            }
+        }
+
         // Restore subscription status and ML mode from cache
         val isSubscribed = cacheManager.getSubscriptionStatus()
         val savedMode = cacheManager.getRevisionMode()
         _uiState.update { 
             it.copy(
                 isSubscribed = isSubscribed,
-                useMLMode = savedMode == "ml" && isSubscribed // Only enable ML if subscribed
+                useMLMode = savedMode == "ml" && isSubscribed
             ) 
         }
         
-        // Check subscription status if needed
         checkSubscriptionStatus()
         loadData()
     }
