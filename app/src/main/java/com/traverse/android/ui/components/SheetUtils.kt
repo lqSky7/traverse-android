@@ -32,7 +32,7 @@ fun rememberSheetOverscrollClamper(): NestedScrollConnection {
                 }
             }
 
-            override fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
                 // When flinging up beyond top/expanded limit, consume upward velocity
                 return if (available.y < 0f) {
                     Velocity(0f, available.y)
