@@ -12,6 +12,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,15 +23,17 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.traverse.android.data.CacheManager
-import com.traverse.android.data.NetworkService
+import com.traverse.android.data.DataManager
 import com.traverse.android.ui.auth.AuthNavigation
+import com.traverse.android.ui.auth.OnboardingFlowDialog
+import com.traverse.android.ui.components.AchievementToastManager
+import com.traverse.android.ui.components.AchievementToastOverlayContainer
 import com.traverse.android.ui.navigation.MainNavigation
 import com.traverse.android.ui.theme.TraverseTheme
 import com.traverse.android.viewmodel.AuthViewModel
 import com.traverse.android.viewmodel.FriendsViewModel
 import com.traverse.android.viewmodel.HomeViewModel
 import com.traverse.android.viewmodel.RevisionsViewModel
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,44 +43,50 @@ class MainActivity : ComponentActivity() {
             TraverseTheme {
                 val authViewModel: AuthViewModel = viewModel()
                 val uiState by authViewModel.uiState.collectAsStateWithLifecycle()
+                val toastManager = remember { AchievementToastManager.getInstance(applicationContext) }
+                var showOnboardingDialog by remember { mutableStateOf(false) }
                 
-                // Check for updates on app launch
-                LaunchedEffect(Unit) {
-                    try {
-                        val cacheManager = CacheManager.getInstance(applicationContext)
-                        val lastCheckTime = cacheManager.getLastUpdateCheckTime()
-                        val now = System.currentTimeMillis()
-                        
-                        // Only check once per day
-                        if (now - lastCheckTime >= 24 * 60 * 60 * 1000) {
-                            cacheManager.saveLastUpdateCheckTime(now)
-                        }
-                    } catch (e: Exception) {
-                        // Silently ignore errors in background update check
+                // Sync updates and check onboarding on app launch / auth
+                LaunchedEffect(uiState.isAuthenticated) {
+                    if (uiState.isAuthenticated) {
+                        toastManager.syncAppOpenUpdates()
                     }
                 }
                 
-                when {
-                    // Show main app only when authenticated AND data is loaded
-                    uiState.isAuthenticated && uiState.isDataLoaded -> {
-                        val homeViewModel: HomeViewModel = viewModel()
-                        val revisionsViewModel: RevisionsViewModel = viewModel()
-                        val friendsViewModel: FriendsViewModel = viewModel()
-                        
-                        MainNavigation(
-                            homeViewModel = homeViewModel,
-                            revisionsViewModel = revisionsViewModel,
-                            friendsViewModel = friendsViewModel,
-                            onLogout = { authViewModel.logout() }
+                Box(modifier = Modifier.fillMaxSize()) {
+                    when {
+                        // Show main app only when authenticated AND data is loaded
+                        uiState.isAuthenticated && uiState.isDataLoaded -> {
+                            val homeViewModel: HomeViewModel = viewModel()
+                            val revisionsViewModel: RevisionsViewModel = viewModel()
+                            val friendsViewModel: FriendsViewModel = viewModel()
+                            
+                            MainNavigation(
+                                homeViewModel = homeViewModel,
+                                revisionsViewModel = revisionsViewModel,
+                                friendsViewModel = friendsViewModel,
+                                onLogout = { authViewModel.logout() }
+                            )
+                        }
+                        // Show loading screen while fetching data after login
+                        uiState.isAuthenticated && !uiState.isDataLoaded -> {
+                            LoadingScreen()
+                        }
+                        // Show auth screens
+                        else -> {
+                            AuthNavigation(authViewModel = authViewModel)
+                        }
+                    }
+
+                    // Global in-app HUD notification toasts overlay
+                    AchievementToastOverlayContainer()
+
+                    // First-time onboarding dialog if requested
+                    if (showOnboardingDialog) {
+                        OnboardingFlowDialog(
+                            onDismiss = { showOnboardingDialog = false },
+                            onCompleted = { showOnboardingDialog = false }
                         )
-                    }
-                    // Show loading screen while fetching data after login
-                    uiState.isAuthenticated && !uiState.isDataLoaded -> {
-                        LoadingScreen()
-                    }
-                    // Show auth screens
-                    else -> {
-                        AuthNavigation(authViewModel = authViewModel)
                     }
                 }
             }
@@ -108,3 +119,4 @@ private fun LoadingScreen() {
         }
     }
 }
+
