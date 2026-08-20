@@ -140,79 +140,6 @@ data class FriendAchievement(
     val unlockedAt: String
 )
 
-// MARK: - Profile Management
-@Serializable
-data class UpdateProfileRequest(
-    val email: String? = null,
-    val timezone: String? = null,
-    val visibility: String? = null
-)
-
-@Serializable
-data class UpdateProfileResponse(
-    val message: String,
-    val user: UserProfile
-)
-
-@Serializable
-data class ChangePasswordRequest(
-    val currentPassword: String,
-    val newPassword: String
-)
-
-@Serializable
-data class DeleteAccountRequest(
-    val password: String
-)
-
-@Serializable
-data class MessageResponse(
-    val message: String
-)
-
-// MARK: - Freeze Shop Models
-@Serializable
-data class FreezeCosts(
-    val purchase: Int,
-    val gift: Int
-)
-
-@Serializable
-data class FreezeInfoResponse(
-    val availableFreezes: Int,
-    val usedFreezes: Int,
-    val totalFreezes: Int,
-    val costs: FreezeCosts
-)
-
-@Serializable
-data class PurchaseFreezeRequest(
-    val count: Int = 1
-)
-
-@Serializable
-data class PurchaseFreezeResponse(
-    val message: String,
-    val freezesPurchased: Int,
-    val xpSpent: Int,
-    val availableFreezes: Int,
-    val remainingXp: Int
-)
-
-@Serializable
-data class GiftFreezeRequest(
-    val count: Int = 1
-)
-
-@Serializable
-data class GiftFreezeResponse(
-    val message: String,
-    val freezesGifted: Int,
-    val xpSpent: Int,
-    val recipientUsername: String,
-    val remainingXp: Int
-)
-
 // MARK: - Friend Streak Models
 @Serializable
 data class FriendStreakRequest(
@@ -266,9 +193,3 @@ data class AcceptFriendStreakRequestResponse(
     val streak: FriendStreak
 )
 
-// MARK: - Subscription Status
-
-@Serializable
-data class SubscriptionStatusResponse(
-    val isSubscriptionActive: Boolean
-)

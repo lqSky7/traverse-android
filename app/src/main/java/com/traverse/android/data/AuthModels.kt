@@ -83,6 +83,12 @@ data class UserResponse(
 )
 
 @Serializable
+data class UpdateProfileResponse(
+    val message: String,
+    val user: User
+)
+
+@Serializable
 data class MessageResponse(
     val message: String
 )

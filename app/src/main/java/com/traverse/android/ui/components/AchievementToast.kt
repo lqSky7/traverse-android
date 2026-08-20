@@ -88,7 +88,7 @@ fun AchievementToastOverlayContainer(
 @Composable
 fun AchievementToastView(
     toast: AchievementToastItem,
-    onDismiss: () -> Void_Or_Unit = {},
+    onDismiss: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val categoryColor = getToastCategoryColor(toast.category, toast.count)

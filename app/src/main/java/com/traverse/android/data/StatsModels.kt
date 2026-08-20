@@ -212,7 +212,12 @@ data class FreezeCosts(
 )
 
 @Serializable
-data class FreezePurchaseResponse(
+data class PurchaseFreezeRequest(
+    val count: Int = 1
+)
+
+@Serializable
+data class PurchaseFreezeResponse(
     val message: String,
     val freezesPurchased: Int = 0,
     val xpSpent: Int = 0,
@@ -221,13 +226,21 @@ data class FreezePurchaseResponse(
 )
 
 @Serializable
-data class FreezeGiftResponse(
+data class GiftFreezeRequest(
+    val count: Int = 1
+)
+
+@Serializable
+data class GiftFreezeResponse(
     val message: String,
     val freezesGifted: Int = 0,
     val xpSpent: Int = 0,
     val recipient: String = "",
     val remainingXp: Int = 0
 )
+
+typealias FreezePurchaseResponse = PurchaseFreezeResponse
+typealias FreezeGiftResponse = GiftFreezeResponse
 
 // MARK: - App Updates & Sync Response
 @Serializable
