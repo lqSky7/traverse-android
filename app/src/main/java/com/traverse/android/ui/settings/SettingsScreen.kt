@@ -63,7 +63,9 @@ fun SettingsScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showFreezeShopSheet by remember { mutableStateOf(false) }
     var showCheckUpdatesDialog by remember { mutableStateOf(false) }
+    var showGeminiKeyDialog by remember { mutableStateOf(false) }
     var updateCheckMessage by remember { mutableStateOf<String?>(null) }
+    var geminiKeyInput by remember { mutableStateOf(cacheManager.getGeminiApiKey() ?: "") }
     
     // Load user data and profile image
     LaunchedEffect(Unit) {
@@ -130,7 +132,11 @@ fun SettingsScreen(
                 onLogout = { showLogoutDialog = true },
                 onCheckUpdates = { showCheckUpdatesDialog = true },
                 onDeleteAccount = { showDeleteAccountDialog = true },
-                onFreezeShop = { showFreezeShopSheet = true }
+                onFreezeShop = { showFreezeShopSheet = true },
+                onGeminiApiKey = { 
+                    geminiKeyInput = cacheManager.getGeminiApiKey() ?: ""
+                    showGeminiKeyDialog = true 
+                }
             )
             
             // Bottom spacing
@@ -302,6 +308,65 @@ fun SettingsScreen(
             }
         )
     }
+
+    // Gemini API Key Dialog
+    if (showGeminiKeyDialog) {
+        AlertDialog(
+            onDismissRequest = { showGeminiKeyDialog = false },
+            title = {
+                Text(
+                    text = "Gemini API Key",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = BelfastGroteskBlackFamily
+                    )
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Used to power the AI Revision Coach & Hints on revision cards.",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = Color.White.copy(alpha = 0.7f)
+                        )
+                    )
+
+                    OutlinedTextField(
+                        value = geminiKeyInput,
+                        onValueChange = { geminiKeyInput = it },
+                        label = { Text("API Key") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    TextButton(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://aistudio.google.com/app/apikey"))
+                            context.startActivity(intent)
+                        }
+                    ) {
+                        Text("Get free Gemini API Key →", color = AccentPastel)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        cacheManager.cacheGeminiApiKey(geminiKeyInput.trim())
+                        showGeminiKeyDialog = false
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showGeminiKeyDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
     
     // Error Snackbar
     errorMessage?.let { error ->
@@ -452,6 +517,7 @@ private fun BentoSettingsGrid(
     onCheckUpdates: () -> Unit,
     onDeleteAccount: () -> Unit,
     onFreezeShop: () -> Unit,
+    onGeminiApiKey: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -484,8 +550,19 @@ private fun BentoSettingsGrid(
             }
             
             HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+
+            // Row 2: AI Coach (Gemini Key)
+            BentoCellWide(
+                icon = Icons.Default.AutoAwesome,
+                iconColor = Color(0xFFD1C4E9),
+                title = "AI Revision Coach",
+                subtitle = "Configure Gemini API key for hints",
+                onClick = onGeminiApiKey
+            )
             
-            // Row 2: Freeze Shop (full width)
+            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+            
+            // Row 3: Freeze Shop (full width)
             BentoCellWide(
                 icon = Icons.Default.AcUnit,
                 iconColor = Color.Cyan,
@@ -496,7 +573,7 @@ private fun BentoSettingsGrid(
             
             HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
             
-            // Row 3: Logout (full width)
+            // Row 4: Logout (full width)
             BentoCellWide(
                 icon = Icons.AutoMirrored.Filled.Logout,
                 iconColor = HardPastel,
@@ -507,7 +584,7 @@ private fun BentoSettingsGrid(
             
             HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
             
-            // Row 4: Check for Updates (full width)
+            // Row 5: Check for Updates (full width)
             BentoCellWide(
                 icon = Icons.Default.Download,
                 iconColor = AccentPastel,
@@ -518,7 +595,7 @@ private fun BentoSettingsGrid(
             
             HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
             
-            // Row 5: Delete Account (full width, danger)
+            // Row 6: Delete Account (full width, danger)
             BentoCellWide(
                 icon = Icons.Default.Delete,
                 iconColor = Color.Red,

@@ -45,6 +45,10 @@ class CacheManager private constructor(context: Context) {
         // Profile image cache
         const val KEY_PROFILE_IMAGE = "profile_image"
         
+        // Gemini API Key & Exam Mode
+        const val KEY_GEMINI_API_KEY = "gemini_api_key"
+        const val KEY_EXAM_MODE_ACTIVE = "exam_mode_active"
+        
         // Cache TTL in milliseconds (15 minutes for frequently changing, 1 hour for stable)
         private const val TTL_SHORT = 15 * 60 * 1000L  // 15 min
         private const val TTL_LONG = 60 * 60 * 1000L   // 1 hour
@@ -201,6 +205,26 @@ class CacheManager private constructor(context: Context) {
         return prefs.getString(getKey("${KEY_PROFILE_IMAGE}_file"), null)
     }
     
+    // MARK: - Gemini API Key
+    
+    fun cacheGeminiApiKey(apiKey: String) {
+        prefs.edit().putString(KEY_GEMINI_API_KEY, apiKey).apply()
+    }
+    
+    fun getGeminiApiKey(): String? {
+        return prefs.getString(KEY_GEMINI_API_KEY, null)?.takeIf { it.isNotBlank() }
+    }
+    
+    // MARK: - Exam Mode Cache
+    
+    fun cacheExamMode(isActive: Boolean) {
+        prefs.edit().putBoolean(KEY_EXAM_MODE_ACTIVE, isActive).apply()
+    }
+    
+    fun getExamMode(): Boolean {
+        return prefs.getBoolean(KEY_EXAM_MODE_ACTIVE, false)
+    }
+
     // MARK: - Update Check
     
     fun getLastUpdateCheckTime(): Long {
@@ -241,8 +265,8 @@ class CacheManager private constructor(context: Context) {
     }
     
     fun invalidateRevisionCache() {
-        listOf("${KEY_REVISION_GROUPS}_normal", "${KEY_REVISION_GROUPS}_ml",
-               "${KEY_REVISION_STATS}_normal", "${KEY_REVISION_STATS}_ml")
+        listOf("${KEY_REVISION_GROUPS}_ml", "${KEY_REVISION_STATS}_ml",
+               "${KEY_REVISION_GROUPS}_normal", "${KEY_REVISION_STATS}_normal")
             .forEach { clearCache(it) }
     }
     
