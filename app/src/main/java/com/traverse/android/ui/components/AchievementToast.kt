@@ -100,7 +100,7 @@ fun AchievementToastView(
             .shadow(16.dp, RoundedCornerShape(24.dp), spotColor = categoryColor.copy(alpha = 0.4f))
             .border(1.dp, categoryColor.copy(alpha = 0.35f), RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
-        color = Color(0xFF161A26).copy(alpha = 0.95f),
+        color = Color(0xFF1A1A1A).copy(alpha = 0.95f),
         tonalElevation = 6.dp
     ) {
         Row(

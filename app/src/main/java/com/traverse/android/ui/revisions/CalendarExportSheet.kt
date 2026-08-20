@@ -38,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -47,6 +48,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.traverse.android.data.NetworkService
 import com.traverse.android.data.TokenManager
+import com.traverse.android.ui.components.rememberSheetOverscrollClamper
+
+private val CardBackground = Color(0xFF1A1A1A)
 
 /**
  * 1:1 Kotlin port of iOS Calendar Feed Export Sheet.
@@ -71,12 +75,13 @@ fun CalendarExportSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF141824),
+        containerColor = CardBackground,
         contentColor = Color.White
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .nestedScroll(rememberSheetOverscrollClamper())
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 36.dp)
                 .verticalScroll(rememberScrollState()),
@@ -112,7 +117,7 @@ fun CalendarExportSheet(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                color = Color(0xFF1E2230),
+                color = Color(0xFF242424),
                 border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF00E676).copy(alpha = 0.3f))
             ) {
                 Row(
@@ -162,7 +167,7 @@ fun CalendarExportSheet(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                color = Color(0xFF191D2B)
+                color = Color(0xFF242424)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(

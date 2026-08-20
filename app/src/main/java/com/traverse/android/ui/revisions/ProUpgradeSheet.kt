@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -28,6 +29,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.traverse.android.R
+import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,6 +90,7 @@ fun ProUpgradeSheet(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .nestedScroll(rememberSheetOverscrollClamper())
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
         ) {
             // Video background

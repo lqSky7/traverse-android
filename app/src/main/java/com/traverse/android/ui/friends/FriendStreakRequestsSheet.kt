@@ -42,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -51,7 +52,10 @@ import com.traverse.android.data.DataManager
 import com.traverse.android.data.FriendStreakRequest
 import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
+import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import kotlinx.coroutines.launch
+
+private val CardBackground = Color(0xFF1A1A1A)
 
 /**
  * 1:1 Kotlin port of iOS FriendStreakRequestsView.swift.
@@ -77,12 +81,13 @@ fun FriendStreakRequestsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF141824),
+        containerColor = CardBackground,
         contentColor = Color.White
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .nestedScroll(rememberSheetOverscrollClamper())
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 36.dp)
         ) {
@@ -118,7 +123,7 @@ fun FriendStreakRequestsSheet(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF1E2230), RoundedCornerShape(12.dp))
+                    .background(Color(0xFF242424), RoundedCornerShape(12.dp))
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -226,7 +231,7 @@ private fun StreakRequestCard(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF1E2230),
+        color = Color(0xFF242424),
         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF6D00).copy(alpha = 0.25f))
     ) {
         Row(
@@ -336,7 +341,7 @@ private fun StreakTabButton(
     Surface(
         modifier = modifier.clickable { onClick() },
         shape = RoundedCornerShape(8.dp),
-        color = if (selected) Color(0xFF2B3145) else Color.Transparent
+        color = if (selected) Color(0xFF383838) else Color.Transparent
     ) {
         Text(
             text = title,

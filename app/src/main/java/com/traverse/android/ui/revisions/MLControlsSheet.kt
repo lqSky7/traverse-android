@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.PauseCircle
@@ -39,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -46,7 +49,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
+import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import kotlinx.coroutines.launch
+
+private val CardBackground = Color(0xFF1A1A1A)
 
 /**
  * 1:1 Kotlin port of iOS ML Spaced Repetition Controls Sheet.
@@ -75,14 +81,16 @@ fun MLControlsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF141824),
+        containerColor = CardBackground,
         contentColor = Color.White
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .nestedScroll(rememberSheetOverscrollClamper())
                 .padding(horizontal = 24.dp)
-                .padding(bottom = 36.dp),
+                .padding(bottom = 36.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
@@ -107,7 +115,7 @@ fun MLControlsSheet(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF1E2230), RoundedCornerShape(12.dp))
+                    .background(Color(0xFF242424), RoundedCornerShape(12.dp))
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -163,7 +171,7 @@ fun MLControlsSheet(
                                     .weight(1f)
                                     .clickable { pauseDays = days },
                                 shape = RoundedCornerShape(12.dp),
-                                color = if (isSel) Color(0xFFE040FB).copy(alpha = 0.2f) else Color(0xFF1E2230),
+                                color = if (isSel) Color(0xFFE040FB).copy(alpha = 0.2f) else Color(0xFF242424),
                                 border = androidx.compose.foundation.BorderStroke(
                                     1.dp,
                                     if (isSel) Color(0xFFE040FB) else Color.White.copy(alpha = 0.08f)
@@ -244,7 +252,7 @@ fun MLControlsSheet(
                                     .weight(1f)
                                     .clickable { backlogDays = days },
                                 shape = RoundedCornerShape(12.dp),
-                                color = if (isSel) Color(0xFF00E676).copy(alpha = 0.2f) else Color(0xFF1E2230),
+                                color = if (isSel) Color(0xFF00E676).copy(alpha = 0.2f) else Color(0xFF242424),
                                 border = androidx.compose.foundation.BorderStroke(
                                     1.dp,
                                     if (isSel) Color(0xFF00E676) else Color.White.copy(alpha = 0.08f)
@@ -370,7 +378,7 @@ private fun ControlTabButton(
     Surface(
         modifier = modifier.clickable { onClick() },
         shape = RoundedCornerShape(8.dp),
-        color = if (selected) Color(0xFF2B3145) else Color.Transparent
+        color = if (selected) Color(0xFF383838) else Color.Transparent
     ) {
         Text(
             text = title,

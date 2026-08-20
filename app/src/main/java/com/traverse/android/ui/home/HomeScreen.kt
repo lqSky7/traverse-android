@@ -254,8 +254,8 @@ private fun HomeMainContent(
                         )
                     }
 
-                    // Bottom spacing for floating tab bar
-                    Spacer(modifier = Modifier.height(80.dp))
+                    // Bottom spacing
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }

@@ -81,7 +81,7 @@ fun ExamModeActiveView(
                     .shadow(16.dp, RoundedCornerShape(28.dp)),
                 shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF161924).copy(alpha = 0.88f)
+                    containerColor = Color(0xFF1A1A1A).copy(alpha = 0.90f)
                 ),
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp,

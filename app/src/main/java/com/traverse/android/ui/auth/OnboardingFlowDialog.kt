@@ -90,7 +90,7 @@ fun OnboardingFlowDialog(
                 .fillMaxWidth()
                 .padding(16.dp),
             shape = RoundedCornerShape(28.dp),
-            color = Color(0xFF141824),
+            color = Color(0xFF1A1A1A),
             tonalElevation = 8.dp,
             border = androidx.compose.foundation.BorderStroke(
                 1.dp,
@@ -154,7 +154,7 @@ fun OnboardingFlowDialog(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color(0xFF1E2230), RoundedCornerShape(16.dp))
+                                .background(Color(0xFF242424), RoundedCornerShape(16.dp))
                                 .border(1.dp, Color(0xFF00E676).copy(alpha = 0.4f), RoundedCornerShape(16.dp))
                                 .padding(16.dp),
                             contentAlignment = Alignment.Center
@@ -366,7 +366,7 @@ private fun VisibilityOption(
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        color = if (selected) color.copy(alpha = 0.15f) else Color(0xFF1E2230),
+        color = if (selected) color.copy(alpha = 0.15f) else Color(0xFF242424),
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
             if (selected) color else Color.White.copy(alpha = 0.08f)

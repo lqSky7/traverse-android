@@ -20,6 +20,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
 import com.traverse.android.data.UserBasic
+import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -92,15 +94,19 @@ fun UserSearchSheet(
         }
     }
     
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
+        sheetState = sheetState,
+        containerColor = CardBackground,
         sheetMaxWidth = 600.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.85f)
+                .nestedScroll(rememberSheetOverscrollClamper())
                 .padding(horizontal = 16.dp)
         ) {
             // Title

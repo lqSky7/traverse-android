@@ -12,12 +12,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 
-private val CardBackground = Color(0xFF141824)
+private val CardBackground = Color(0xFF1A1A1A)
 private val AccentPastel = Color(0xFFB8D4E3)
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,6 +40,7 @@ fun AnalyticsInfoSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .nestedScroll(rememberSheetOverscrollClamper())
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 36.dp)
                 .verticalScroll(rememberScrollState()),

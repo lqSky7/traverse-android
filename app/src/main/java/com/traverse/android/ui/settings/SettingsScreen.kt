@@ -26,8 +26,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.traverse.android.BuildConfig
 import com.traverse.android.data.*
+import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import com.traverse.android.ui.theme.RingiftFamily
 import kotlinx.coroutines.launch
@@ -240,16 +242,23 @@ fun SettingsScreen(
     }
     
     // Check for Updates Dialog
+    var latestReleaseUrl by remember { mutableStateOf<String?>(null) }
     if (showCheckUpdatesDialog) {
         AlertDialog(
             onDismissRequest = {
                 showCheckUpdatesDialog = false
                 updateCheckMessage = null
+                latestReleaseUrl = null
             },
             title = { Text("Check for Updates") },
             text = {
                 if (updateCheckMessage == null) {
-                    CircularProgressIndicator()
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = AccentPastel)
+                    }
                 } else {
                     Text(updateCheckMessage!!)
                 }
@@ -258,12 +267,14 @@ fun SettingsScreen(
                 TextButton(
                     onClick = {
                         if (updateCheckMessage?.contains("available") == true) {
-                            // Open GitHub releases page
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/lqSky7/traverse-android/releases/latest"))
+                            // Open GitHub release page
+                            val url = latestReleaseUrl ?: "https://github.com/lqSky7/traverse-android/releases/latest"
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                             context.startActivity(intent)
                         }
                         showCheckUpdatesDialog = false
                         updateCheckMessage = null
+                        latestReleaseUrl = null
                     }
                 ) {
                     Text(if (updateCheckMessage?.contains("available") == true) "Download" else "Done")
@@ -279,19 +290,20 @@ fun SettingsScreen(
                     when (val result = networkService.getLatestRelease()) {
                         is NetworkResult.Success -> {
                             val latestVersion = result.data.version
+                            latestReleaseUrl = result.data.htmlUrl
                             val isUpdateAvailable = isVersionNewer(latestVersion, currentVersion)
                             updateCheckMessage = if (isUpdateAvailable) {
-                                "New version $latestVersion available\n\nYou are on version $currentVersion.\n\nTap Download to get the latest version."
+                                "New version $latestVersion available\n\nYou are currently on version $currentVersion.\n\nTap Download to get the latest update from GitHub."
                             } else {
                                 "You are on version $currentVersion (latest)\n\nNo updates available."
                             }
                         }
                         is NetworkResult.Error -> {
-                            updateCheckMessage = "Unable to check for updates.\n\nPlease try again later."
+                            updateCheckMessage = "Unable to check for updates: ${result.message}\n\nPlease try again later."
                         }
                     }
                 } catch (e: Exception) {
-                    updateCheckMessage = "Unable to check for updates.\n\nPlease try again later."
+                    updateCheckMessage = "Unable to check for updates.\n\nPlease check your connection and try again."
                 }
             }
         }
@@ -748,6 +760,7 @@ private fun EditProfileSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .nestedScroll(rememberSheetOverscrollClamper())
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
@@ -884,6 +897,7 @@ private fun ChangePasswordSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .nestedScroll(rememberSheetOverscrollClamper())
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -1081,6 +1095,7 @@ private fun FreezeShopSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .nestedScroll(rememberSheetOverscrollClamper())
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
@@ -1436,13 +1451,16 @@ private fun FreezeInfoRow(
  */
 private fun isVersionNewer(versionNew: String, versionCurrent: String): Boolean {
     return try {
-        val newParts = versionNew.split(".").mapNotNull { it.toIntOrNull() }
-        val currentParts = versionCurrent.split(".").mapNotNull { it.toIntOrNull() }
+        val cleanNew = versionNew.split("-")[0].removePrefix("v").removePrefix("V").trim()
+        val cleanCurrent = versionCurrent.split("-")[0].removePrefix("v").removePrefix("V").trim()
+        val newParts = cleanNew.split(".").mapNotNull { it.toIntOrNull() }
+        val currentParts = cleanCurrent.split(".").mapNotNull { it.toIntOrNull() }
         
         // Compare version parts
-        for (i in 0 until maxOf(newParts.size, currentParts.size)) {
-            val newPart = newParts.getOrNull(i) ?: 0
-            val currentPart = currentParts.getOrNull(i) ?: 0
+        val maxLen = maxOf(newParts.size, currentParts.size)
+        for (i in 0 until maxLen) {
+            val newPart = newParts.getOrElse(i) { 0 }
+            val currentPart = currentParts.getOrElse(i) { 0 }
             
             when {
                 newPart > currentPart -> return true

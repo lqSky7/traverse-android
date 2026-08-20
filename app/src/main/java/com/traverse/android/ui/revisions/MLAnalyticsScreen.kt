@@ -276,7 +276,6 @@ private fun RevisionStabilityDistributionCard(
 
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Bottom,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
@@ -287,18 +286,26 @@ private fun RevisionStabilityDistributionCard(
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = color
-                            )
+                            ),
+                            maxLines = 1
                         )
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        // The Bar
+                        // Dedicated Bar Container taking the weighted middle area
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(0.6f)
-                                .fillMaxHeight(barHeightFraction)
-                                .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                                .background(color)
-                        )
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.BottomCenter
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.6f)
+                                    .fillMaxHeight(barHeightFraction)
+                                    .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                                    .background(color)
+                            )
+                        }
 
                         Spacer(modifier = Modifier.height(8.dp))
 
@@ -427,7 +434,6 @@ private fun WeeklyCompletionCard(
 
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Bottom,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
@@ -437,17 +443,26 @@ private fun WeeklyCompletionCard(
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = barColor
-                            )
+                            ),
+                            maxLines = 1
                         )
                         Spacer(modifier = Modifier.height(4.dp))
 
+                        // Dedicated Bar Container taking the weighted middle area
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(0.5f)
-                                .fillMaxHeight(barHeightFraction)
-                                .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                                .background(barColor)
-                        )
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.BottomCenter
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.5f)
+                                    .fillMaxHeight(barHeightFraction)
+                                    .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                                    .background(barColor)
+                            )
+                        }
 
                         Spacer(modifier = Modifier.height(8.dp))
 
@@ -457,7 +472,8 @@ private fun WeeklyCompletionCard(
                                 color = Color.White.copy(alpha = if (isCurrentWeek) 0.9f else 0.5f),
                                 fontWeight = if (isCurrentWeek) FontWeight.Bold else FontWeight.Normal,
                                 fontSize = 11.sp
-                            )
+                            ),
+                            maxLines = 1
                         )
                     }
                 }

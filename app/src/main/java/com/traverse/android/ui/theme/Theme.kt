@@ -22,6 +22,13 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = White,
     surfaceVariant = MediumGray,
     onSurfaceVariant = LightGray,
+    surfaceContainerLowest = Color(0xFF141414),
+    surfaceContainerLow = Color(0xFF1A1A1A),
+    surfaceContainer = Color(0xFF1E1E1E),
+    surfaceContainerHigh = Color(0xFF242424),
+    surfaceContainerHighest = Color(0xFF2E2E2E),
+    surfaceDim = Color(0xFF141414),
+    surfaceBright = Color(0xFF383838),
     outline = Gray
 )
 
@@ -40,6 +47,13 @@ private val LightColorScheme = lightColorScheme(
     onSurface = Black,
     surfaceVariant = LightGray,
     onSurfaceVariant = MediumGray,
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFF7F7F7),
+    surfaceContainer = Color(0xFFF0F0F0),
+    surfaceContainerHigh = Color(0xFFEBEBEB),
+    surfaceContainerHighest = Color(0xFFE5E5E5),
+    surfaceDim = Color(0xFFDEDEDE),
+    surfaceBright = Color(0xFFFFFFFF),
     outline = Gray
 )
 

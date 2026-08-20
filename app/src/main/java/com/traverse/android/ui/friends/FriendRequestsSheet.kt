@@ -15,10 +15,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.traverse.android.data.FriendRequest
 import com.traverse.android.data.FriendStreakRequest
+import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -48,17 +50,20 @@ fun FriendRequestsSheet(
     onCancelStreak: (FriendStreakRequest) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var selectedTab by remember { mutableIntStateOf(0) }
     
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
+        sheetState = sheetState,
+        containerColor = CardBackground,
         sheetMaxWidth = 600.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.75f)
+                .nestedScroll(rememberSheetOverscrollClamper())
                 .padding(horizontal = 16.dp)
         ) {
             // Title

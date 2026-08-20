@@ -28,10 +28,11 @@ data class GitHubRelease(
     val tagName: String,
     @kotlinx.serialization.SerialName("html_url")
     val htmlUrl: String,
+    val name: String? = null,
     val body: String? = null
 ) {
     val version: String
-        get() = tagName.removePrefix("v")
+        get() = tagName.removePrefix("v").removePrefix("V").trim()
 }
 
 // API Base URLs
@@ -332,6 +333,15 @@ class NetworkService private constructor(context: Context) {
         .build()
     
     private val gitHubOkHttpClient = OkHttpClient.Builder()
+        .addInterceptor { chain ->
+            val request = chain.request().newBuilder()
+                .header("User-Agent", "Traverse-Android-App")
+                .header("Accept", "application/vnd.github+json")
+                .header("X-GitHub-Api-Version", "2022-11-28")
+                .build()
+            chain.proceed(request)
+        }
+        .addInterceptor(loggingInterceptor)
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)

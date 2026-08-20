@@ -17,8 +17,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.sp
 import com.traverse.android.data.RevisionRetentionItem
+import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import kotlin.math.roundToInt
 
@@ -26,7 +28,7 @@ private val EasyPastel = Color(0xFFA8E6CF)
 private val MediumPastel = Color(0xFFFFD3B6)
 private val HardPastel = Color(0xFFFFAAA5)
 private val AccentPastel = Color(0xFFB8D4E3)
-private val CardBackground = Color(0xFF141824)
+private val CardBackground = Color(0xFF1A1A1A)
 
 enum class RiskSortOption(val label: String) {
     LOWEST_RETENTION("Lowest Retention"),
@@ -69,6 +71,7 @@ fun AllAtRiskProblemsSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.85f)
+                .nestedScroll(rememberSheetOverscrollClamper())
                 .padding(horizontal = 20.dp)
         ) {
             // Header Row
@@ -98,7 +101,7 @@ fun AllAtRiskProblemsSheet(
                         DropdownMenu(
                             expanded = showSortMenu,
                             onDismissRequest = { showSortMenu = false },
-                            containerColor = Color(0xFF1E2230)
+                            containerColor = Color(0xFF242424)
                         ) {
                             RiskSortOption.entries.forEach { option ->
                                 DropdownMenuItem(
