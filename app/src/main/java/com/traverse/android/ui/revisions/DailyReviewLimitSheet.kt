@@ -48,6 +48,10 @@ fun DailyReviewLimitSheet(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var successMessage by remember { mutableStateOf<String?>(null) }
 
+    LaunchedEffect(currentLimit) {
+        draftLimit = currentLimit.toFloat()
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,

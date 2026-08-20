@@ -21,20 +21,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.traverse.android.data.CacheManager
 import com.traverse.android.data.GeminiService
 import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
 import com.traverse.android.data.Revision
-import com.traverse.android.data.Solve
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -44,7 +48,6 @@ private val MediumPastel = Color(0xFFFFD3B6)
 private val HardPastel = Color(0xFFFFAAA5)
 private val AccentPastel = Color(0xFFB8D4E3)
 private val PurplePastel = Color(0xFFD1C4E9)
-private val CardBackground = Color(0xFF141414)
 
 private val TagColors = listOf(
     Color(0xFFFFB6C1),
@@ -62,6 +65,28 @@ private val loadingSteps = listOf(
     "Formulating AI revision hint..."
 )
 
+private data class IconStyle(
+    val width: Int,
+    val height: Int,
+    val shape: Shape,
+    val yOffset: Int
+)
+
+private fun getIconStyle(index: Int): IconStyle {
+    return when (index % 6) {
+        0 -> IconStyle(62, 48, RoundedCornerShape(24.dp), -8)
+        1 -> IconStyle(54, 54, CircleShape, 8)
+        2 -> IconStyle(48, 58, RoundedCornerShape(16.dp), -10)
+        3 -> IconStyle(60, 46, RoundedCornerShape(12.dp), 8)
+        4 -> IconStyle(52, 52, RoundedCornerShape(18.dp), -10)
+        else -> IconStyle(56, 44, RoundedCornerShape(22.dp), 8)
+    }
+}
+
+/**
+ * Dedicated full-screen Revision Coach View reproducing iOS RevisionCoachSheet.swift 1:1.
+ * Pure black background (#000000) with zero gradients, floating organic icons, and smooth text morph.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RevisionCoachSheet(
@@ -78,15 +103,23 @@ fun RevisionCoachSheet(
     var apiKey by remember { mutableStateOf(cacheManager.getGeminiApiKey() ?: "") }
     var showApiKeyDialog by remember { mutableStateOf(false) }
     var inputKey by remember { mutableStateOf("") }
-    
+
     var isLoading by remember { mutableStateOf(true) }
     var currentStepIndex by remember { mutableIntStateOf(0) }
     var aiFeedbackText by remember { mutableStateOf<String?>(null) }
     var selectedTooltipTag by remember { mutableStateOf<String?>(null) }
     var showHistorySheet by remember { mutableStateOf(false) }
 
+    // Intro entrance animations
+    var isIntroVisible by remember { mutableStateOf(false) }
+    var isTextVisible by remember { mutableStateOf(true) }
+
     // Fetch full revision details & run AI hint flow
     LaunchedEffect(revision.id) {
+        // Trigger intro animation
+        delay(120)
+        isIntroVisible = true
+
         // Step 1: Check cached/saved API key
         val storedKey = cacheManager.getGeminiApiKey()
         if (storedKey.isNullOrBlank()) {
@@ -96,7 +129,7 @@ fun RevisionCoachSheet(
         }
         apiKey = storedKey
 
-        // Step 2: Fetch details if attempts aren't loaded
+        // Step 2: Fetch full revision details if attempts aren't loaded
         scope.launch {
             val result = networkService.getRevisionDetails(revision.id)
             if (result is NetworkResult.Success) {
@@ -104,15 +137,19 @@ fun RevisionCoachSheet(
             }
         }
 
-        // Step 3: Run loading step cycle
+        // Step 3: Run loading step cycle with smooth text morph
         val stepJob = scope.launch {
             while (isLoading) {
-                delay(1600)
+                delay(1800)
+                if (!isLoading) break
+                isTextVisible = false
+                delay(200)
                 currentStepIndex = (currentStepIndex + 1) % loadingSteps.size
+                isTextVisible = true
             }
         }
 
-        // Step 4: Call Gemini
+        // Step 4: Call Gemini (using gemini-flash-latest)
         scope.launch {
             val attempts = fullRevision.solve?.attempts ?: emptyList()
             val mistakeTags = fullRevision.solve?.mistakeTags ?: emptyList()
@@ -138,6 +175,8 @@ fun RevisionCoachSheet(
                 )
             }
 
+            isTextVisible = false
+            delay(200)
             isLoading = false
             stepJob.cancel()
 
@@ -146,6 +185,7 @@ fun RevisionCoachSheet(
             }.onFailure { err ->
                 aiFeedbackText = "Could not generate hint: ${err.localizedMessage ?: "Unknown error"}. Check your Gemini API key."
             }
+            isTextVisible = true
         }
     }
 
@@ -154,285 +194,278 @@ fun RevisionCoachSheet(
         if (tags.isEmpty()) listOf("Logic Bug", "Edge Case", "Time Limit Exceeded") else tags
     }
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    ModalBottomSheet(
+    // Render as a dedicated full-screen view
+    Dialog(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = Color.Black,
-        dragHandle = null
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .padding(bottom = 32.dp)
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color.Black
         ) {
-            // Ambient Bottom Glow (reproducing iOS bottom ambient light)
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(280.dp)
-                    .align(Alignment.BottomCenter)
-                    .blur(60.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color(0xFF6200EA).copy(alpha = 0.25f),
-                                Color(0xFF9C27B0).copy(alpha = 0.35f)
-                            )
-                        )
-                    )
-            )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxSize()
+                    .systemBarsPadding()
             ) {
-                // Top Header Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    IconButton(onClick = onDismiss) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close",
-                            tint = Color.White.copy(alpha = 0.7f)
-                        )
-                    }
-
-                    Text(
-                        text = fullRevision.problem.title,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = BelfastGroteskBlackFamily,
-                            color = Color.White
-                        ),
-                        maxLines = 1,
-                        modifier = Modifier.weight(1f),
-                        textAlign = TextAlign.Center
-                    )
-
-                    IconButton(onClick = { showApiKeyDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Key,
-                            contentDescription = "API Key",
-                            tint = AccentPastel
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // 1. Organic Floating Icons Row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Code History Button
-                    Surface(
-                        modifier = Modifier
-                            .height(48.dp)
-                            .width(62.dp)
-                            .clickable { showHistorySheet = true },
-                        shape = RoundedCornerShape(24.dp),
-                        color = Color.White.copy(alpha = 0.08f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.History,
-                                contentDescription = "History",
-                                tint = AccentPastel,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    }
-
-                    // Mistake Tag Chips
-                    mistakeTags.forEachIndexed { idx, tag ->
-                        val isSelected = selectedTooltipTag == tag
-                        val tagColor = TagColors[idx % TagColors.size]
-                        val icon = getTagIcon(tag)
-
-                        Surface(
-                            modifier = Modifier
-                                .height(48.dp)
-                                .clickable {
-                                    selectedTooltipTag = if (selectedTooltipTag == tag) null else tag
-                                },
-                            shape = RoundedCornerShape(if (idx % 2 == 0) 24.dp else 16.dp),
-                            color = if (isSelected) tagColor.copy(alpha = 0.25f) else Color.White.copy(alpha = 0.08f),
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                if (isSelected) tagColor else Color.White.copy(alpha = 0.12f)
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 14.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(
-                                    imageVector = icon,
-                                    contentDescription = null,
-                                    tint = tagColor,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Text(
-                                    text = tag,
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) Color.White else Color.White.copy(alpha = 0.8f)
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // 2. Tooltip Banner for active mistake tag
-                AnimatedVisibility(
-                    visible = selectedTooltipTag != null,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
-                ) {
-                    selectedTooltipTag?.let { tag ->
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 10.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            color = Color(0xFF1E1E2C),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Info,
-                                    contentDescription = null,
-                                    tint = MediumPastel,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "RECORDED MISTAKE PATTERN",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White.copy(alpha = 0.6f)
-                                        )
-                                    )
-                                    Text(
-                                        text = tag,
-                                        style = MaterialTheme.typography.titleSmall.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White
-                                        )
-                                    )
-                                }
-                                IconButton(
-                                    onClick = { selectedTooltipTag = null },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Dismiss",
-                                        tint = Color.White.copy(alpha = 0.6f),
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // 3. Central AI Sparkles Icon
-                Box(
-                    modifier = Modifier
-                        .size(68.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF7C4DFF).copy(alpha = 0.18f))
-                        .border(1.5.dp, Color(0xFFB388FF).copy(alpha = 0.5f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AutoAwesome,
-                        contentDescription = "AI Hint",
-                        tint = Color(0xFFD1C4E9),
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Subtitle
-                Text(
-                    text = if (fullRevision.isCompleted) "AI ATTEMPT COMPARISON" else "AI REVISION HINT",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.5.sp,
-                        color = Color.White.copy(alpha = 0.4f)
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 4. Silky smooth morphing text area
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardBackground.copy(alpha = 0.85f)),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
-                ) {
-                    Box(
+                    // Top Navigation Bar (matching iOS NavigationStack inline style)
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
-                        contentAlignment = Alignment.Center
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (isLoading) {
+                        IconButton(onClick = onDismiss) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = Color.White
+                            )
+                        }
+
+                        Text(
+                            text = fullRevision.problem.title,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = BelfastGroteskBlackFamily,
+                                color = Color.White
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 8.dp),
+                            textAlign = TextAlign.Center
+                        )
+
+                        IconButton(onClick = { showApiKeyDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Key,
+                                contentDescription = "Gemini API Key",
+                                tint = AccentPastel
+                            )
+                        }
+                    }
+
+                    // Spacer pushing content cluster to the lower-center / bottom (matching iOS)
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // Content Cluster with smooth entrance animation
+                    AnimatedVisibility(
+                        visible = isIntroVisible,
+                        enter = fadeIn(animationSpec = tween(600)) + slideInVertically(
+                            initialOffsetY = { 60 },
+                            animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp)
+                                .padding(bottom = 28.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // 1. Organic Floating Icons Row (Code History + Mistake Tags)
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState())
+                                    .padding(vertical = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(20.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
-                                    strokeWidth = 2.dp,
-                                    color = PurplePastel
-                                )
-                                Text(
-                                    text = loadingSteps[currentStepIndex],
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        color = Color.White.copy(alpha = 0.8f),
-                                        fontWeight = FontWeight.Medium
+                                // Code History Button (Translucent Glass Capsule)
+                                Box(
+                                    modifier = Modifier
+                                        .offset(y = (-8).dp)
+                                        .size(width = 62.dp, height = 48.dp)
+                                        .clip(RoundedCornerShape(24.dp))
+                                        .background(Color.White.copy(alpha = 0.08f))
+                                        .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(24.dp))
+                                        .clickable { showHistorySheet = true },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.History,
+                                        contentDescription = "Code History",
+                                        tint = AccentPastel,
+                                        modifier = Modifier.size(24.dp)
                                     )
+                                }
+
+                                // Mistake Tag Icons (Distinct alternating shapes & active tinting)
+                                mistakeTags.forEachIndexed { idx, tag ->
+                                    val style = getIconStyle(idx + 1)
+                                    val isSelected = selectedTooltipTag == tag
+                                    val tagColor = TagColors[idx % TagColors.size]
+                                    val icon = getTagIcon(tag)
+
+                                    val scale by animateFloatAsState(
+                                        targetValue = if (isSelected) 1.12f else 1.0f,
+                                        animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
+                                        label = "tagScale"
+                                    )
+
+                                    Box(
+                                        modifier = Modifier
+                                            .offset(y = style.yOffset.dp)
+                                            .scale(scale)
+                                            .size(width = style.width.dp, height = style.height.dp)
+                                            .clip(style.shape)
+                                            .background(
+                                                if (isSelected) tagColor.copy(alpha = 0.25f)
+                                                else Color.White.copy(alpha = 0.08f)
+                                            )
+                                            .border(
+                                                1.dp,
+                                                if (isSelected) tagColor else Color.White.copy(alpha = 0.15f),
+                                                style.shape
+                                            )
+                                            .clickable {
+                                                selectedTooltipTag = if (selectedTooltipTag == tag) null else tag
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = icon,
+                                            contentDescription = tag,
+                                            tint = tagColor,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            // 2. Liquid Glass Tooltip Banner (Shown when a mistake tag is clicked)
+                            AnimatedVisibility(
+                                visible = selectedTooltipTag != null,
+                                enter = fadeIn(tween(250)) + expandVertically(tween(250)),
+                                exit = fadeOut(tween(200)) + shrinkVertically(tween(200))
+                            ) {
+                                selectedTooltipTag?.let { tag ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .background(Color(0xFF1C1C1E))
+                                            .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
+                                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Info,
+                                            contentDescription = null,
+                                            tint = MediumPastel,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "RECORDED MISTAKE PATTERN",
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White.copy(alpha = 0.6f)
+                                                )
+                                            )
+                                            Text(
+                                                text = tag,
+                                                style = MaterialTheme.typography.titleSmall.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White
+                                                )
+                                            )
+                                        }
+
+                                        IconButton(
+                                            onClick = { selectedTooltipTag = null },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Dismiss",
+                                                tint = Color.White.copy(alpha = 0.6f),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 3. Central AI Sparkles Icon (Clean glass circle)
+                            Box(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.08f))
+                                    .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = "AI Sparkles",
+                                    tint = PurplePastel,
+                                    modifier = Modifier.size(28.dp)
                                 )
                             }
-                        } else {
+
+                            // 4. Subtitle Label
                             Text(
-                                text = aiFeedbackText ?: "No feedback generated.",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    color = Color.White,
-                                    lineHeight = 22.sp
-                                ),
-                                textAlign = TextAlign.Center
+                                text = if (fullRevision.isCompleted) "AI ATTEMPT COMPARISON" else "AI REVISION HINT",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.2.sp,
+                                    color = Color.White.copy(alpha = 0.35f)
+                                )
                             )
+
+                            // 5. Morphing Text Area (No heavy card boxes/neon gradients, clean typography)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 60.dp, max = 180.dp)
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(horizontal = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val textAlpha by animateFloatAsState(
+                                    targetValue = if (isTextVisible) 1f else 0f,
+                                    animationSpec = tween(durationMillis = 220),
+                                    label = "textAlpha"
+                                )
+                                val textBlur by animateDpAsState(
+                                    targetValue = if (isTextVisible) 0.dp else 4.dp,
+                                    animationSpec = tween(durationMillis = 220),
+                                    label = "textBlur"
+                                )
+
+                                Text(
+                                    text = if (isLoading) {
+                                        loadingSteps[currentStepIndex % loadingSteps.size]
+                                    } else {
+                                        aiFeedbackText ?: "Preparing AI analysis..."
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        color = Color.White,
+                                        fontWeight = if (isLoading) FontWeight.Medium else FontWeight.Normal,
+                                        lineHeight = 22.sp
+                                    ),
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier
+                                        .blur(textBlur)
+                                        .graphicsLayer {
+                                            alpha = textAlpha
+                                        }
+                                )
+                            }
                         }
                     }
                 }
@@ -530,7 +563,7 @@ private fun getTagIcon(tag: String): ImageVector {
     return when {
         lower.contains("syntax") || lower.contains("type") -> Icons.Default.Code
         lower.contains("logic") || lower.contains("bug") -> Icons.Default.BugReport
-        lower.contains("boundary") || lower.contains("edge") || lower.contains("corner") -> Icons.Default.Warning
+        lower.contains("boundary") || lower.contains("edge") || lower.contains("index") -> Icons.Default.Warning
         lower.contains("time") || lower.contains("tle") || lower.contains("timeout") -> Icons.Default.HourglassEmpty
         lower.contains("memory") || lower.contains("space") || lower.contains("mle") -> Icons.Default.Memory
         lower.contains("approach") || lower.contains("algo") -> Icons.Default.Psychology

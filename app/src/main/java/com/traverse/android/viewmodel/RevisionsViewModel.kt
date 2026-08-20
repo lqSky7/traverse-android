@@ -17,6 +17,7 @@ data class RevisionsUiState(
     val errorMessage: String? = null,
     val revisionGroups: List<RevisionGroup> = emptyList(),
     val stats: RevisionStatsResponse? = null,
+    val todaySummary: RevisionTodayResponse? = null,
     val analytics: RevisionAnalyticsResponse? = null,
     val isAnalyticsLoading: Boolean = false,
     val analyticsError: String? = null,
@@ -104,7 +105,7 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
     fun loadData(forceRefresh: Boolean = false) {
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
-            val mode = "ml"
+            val mode = if (_uiState.value.useMLMode) "ml" else "normal"
 
             if (forceRefresh) {
                 cacheManager.invalidateRevisionCache()
@@ -145,34 +146,75 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
         try {
-            val groupsDeferred = viewModelScope.async {
-                networkService.getGroupedRevisions(
-                    includeCompleted = _uiState.value.showCompletedRevisions,
-                    type = mode
-                )
-            }
             val statsDeferred = viewModelScope.async {
                 networkService.getRevisionStats(type = mode)
             }
 
-            val groupsResult = groupsDeferred.await()
-            val statsResult = statsDeferred.await()
+            if (mode == "ml") {
+                val todayDeferred = viewModelScope.async {
+                    networkService.getRevisionToday()
+                }
 
-            if (groupsResult is NetworkResult.Success) {
-                cacheManager.cacheRevisionGroups(groupsResult.data, mode)
-            }
-            if (statsResult is NetworkResult.Success) {
-                cacheManager.cacheRevisionStats(statsResult.data, mode)
-            }
+                val todayResult = todayDeferred.await()
+                val statsResult = statsDeferred.await()
 
-            _uiState.update { state ->
-                state.copy(
-                    isLoading = false,
-                    errorMessage = (groupsResult as? NetworkResult.Error)?.message,
-                    revisionGroups = (groupsResult as? NetworkResult.Success)?.data?.groups ?: emptyList(),
-                    stats = (statsResult as? NetworkResult.Success)?.data,
-                    isFromCache = false
-                )
+                if (todayResult is NetworkResult.Success) {
+                    val todayData = todayResult.data
+                    val groups = groupRevisionsByDate(todayData.revisions)
+                    cacheManager.cacheRevisionGroups(GroupedRevisionsResponse(groups), mode)
+
+                    if (statsResult is NetworkResult.Success) {
+                        cacheManager.cacheRevisionStats(statsResult.data, mode)
+                    }
+
+                    _uiState.update { state ->
+                        state.copy(
+                            isLoading = false,
+                            errorMessage = null,
+                            revisionGroups = groups,
+                            todaySummary = todayData,
+                            dailyReviewLimit = todayData.maxDaily,
+                            stats = (statsResult as? NetworkResult.Success)?.data,
+                            isExamModeActive = todayData.isPaused ?: state.isExamModeActive,
+                            isFromCache = false
+                        )
+                    }
+                } else if (todayResult is NetworkResult.Error) {
+                    _uiState.update { state ->
+                        state.copy(
+                            isLoading = false,
+                            errorMessage = todayResult.message,
+                            isFromCache = false
+                        )
+                    }
+                }
+            } else {
+                val groupsDeferred = viewModelScope.async {
+                    networkService.getGroupedRevisions(
+                        includeCompleted = _uiState.value.showCompletedRevisions,
+                        type = mode
+                    )
+                }
+
+                val groupsResult = groupsDeferred.await()
+                val statsResult = statsDeferred.await()
+
+                if (groupsResult is NetworkResult.Success) {
+                    cacheManager.cacheRevisionGroups(groupsResult.data, mode)
+                }
+                if (statsResult is NetworkResult.Success) {
+                    cacheManager.cacheRevisionStats(statsResult.data, mode)
+                }
+
+                _uiState.update { state ->
+                    state.copy(
+                        isLoading = false,
+                        errorMessage = (groupsResult as? NetworkResult.Error)?.message,
+                        revisionGroups = (groupsResult as? NetworkResult.Success)?.data?.groups ?: emptyList(),
+                        stats = (statsResult as? NetworkResult.Success)?.data,
+                        isFromCache = false
+                    )
+                }
             }
 
         } catch (e: Exception) {
@@ -188,34 +230,84 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
     private fun refreshInBackground(mode: String) {
         viewModelScope.launch {
             try {
-                val groupsDeferred = async {
-                    networkService.getGroupedRevisions(
-                        includeCompleted = _uiState.value.showCompletedRevisions,
-                        type = mode
-                    )
-                }
                 val statsDeferred = async {
                     networkService.getRevisionStats(type = mode)
                 }
 
-                val groupsResult = groupsDeferred.await()
-                val statsResult = statsDeferred.await()
+                if (mode == "ml") {
+                    val todayDeferred = async {
+                        networkService.getRevisionToday()
+                    }
 
-                if (groupsResult is NetworkResult.Success) {
-                    cacheManager.cacheRevisionGroups(groupsResult.data, mode)
-                    _uiState.update { it.copy(revisionGroups = groupsResult.data.groups) }
-                }
-                if (statsResult is NetworkResult.Success) {
-                    cacheManager.cacheRevisionStats(statsResult.data, mode)
-                    _uiState.update { it.copy(stats = statsResult.data) }
-                }
+                    val todayResult = todayDeferred.await()
+                    val statsResult = statsDeferred.await()
 
-                _uiState.update { it.copy(isFromCache = false) }
+                    if (todayResult is NetworkResult.Success) {
+                        val todayData = todayResult.data
+                        val groups = groupRevisionsByDate(todayData.revisions)
+                        cacheManager.cacheRevisionGroups(GroupedRevisionsResponse(groups), mode)
+
+                        if (statsResult is NetworkResult.Success) {
+                            cacheManager.cacheRevisionStats(statsResult.data, mode)
+                        }
+
+                        _uiState.update { state ->
+                            state.copy(
+                                revisionGroups = groups,
+                                todaySummary = todayData,
+                                dailyReviewLimit = todayData.maxDaily,
+                                stats = (statsResult as? NetworkResult.Success)?.data ?: state.stats,
+                                isExamModeActive = todayData.isPaused ?: state.isExamModeActive,
+                                isFromCache = false
+                            )
+                        }
+                    }
+                } else {
+                    val groupsDeferred = async {
+                        networkService.getGroupedRevisions(
+                            includeCompleted = _uiState.value.showCompletedRevisions,
+                            type = mode
+                        )
+                    }
+
+                    val groupsResult = groupsDeferred.await()
+                    val statsResult = statsDeferred.await()
+
+                    if (groupsResult is NetworkResult.Success) {
+                        cacheManager.cacheRevisionGroups(groupsResult.data, mode)
+                        _uiState.update { it.copy(revisionGroups = groupsResult.data.groups) }
+                    }
+                    if (statsResult is NetworkResult.Success) {
+                        cacheManager.cacheRevisionStats(statsResult.data, mode)
+                        _uiState.update { it.copy(stats = statsResult.data) }
+                    }
+
+                    _uiState.update { it.copy(isFromCache = false) }
+                }
 
             } catch (e: Exception) {
                 // Silent failure for background refresh
             }
         }
+    }
+
+    private fun groupRevisionsByDate(revisions: List<Revision>): List<RevisionGroup> {
+        val grouped = linkedMapOf<String, MutableList<Revision>>()
+        for (revision in revisions) {
+            val dateKey = try {
+                revision.scheduledFor.substring(0, 10)
+            } catch (e: Exception) {
+                revision.scheduledDate.toString()
+            }
+            grouped.getOrPut(dateKey) { mutableListOf() }.add(revision)
+        }
+        return grouped.map { (date, items) ->
+            RevisionGroup(
+                date = date,
+                revisions = items,
+                count = items.size
+            )
+        }.sortedBy { it.displayDate }
     }
 
     fun toggleShowCompleted() {

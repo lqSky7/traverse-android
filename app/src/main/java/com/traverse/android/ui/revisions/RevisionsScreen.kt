@@ -363,7 +363,8 @@ fun RevisionsScreen(
     // Daily Review Limit Sheet
     if (showDailyLimitSheet) {
         DailyReviewLimitSheet(
-            currentLimit = uiState.dailyReviewLimit,
+            currentLimit = uiState.todaySummary?.maxDaily ?: uiState.dailyReviewLimit,
+            todaySummary = uiState.todaySummary,
             onDismiss = { showDailyLimitSheet = false },
             onLimitUpdated = {
                 viewModel.refresh()

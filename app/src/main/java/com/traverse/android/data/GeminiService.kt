@@ -63,7 +63,7 @@ class GeminiService(private val okHttpClient: OkHttpClient = OkHttpClient.Builde
     private val mediaType = "application/json; charset=utf-8".toMediaType()
 
     companion object {
-        private const val BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+        private const val BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
         
         private const val SYSTEM_PROMPT = """
         You are a concise DSA & LeetCode AI mentor in the Traverse app. Analyze code attempts and error patterns for revision problems.
