@@ -35,7 +35,7 @@ data class GitHubRelease(
 }
 
 // API Base URLs
-private const val TRAVERSE_API_URL = "https://155-248-241-153.sslip.io/"
+private const val TRAVERSE_API_URL = "https://neatness-enlarged-curled.ngrok-free.dev/api/"
 private const val GITHUB_API_URL = "https://api.github.com/"
 
 /**
@@ -71,8 +71,14 @@ interface TraverseApi {
     @retrofit2.http.HTTP(method = "DELETE", path = "auth/account", hasBody = true)
     suspend fun deleteAccount(@Body request: DeleteAccountRequest): MessageResponse
     
+    @POST("auth/recover")
+    suspend fun recoverAccount(@Body request: RecoverAccountRequest): RecoveryResponse
+    
     @GET("auth/me/stats")
     suspend fun getUserStats(): UserStats
+    
+    @GET("submissions/stats/summary")
+    suspend fun getSubmissionStats(): SubmissionStats
     
     @GET("solves/stats/summary")
     suspend fun getSolveStats(): SolveStats
@@ -89,8 +95,17 @@ interface TraverseApi {
     @GET("achievements")
     suspend fun getAllAchievements(): AllAchievementsResponse
     
+    @POST("achievements/mark-notified")
+    suspend fun markAchievementsNotified(@Body request: MarkNotifiedRequest): MessageResponse
+    
     @GET("freeze/dates")
     suspend fun getFreezeDates(): FreezeDatesResponse
+    
+    @GET("users/me/freezes/used")
+    suspend fun getUsedFreezeDates(): FreezeDatesResponse
+    
+    @GET("users/me/updates")
+    suspend fun getAppUpdates(): AppUpdatesResponse
     
     @GET("revisions/grouped")
     suspend fun getGroupedRevisions(
@@ -103,11 +118,32 @@ interface TraverseApi {
         @Query("type") type: String = "normal"
     ): RevisionStatsResponse
     
+    @GET("revisions")
+    suspend fun getRevisions(
+        @Query("upcoming") upcoming: Boolean = false,
+        @Query("overdue") overdue: Boolean = false,
+        @Query("limit") limit: Int = 50,
+        @Query("offset") offset: Int = 0,
+        @Query("type") type: String = "normal"
+    ): RevisionsResponse
+    
+    @GET("revisions/{id}")
+    suspend fun getRevisionDetails(@retrofit2.http.Path("id") id: Int): RevisionDetailsResponse
+    
     @POST("revisions/{id}/complete")
     suspend fun completeRevision(@retrofit2.http.Path("id") id: Int): CompleteRevisionResponse
     
     @retrofit2.http.DELETE("revisions/{id}")
     suspend fun deleteRevision(@retrofit2.http.Path("id") id: Int)
+    
+    @retrofit2.http.DELETE("revisions/problem/{problemId}")
+    suspend fun deleteProblemRevisions(@retrofit2.http.Path("problemId") problemId: Int): MessageResponse
+    
+    @POST("revisions/{id}/reschedule")
+    suspend fun rescheduleRevision(
+        @retrofit2.http.Path("id") id: Int,
+        @Body request: RescheduleRevisionRequest
+    ): RescheduleRevisionResponse
     
     @POST("revisions/{id}/attempt")
     suspend fun recordRevisionAttempt(
@@ -123,6 +159,12 @@ interface TraverseApi {
     
     @POST("revisions/recalibrate")
     suspend fun recalibrateRevisions(): RevisionRecalibrationResponse
+    
+    @POST("revisions/pause")
+    suspend fun pauseRevisions(@Body request: PauseRevisionsRequest): PauseRevisionsResponse
+    
+    @POST("revisions/resume")
+    suspend fun resumeRevisions(@Body request: ResumeRevisionsRequest): ResumeRevisionsResponse
     
     // MARK: - Friends API
     
@@ -223,10 +265,13 @@ interface TraverseApi {
     
     @GET("subscription/status")
     suspend fun getSubscriptionStatus(): SubscriptionStatusResponse
+    
+    @POST("subscription/create-order")
+    suspend fun createSubscriptionOrder(@Body request: CreateSubscriptionOrderRequest): CreateSubscriptionOrderResponse
+    
+    @POST("subscription/verify")
+    suspend fun verifySubscription(@Body request: VerifySubscriptionRequest): VerifySubscriptionResponse
 }
-
-@kotlinx.serialization.Serializable
-data class UserResponse(val user: User)
 
 sealed class NetworkResult<out T> {
     data class Success<T>(val data: T) : NetworkResult<T>()
@@ -259,6 +304,7 @@ class NetworkService private constructor(context: Context) {
         val newRequest = if (token != null) {
             originalRequest.newBuilder()
                 .addHeader("Cookie", "auth_token=$token")
+                .addHeader("Authorization", "Bearer $token")
                 .build()
         } else {
             originalRequest
@@ -300,6 +346,11 @@ class NetworkService private constructor(context: Context) {
     private val gitHubApi: GitHubApi = gitHubRetrofit.create(GitHubApi::class.java)
     
     val api: TraverseApi = retrofit.create(TraverseApi::class.java)
+    
+    fun calendarFeedURL(username: String, token: String): String {
+        val webcalBase = TRAVERSE_API_URL.replace(Regex("^https?://"), "webcal://")
+        return "${webcalBase}revisions/calendar/$username?token=$token"
+    }
     
     suspend fun getLatestRelease(): NetworkResult<GitHubRelease> {
         return try {
@@ -359,10 +410,11 @@ class NetworkService private constructor(context: Context) {
     suspend fun updateProfile(
         email: String? = null,
         timezone: String? = null,
-        visibility: String? = null
+        visibility: String? = null,
+        maxDailyReviews: Int? = null
     ): NetworkResult<UpdateProfileResponse> {
         return try {
-            val response = api.updateProfile(UpdateProfileRequest(email, timezone, visibility))
+            val response = api.updateProfile(UpdateProfileRequest(email, timezone, visibility, maxDailyReviews))
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))
@@ -415,9 +467,28 @@ class NetworkService private constructor(context: Context) {
         }
     }
     
+    suspend fun recoverAccount(username: String, password: String? = null): NetworkResult<RecoveryResponse> {
+        return try {
+            val response = api.recoverAccount(RecoverAccountRequest(username, password))
+            response.token?.let { tokenManager.saveToken(it) }
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
     suspend fun getUserStats(): NetworkResult<UserStats> {
         return try {
             val response = api.getUserStats()
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
+    suspend fun getSubmissionStats(): NetworkResult<SubmissionStats> {
+        return try {
+            val response = api.getSubmissionStats()
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))
@@ -460,9 +531,36 @@ class NetworkService private constructor(context: Context) {
         }
     }
     
+    suspend fun markAchievementsNotified(achievementIds: List<Int>): NetworkResult<Unit> {
+        return try {
+            api.markAchievementsNotified(MarkNotifiedRequest(achievementIds))
+            NetworkResult.Success(Unit)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
     suspend fun getFreezeDates(): NetworkResult<FreezeDatesResponse> {
         return try {
             val response = api.getFreezeDates()
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
+    suspend fun getUsedFreezeDates(): NetworkResult<FreezeDatesResponse> {
+        return try {
+            val response = api.getUsedFreezeDates()
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
+    suspend fun getAppUpdates(): NetworkResult<AppUpdatesResponse> {
+        return try {
+            val response = api.getAppUpdates()
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))
@@ -490,9 +588,42 @@ class NetworkService private constructor(context: Context) {
         }
     }
     
+    suspend fun getRevisions(
+        upcoming: Boolean = false,
+        overdue: Boolean = false,
+        limit: Int = 50,
+        offset: Int = 0,
+        type: String = "normal"
+    ): NetworkResult<RevisionsResponse> {
+        return try {
+            val response = api.getRevisions(upcoming, overdue, limit, offset, type)
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
+    suspend fun getRevisionDetails(id: Int): NetworkResult<RevisionDetailsResponse> {
+        return try {
+            val response = api.getRevisionDetails(id)
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
     suspend fun getRevisionAnalytics(): NetworkResult<RevisionAnalyticsResponse> {
         return try {
             val response = api.getRevisionAnalytics()
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
+    suspend fun getRevisionToday(): NetworkResult<RevisionTodayResponse> {
+        return try {
+            val response = api.getRevisionToday()
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))
@@ -517,6 +648,24 @@ class NetworkService private constructor(context: Context) {
         }
     }
     
+    suspend fun deleteProblemRevisions(problemId: Int): NetworkResult<Unit> {
+        return try {
+            api.deleteProblemRevisions(problemId)
+            NetworkResult.Success(Unit)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
+    suspend fun rescheduleRevision(id: Int, days: Int): NetworkResult<RescheduleRevisionResponse> {
+        return try {
+            val response = api.rescheduleRevision(id, RescheduleRevisionRequest(days))
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
     suspend fun recordRevisionAttempt(
         id: Int,
         outcome: Int,
@@ -528,6 +677,33 @@ class NetworkService private constructor(context: Context) {
                 id, 
                 RevisionAttemptRequest(outcome, numTries, timeSpentMinutes)
             )
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
+    suspend fun recalibrateRevisions(): NetworkResult<RevisionRecalibrationResponse> {
+        return try {
+            val response = api.recalibrateRevisions()
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
+    suspend fun pauseRevisions(pauseDays: Int = 7): NetworkResult<PauseRevisionsResponse> {
+        return try {
+            val response = api.pauseRevisions(PauseRevisionsRequest(pauseDays))
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
+    suspend fun resumeRevisions(backlogDays: Int = 3): NetworkResult<ResumeRevisionsResponse> {
+        return try {
+            val response = api.resumeRevisions(ResumeRevisionsRequest(backlogDays))
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))
@@ -768,6 +944,34 @@ class NetworkService private constructor(context: Context) {
     suspend fun getSubscriptionStatus(): NetworkResult<SubscriptionStatusResponse> {
         return try {
             val response = api.getSubscriptionStatus()
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
+    suspend fun createSubscriptionOrder(plan: String): NetworkResult<CreateSubscriptionOrderResponse> {
+        return try {
+            val response = api.createSubscriptionOrder(CreateSubscriptionOrderRequest(plan))
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
+    suspend fun verifySubscription(
+        paymentId: String,
+        orderId: String,
+        signature: String
+    ): NetworkResult<VerifySubscriptionResponse> {
+        return try {
+            val response = api.verifySubscription(
+                VerifySubscriptionRequest(
+                    razorpayPaymentId = paymentId,
+                    razorpayOrderId = orderId,
+                    razorpaySignature = signature
+                )
+            )
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))
