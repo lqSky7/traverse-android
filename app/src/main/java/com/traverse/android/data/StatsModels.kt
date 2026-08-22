@@ -110,7 +110,107 @@ data class Problem(
     val category: Int? = null,
     val topic: String? = null,
     val subtopic: String? = null
-)
+) {
+    val displayTopic: String?
+        get() = if (topic.isNullOrBlank()) null else formatTopicSlug(topic)
+}
+
+fun formatTopicSlug(slug: String?): String {
+    if (slug.isNullOrBlank()) return "General"
+    val clean = slug.trim()
+    val knownNames = mapOf(
+        "kadanes-algorithm" to "Kadane's Algorithm",
+        "prefix-sum" to "Prefix Sum",
+        "prefix-sum-hashmap" to "Prefix Sum + Hash Map",
+        "sliding-window-fixed" to "Sliding Window (Fixed)",
+        "sliding-window-variable" to "Sliding Window (Variable)",
+        "two-pointers-opposite" to "Two Pointers (Opposite)",
+        "two-pointers-same" to "Two Pointers (Same Direction)",
+        "dutch-national-flag" to "Dutch National Flag",
+        "merge-intervals" to "Merge Intervals",
+        "cyclic-sort" to "Cyclic Sort",
+        "matrix-traversal" to "Matrix Traversal",
+        "general-arrays" to "General Arrays",
+        "string-matching" to "String Matching",
+        "palindrome" to "Palindrome Logic",
+        "anagram" to "Anagram",
+        "string-parsing" to "String Parsing",
+        "general-strings" to "General Strings",
+        "fast-slow-pointers" to "Fast & Slow Pointers",
+        "linked-list-reversal" to "Linked List Reversal",
+        "merge-lists" to "Merge Linked Lists",
+        "general-linked-list" to "General Linked List",
+        "tree-traversal" to "Tree Traversal",
+        "binary-search-tree" to "Binary Search Tree",
+        "tree-construction" to "Tree Construction",
+        "trie-prefix-tree" to "Trie (Prefix Tree)",
+        "segment-tree" to "Segment Tree",
+        "lowest-common-ancestor" to "Lowest Common Ancestor",
+        "general-trees" to "General Trees",
+        "bfs-shortest-path" to "Graph BFS (Shortest Path)",
+        "dfs-graph" to "Graph DFS / Traversal",
+        "topological-sort" to "Topological Sort",
+        "dijkstra" to "Dijkstra's Algorithm",
+        "bellman-ford" to "Bellman-Ford",
+        "union-find" to "Disjoint Set / Union-Find",
+        "minimum-spanning-tree" to "Minimum Spanning Tree",
+        "bipartite-check" to "Bipartite Graph Check",
+        "general-graphs" to "General Graphs",
+        "dp-1d-linear" to "1D Linear DP",
+        "dp-2d-grid" to "2D Grid DP",
+        "dp-knapsack" to "0/1 Knapsack & Subset DP",
+        "dp-lcs" to "LCS / Edit Distance",
+        "dp-lis" to "Longest Increasing Subsequence",
+        "dp-state-machine" to "State Machine DP",
+        "dp-interval" to "Interval DP",
+        "dp-tree" to "Tree DP",
+        "dp-bitmask" to "Bitmask DP",
+        "general-dp" to "General DP",
+        "activity-selection" to "Activity Selection",
+        "jump-game" to "Jump Game Pattern",
+        "task-scheduling" to "Task Scheduling",
+        "general-greedy" to "General Greedy",
+        "permutations" to "Permutations",
+        "combinations-subsets" to "Combinations & Subsets",
+        "constraint-satisfaction" to "Constraint Satisfaction",
+        "general-backtracking" to "General Backtracking",
+        "custom-comparator" to "Custom Comparator Sorting",
+        "counting-sort" to "Counting Sort",
+        "merge-sort-application" to "Merge Sort Applications",
+        "general-sorting" to "General Sorting",
+        "binary-search-standard" to "Binary Search (Standard)",
+        "binary-search-on-answer" to "Binary Search on Answer",
+        "binary-search-rotated" to "Binary Search in Rotated Array",
+        "general-searching" to "General Binary Search",
+        "monotonic-stack" to "Monotonic Stack",
+        "expression-evaluation" to "Expression Evaluation",
+        "parenthesis-matching" to "Parentheses Matching",
+        "general-stack" to "General Stack",
+        "sliding-window-deque" to "Monotonic Deque",
+        "bfs-queue" to "Queue BFS",
+        "general-queue" to "General Queue",
+        "top-k-elements" to "Top K Elements",
+        "merge-k-sorted" to "Merge K Sorted Streams",
+        "median-finding" to "Two Heaps / Median Finding",
+        "general-heap" to "General Heap / PQ",
+        "two-sum-pattern" to "Two Sum / Pair Lookup",
+        "frequency-counting" to "Frequency Counting",
+        "group-by-key" to "Grouping by Key",
+        "general-hashing" to "General Hash Table",
+        "bit-manipulation" to "Bit Manipulation",
+        "modular-arithmetic" to "Modular Arithmetic",
+        "gcd-lcm" to "GCD & LCM",
+        "prime-sieve" to "Primes & Sieve",
+        "general-math" to "General Math"
+    )
+    return knownNames[clean.lowercase()] ?: if (clean.contains("-")) {
+        clean.split("-").joinToString(" ") { word ->
+            word.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+        }
+    } else {
+        clean
+    }
+}
 
 @Serializable
 data class Submission(

@@ -54,7 +54,10 @@ data class RevisionProblem(
     val category: Int? = null,
     val topic: String? = null,
     val subtopic: String? = null
-)
+) {
+    val displayTopic: String?
+        get() = if (topic.isNullOrBlank()) null else formatTopicSlug(topic)
+}
 
 @Serializable
 data class RevisionSolve(
@@ -231,7 +234,10 @@ data class RevisionTopicMetric(
     val averageRetention: Double,
     val averageStability: Double,
     val averageTimeMinutes: Double
-)
+) {
+    val displayTopic: String
+        get() = formatTopicSlug(topic)
+}
 
 @Serializable
 data class WeeklyCompletion(

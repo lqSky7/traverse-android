@@ -556,7 +556,7 @@ private fun RevisionTopicBreakdownCard(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Text(
-                                    text = topic.topic,
+                                    text = topic.displayTopic,
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         fontWeight = FontWeight.SemiBold,
                                         color = Color.White

@@ -189,7 +189,7 @@ private fun TopicDetailCard(topic: RevisionTopicMetric) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = topic.topic,
+                        text = topic.displayTopic,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             color = Color.White
