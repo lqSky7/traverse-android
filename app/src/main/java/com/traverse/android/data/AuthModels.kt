@@ -67,14 +67,16 @@ data class User(
 data class AuthResponse(
     val message: String,
     val user: User,
-    val token: String? = null
+    val token: String? = null,
+    val refreshToken: String? = null
 )
 
 @Serializable
 data class LoginResponse(
     val message: String,
     val user: User,
-    val token: String? = null
+    val token: String? = null,
+    val refreshToken: String? = null
 )
 
 @Serializable
