@@ -70,7 +70,9 @@ fun AuthNavigation(
                         launchSingleTop = true
                     }
                 },
-                onClearError = authViewModel::clearError
+                onClearError = authViewModel::clearError,
+                isSocialLoading = uiState.isSocialSigningIn,
+                onSocialLogin = { provider -> authViewModel.startSocialLogin(provider) }
             )
         }
         
@@ -84,7 +86,9 @@ fun AuthNavigation(
                 onNavigateToLogin = {
                     navController.popBackStack()
                 },
-                onClearError = authViewModel::clearError
+                onClearError = authViewModel::clearError,
+                isSocialLoading = uiState.isSocialSigningIn,
+                onSocialLogin = { provider -> authViewModel.startSocialLogin(provider) }
             )
         }
         

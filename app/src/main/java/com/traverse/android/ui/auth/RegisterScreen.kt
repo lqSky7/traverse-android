@@ -51,6 +51,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.data.SocialProvider
 import com.traverse.android.ui.theme.Peach
 
 private val RoundedShape = RoundedCornerShape(24.dp)
@@ -62,7 +63,9 @@ fun RegisterScreen(
     errorMessage: String?,
     onRegister: (username: String, email: String, password: String) -> Unit,
     onNavigateToLogin: () -> Unit,
-    onClearError: () -> Unit
+    onClearError: () -> Unit,
+    isSocialLoading: Boolean = false,
+    onSocialLogin: (SocialProvider) -> Unit = {}
 ) {
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -285,6 +288,14 @@ fun RegisterScreen(
                     }
                 }
                 
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // WorkOS social sign-in (Google / GitHub / Apple)
+                SocialLoginButtons(
+                    isLoading = isSocialLoading,
+                    onProviderClick = onSocialLogin
+                )
+
                 Spacer(modifier = Modifier.height(24.dp))
                 
                 // Sign in link

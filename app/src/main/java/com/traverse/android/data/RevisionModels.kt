@@ -325,3 +325,33 @@ data class RecalibrationRecommendation(
     val type: String,
     val message: String
 )
+
+// MARK: - Revision Score (mirrors iOS RevisionScoreResponse)
+
+@Serializable
+data class RevisionScoreResponse(
+    val score: Int = 100,
+    val breakdown: RevisionScoreBreakdown? = null,
+    val period: RevisionScorePeriod? = null
+)
+
+@Serializable
+data class RevisionScoreBreakdown(
+    val memoryHealth: RevisionScoreDimension? = null,
+    val rLift: RevisionScoreDimension? = null,
+    val completion: RevisionScoreDimension? = null,
+    val consistency: RevisionScoreDimension? = null
+)
+
+@Serializable
+data class RevisionScoreDimension(
+    val score: Int = 0,
+    val weight: Double = 0.0,
+    val detail: String = ""
+)
+
+@Serializable
+data class RevisionScorePeriod(
+    val start: String = "",
+    val end: String = ""
+)

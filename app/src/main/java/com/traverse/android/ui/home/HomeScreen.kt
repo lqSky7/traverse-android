@@ -193,6 +193,9 @@ private fun HomeMainContent(
                         )
                     }
 
+                    // Revision health score card (parity with the iOS home screen)
+                    RevisionScoreCard(score = uiState.revisionScore?.score ?: 100)
+
                     // Main Stats Card
                     uiState.solveStats?.let { solveStats ->
                         MainStatsCard(

@@ -13,8 +13,8 @@ android {
         applicationId = "com.traverse.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.4"
+        versionCode = 2
+        versionName = "1.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -84,6 +84,9 @@ dependencies {
 
     // Security (for encrypted token storage)
     implementation(libs.androidx.security.crypto)
+
+    // Custom Tabs (WorkOS social sign-in)
+    implementation(libs.androidx.browser)
 
     // Image Loading
     implementation(libs.coil.compose)

@@ -74,6 +74,17 @@ interface TraverseApi {
     
     @POST("auth/recover")
     suspend fun recoverAccount(@Body request: RecoverAccountRequest): RecoveryResponse
+
+    // MARK: - Social (WorkOS) Auth
+
+    @GET("auth/social/{provider}")
+    suspend fun getSocialAuthUrl(
+        @retrofit2.http.Path("provider") provider: String,
+        @Query("redirect_uri") redirectUri: String
+    ): SocialAuthUrlResponse
+
+    @POST("auth/social/callback")
+    suspend fun socialCallback(@Body request: SocialCallbackRequest): LoginResponse
     
     @GET("auth/me/stats")
     suspend fun getUserStats(): UserStats
@@ -154,6 +165,9 @@ interface TraverseApi {
     
     @GET("revisions/analytics")
     suspend fun getRevisionAnalytics(): RevisionAnalyticsResponse
+
+    @GET("revisions/score")
+    suspend fun getRevisionScore(): RevisionScoreResponse
     
     @GET("revisions/today")
     suspend fun getRevisionToday(): RevisionTodayResponse
@@ -486,6 +500,28 @@ class NetworkService private constructor(context: Context) {
             NetworkResult.Error(parseError(e))
         }
     }
+
+    // MARK: - Social (WorkOS) Auth
+
+    suspend fun getSocialAuthUrl(provider: String, redirectUri: String): NetworkResult<SocialAuthUrlResponse> {
+        return try {
+            val response = api.getSocialAuthUrl(provider, redirectUri)
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+
+    /** Exchanges the OAuth authorization code for a Traverse session and stores the token. */
+    suspend fun socialCallback(code: String): NetworkResult<LoginResponse> {
+        return try {
+            val response = api.socialCallback(SocialCallbackRequest(code))
+            response.token?.let { tokenManager.saveToken(it) }
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
     
     suspend fun getUserStats(): NetworkResult<UserStats> {
         return try {
@@ -625,6 +661,15 @@ class NetworkService private constructor(context: Context) {
     suspend fun getRevisionAnalytics(): NetworkResult<RevisionAnalyticsResponse> {
         return try {
             val response = api.getRevisionAnalytics()
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+
+    suspend fun getRevisionScore(): NetworkResult<RevisionScoreResponse> {
+        return try {
+            val response = api.getRevisionScore()
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))

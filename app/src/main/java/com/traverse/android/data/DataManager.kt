@@ -90,6 +90,10 @@ class DataManager private constructor(private val context: Context) {
     private val _revisionStats = MutableStateFlow<RevisionStatsResponse?>(null)
     val revisionStats: StateFlow<RevisionStatsResponse?> = _revisionStats.asStateFlow()
 
+    /** 7-day revision health score shown on the Home screen. */
+    private val _revisionScore = MutableStateFlow<RevisionScoreResponse?>(null)
+    val revisionScore: StateFlow<RevisionScoreResponse?> = _revisionScore.asStateFlow()
+
     private val _revisionMode = MutableStateFlow("normal")
     val revisionMode: StateFlow<String> = _revisionMode.asStateFlow()
 
@@ -158,6 +162,7 @@ class DataManager private constructor(private val context: Context) {
 
         loadFile<List<RevisionGroup>>("revisionGroups.json")?.let { _revisionGroups.value = it }
         loadFile<RevisionStatsResponse>("revisionStats.json")?.let { _revisionStats.value = it }
+        loadFile<RevisionScoreResponse>("revisionScore.json")?.let { _revisionScore.value = it }
         loadFile<String>("revisionMode.json")?.let { _revisionMode.value = it }
 
         if (_userStats.value != null || _recentSolves.value.isNotEmpty() || _friends.value.isNotEmpty()) {
@@ -187,6 +192,7 @@ class DataManager private constructor(private val context: Context) {
 
             saveFile(_revisionGroups.value, "revisionGroups.json")
             _revisionStats.value?.let { saveFile(it, "revisionStats.json") }
+            _revisionScore.value?.let { saveFile(it, "revisionScore.json") }
             saveFile(_revisionMode.value, "revisionMode.json")
         }
     }
@@ -243,6 +249,7 @@ class DataManager private constructor(private val context: Context) {
         val revisionsDeferred = async { networkService.getRevisions(upcoming = true, limit = 50, type = mode) }
         val groupedRevisionsDeferred = async { networkService.getGroupedRevisions(includeCompleted = true, type = mode) }
         val revisionStatsDeferred = async { networkService.getRevisionStats(type = mode) }
+        val revisionScoreDeferred = async { networkService.getRevisionScore() }
 
         // Await results
         val friendsRes = friendsDeferred.await()
@@ -260,6 +267,7 @@ class DataManager private constructor(private val context: Context) {
         val revisionsRes = revisionsDeferred.await()
         val groupedRevisionsRes = groupedRevisionsDeferred.await()
         val revisionStatsRes = revisionStatsDeferred.await()
+        val revisionScoreRes = revisionScoreDeferred.await()
 
         // Process Friends data
         if (friendsRes is NetworkResult.Success) _friends.value = friendsRes.data.friends
@@ -305,6 +313,10 @@ class DataManager private constructor(private val context: Context) {
             _revisionStats.value = revisionStatsRes.data
         }
 
+        if (revisionScoreRes is NetworkResult.Success) {
+            _revisionScore.value = revisionScoreRes.data
+        }
+
         hasFetchedInitialData = true
         _lastFetchTimestamp.value = System.currentTimeMillis()
 
@@ -332,6 +344,7 @@ class DataManager private constructor(private val context: Context) {
 
         _revisionGroups.value = emptyList()
         _revisionStats.value = null
+        _revisionScore.value = null
         _revisionMode.value = "normal"
         _lastFetchTimestamp.value = null
 
@@ -344,7 +357,8 @@ class DataManager private constructor(private val context: Context) {
             "userStats.json", "submissionStats.json", "solveStats.json",
             "achievementStats.json", "allAchievements.json", "recentSolves.json",
             "todayRevisions.json", "completedRevisions.json", "revisionGroups.json",
-            "revisionStats.json", "revisionMode.json", "lastFetchTimestamp.json"
+            "revisionStats.json", "revisionScore.json", "revisionMode.json",
+            "lastFetchTimestamp.json"
         )
         filenames.forEach { filename ->
             getFile(filename).delete()

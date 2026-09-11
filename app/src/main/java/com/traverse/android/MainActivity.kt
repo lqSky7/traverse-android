@@ -1,9 +1,11 @@
 package com.traverse.android
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
@@ -26,6 +28,7 @@ import com.traverse.android.data.CacheManager
 import com.traverse.android.data.DataManager
 import com.traverse.android.ui.auth.AuthNavigation
 import com.traverse.android.ui.auth.OnboardingFlowDialog
+import com.traverse.android.ui.auth.SocialAuth
 import com.traverse.android.ui.components.AchievementToastManager
 import com.traverse.android.ui.components.AchievementToastOverlayContainer
 import com.traverse.android.ui.navigation.MainNavigation
@@ -36,16 +39,33 @@ import com.traverse.android.viewmodel.HomeViewModel
 import com.traverse.android.viewmodel.RevisionsViewModel
 
 class MainActivity : ComponentActivity() {
+
+    private val authViewModel: AuthViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Cold start straight from a WorkOS redirect
+        // (traverse-android://auth/callback?code=...).
+        handleSocialRedirect(intent)
+
         setContent {
             TraverseTheme {
-                val authViewModel: AuthViewModel = viewModel()
                 val uiState by authViewModel.uiState.collectAsStateWithLifecycle()
                 val toastManager = remember { AchievementToastManager.getInstance(applicationContext) }
                 var showOnboardingDialog by remember { mutableStateOf(false) }
-                
+
+                // Once the backend hands back a WorkOS authorization URL, open it
+                // in a Custom Tab and clear the one-shot state.
+                val socialAuthUrl = uiState.socialAuthUrl
+                LaunchedEffect(socialAuthUrl) {
+                    if (!socialAuthUrl.isNullOrBlank()) {
+                        SocialAuth.launch(this@MainActivity, socialAuthUrl)
+                        authViewModel.consumeSocialAuthUrl()
+                    }
+                }
+
                 // Sync updates and check onboarding on app launch / auth
                 LaunchedEffect(uiState.isAuthenticated) {
                     if (uiState.isAuthenticated) {
@@ -91,6 +111,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleSocialRedirect(intent)
+    }
+
+    /** Completes WorkOS sign-in when the app is re-opened via the redirect deep link. */
+    private fun handleSocialRedirect(intent: Intent?) {
+        val code = SocialAuth.extractCode(intent) ?: return
+        authViewModel.handleSocialCallback(code)
     }
 }
 

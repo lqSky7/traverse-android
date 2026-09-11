@@ -19,6 +19,7 @@ data class HomeUiState(
     val achievementStats: AchievementStats? = null,
     val allAchievements: List<AchievementDetail> = emptyList(),
     val frozenDates: List<String> = emptyList(),
+    val revisionScore: RevisionScoreResponse? = null,
     val isFromCache: Boolean = false
 )
 
@@ -55,6 +56,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             dataManager.allAchievements.collect { achievements ->
                 _uiState.update { it.copy(allAchievements = achievements) }
+            }
+        }
+        viewModelScope.launch {
+            dataManager.revisionScore.collect { score ->
+                _uiState.update { it.copy(revisionScore = score) }
             }
         }
 
