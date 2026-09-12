@@ -7,9 +7,7 @@ import com.traverse.android.data.CacheManager
 import com.traverse.android.data.DataManager
 import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
-import com.traverse.android.data.SocialProvider
 import com.traverse.android.data.User
-import com.traverse.android.ui.auth.SocialAuth
 import com.traverse.android.ui.components.AchievementToastManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -241,4 +239,3 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 }
-
