@@ -32,12 +32,10 @@ import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.traverse.android.ui.theme.paletteColorAt
+import com.traverse.android.ui.theme.palettePrimary
 
 // Pastel colors
-private val EasyPastel = Color(0xFFA8E6CF)
-private val MediumPastel = Color(0xFFFFD3B6)
-private val HardPastel = Color(0xFFFFAAA5)
-private val AccentPastel = Color(0xFFB8D4E3)
 private val CardBackground = Color(0xFF1A1A1A)
 private val GoldColor = Color(0xFFFFD700)
 
@@ -270,7 +268,7 @@ private fun UserSearchResultRow(
                     .clip(CircleShape)
                     .background(
                         Brush.linearGradient(
-                            colors = listOf(MediumPastel, AccentPastel)
+                            colors = listOf(paletteColorAt(2), palettePrimary)
                         )
                     ),
                 contentAlignment = Alignment.Center
@@ -305,7 +303,7 @@ private fun UserSearchResultRow(
                         Icon(
                             imageVector = Icons.Default.LocalFireDepartment,
                             contentDescription = null,
-                            tint = HardPastel,
+                            tint = paletteColorAt(0),
                             modifier = Modifier.size(14.dp)
                         )
                         Text(

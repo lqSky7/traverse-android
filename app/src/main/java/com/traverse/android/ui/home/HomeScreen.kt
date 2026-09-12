@@ -3,63 +3,59 @@ package com.traverse.android.ui.home
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.traverse.android.data.Solve
 import com.traverse.android.ui.theme.RingiftFamily
+import com.traverse.android.viewmodel.HomeUiState
 import com.traverse.android.viewmodel.HomeViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+/**
+ * Home navigation graph. Mirrors the iOS `HomeView` `NavigationStack` destinations.
+ *
+ * Note: iOS has **no** streak destination — tapping the streak card does nothing,
+ * so there is deliberately no `STREAK` route here.
+ */
 object HomeDestinations {
     const val HOME = "home_main"
     const val ALL_SOLVES = "all_solves"
     const val ALL_ACHIEVEMENTS = "all_achievements"
-    const val STREAK = "streak"
+    const val ACTIVITY = "activity"
     const val MISTAKE_ANALYSIS = "mistake_analysis"
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    friendsViewModel: com.traverse.android.viewmodel.FriendsViewModel? = null,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val friendsUiState = friendsViewModel?.uiState?.collectAsStateWithLifecycle()
     val navController = rememberNavController()
-    val isDarkTheme = isSystemInDarkTheme()
 
     NavHost(
         navController = navController,
@@ -67,44 +63,47 @@ fun HomeScreen(
         enterTransition = { slideInHorizontally(tween(300)) { it } },
         exitTransition = { slideOutHorizontally(tween(300)) { -it / 3 } },
         popEnterTransition = { slideInHorizontally(tween(300)) { -it / 3 } },
-        popExitTransition = { slideOutHorizontally(tween(300)) { it } }) {
+        popExitTransition = { slideOutHorizontally(tween(300)) { it } }
+    ) {
         composable(HomeDestinations.HOME) {
             HomeMainContent(
                 uiState = uiState,
-                isDarkTheme = isDarkTheme,
                 onRefresh = { viewModel.refresh() },
                 onNavigateToSolves = { navController.navigate(HomeDestinations.ALL_SOLVES) },
                 onNavigateToAchievements = { navController.navigate(HomeDestinations.ALL_ACHIEVEMENTS) },
-                onNavigateToStreak = { navController.navigate(HomeDestinations.STREAK) },
+                onNavigateToActivity = { navController.navigate(HomeDestinations.ACTIVITY) },
                 onNavigateToMistakes = { navController.navigate(HomeDestinations.MISTAKE_ANALYSIS) },
                 modifier = modifier
             )
         }
 
+        // iOS: RecentSolvesCard > "View All" -> AllSolvesView(solves:)
         composable(HomeDestinations.ALL_SOLVES) {
             AllSolvesScreen(
-                solves = uiState.recentSolves, onBack = { navController.popBackStack() })
-        }
-
-        composable(HomeDestinations.ALL_ACHIEVEMENTS) {
-            AllAchievementsScreen(
-                achievements = uiState.allAchievements,
-                stats = uiState.achievementStats?.stats,
-                onBack = { navController.popBackStack() })
-        }
-
-        composable(HomeDestinations.STREAK) {
-            StreakScreen(
-                currentStreak = uiState.userStats?.stats?.currentStreak ?: 0,
-                totalStreakDays = uiState.solveStats?.stats?.totalStreakDays ?: 0,
-                solvedToday = hasSolvedToday(uiState.recentSolves),
-                solveDates = uiState.recentSolves.map { it.solvedAt.take(10) }.distinct(),
-                frozenDates = uiState.frozenDates,
-                friendStreaks = friendsUiState?.value?.friendStreaks ?: emptyList(),
+                solves = uiState.recentSolves,
                 onBack = { navController.popBackStack() }
             )
         }
 
+        // iOS: AchievementStatsCard -> AllAchievementsView()
+        composable(HomeDestinations.ALL_ACHIEVEMENTS) {
+            AllAchievementsScreen(
+                achievements = uiState.allAchievements,
+                stats = uiState.achievementStats?.stats,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // iOS: SolveHeatmapCard -> ActivityDetailView(solves:frozenDates:)
+        composable(HomeDestinations.ACTIVITY) {
+            ActivityDetailScreen(
+                solves = uiState.recentSolves,
+                frozenDates = uiState.frozenDates,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // iOS: MistakeTagsAnalysisCard -> MistakeTagsDetailView(solves:)
         composable(HomeDestinations.MISTAKE_ANALYSIS) {
             MistakeTagsDetailScreen(
                 solves = uiState.recentSolves,
@@ -114,90 +113,94 @@ fun HomeScreen(
     }
 }
 
+/**
+ * 1:1 port of the iOS `HomeView` body.
+ *
+ * Layout order (outer `VStack(spacing: 20)` + `.padding()`):
+ *  1. `HStack(spacing: 12)` — StreakCard + RevisionScoreCard
+ *  2. MainStatsCard
+ *  3. `VStack(spacing: 16)` — achievements/insights row, difficulty/heatmap row,
+ *     mistake tags, solving hours, recent solves, performance metrics, tries distribution.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeMainContent(
-    uiState: com.traverse.android.viewmodel.HomeUiState,
-    isDarkTheme: Boolean,
+    uiState: HomeUiState,
     onRefresh: () -> Unit,
     onNavigateToSolves: () -> Unit,
     onNavigateToAchievements: () -> Unit,
-    onNavigateToStreak: () -> Unit,
+    onNavigateToActivity: () -> Unit,
     onNavigateToMistakes: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val currentDate = remember {
-        val formatter = DateTimeFormatter.ofPattern("EEEE d")
-        LocalDate.now().format(formatter)
+        // iOS uses `formatter.dateFormat = "EEEE, M"` -> e.g. "Saturday, 9"
+        LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, M"))
     }
 
-    Scaffold(topBar = {
-        TopAppBar(
-            title = {
-                Text(
-                    text = currentDate, style = MaterialTheme.typography.headlineLarge.copy(
-                        fontFamily = RingiftFamily
+    Scaffold(
+        containerColor = Color.Black,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = currentDate,
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontFamily = RingiftFamily
+                        )
                     )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Black,
+                    titleContentColor = Color.White
                 )
-            })
-    }) { padding ->
+            )
+        }
+    ) { padding ->
         PullToRefreshBox(
             isRefreshing = uiState.isLoading,
             onRefresh = onRefresh,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
         ) {
-            if (uiState.isLoading && uiState.userStats == null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else if (uiState.errorMessage != null && uiState.userStats == null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = uiState.errorMessage,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = onRefresh) {
-                            Text("Retry")
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                val errorMessage = uiState.errorMessage
+                if (errorMessage != null) {
+                    ErrorView(message = errorMessage, onRetry = onRefresh)
+                } else {
+                    val solves = uiState.recentSolves
+                    val userStats = uiState.userStats
+                    val solveStats = uiState.solveStats
+                    val achievementStats = uiState.achievementStats
+
+                    // MARK: Top row — Streak Card & Revision Score Card side by side
+                    if (userStats != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            StreakCard(
+                                streak = userStats.stats.currentStreak,
+                                maxStreak = userStats.stats.totalStreakDays,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            RevisionScoreCard(
+                                score = uiState.revisionScore?.score ?: 100,
+                                modifier = Modifier.weight(1f)
+                            )
                         }
                     }
-                }
-            } else {
-                Column(
-                    modifier = modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Streak Card (inverted colors) - clickable to navigate to Streak screen
-                    uiState.userStats?.let { userStats ->
-                        StreakCard(
-                            streak = userStats.stats.currentStreak,
-                            solvedToday = hasSolvedToday(uiState.recentSolves),
-                            isDarkTheme = isDarkTheme,
-                            onClick = onNavigateToStreak
-                        )
-                    }
 
-                    // Revision health score card (parity with the iOS home screen)
-                    RevisionScoreCard(score = uiState.revisionScore?.score ?: 100)
-
-                    // Main Stats Card
-                    uiState.solveStats?.let { solveStats ->
+                    // MARK: Main Stats Card
+                    if (solveStats != null) {
                         MainStatsCard(
                             totalSolves = solveStats.stats.totalSolves,
                             totalXp = solveStats.stats.totalXp,
@@ -205,74 +208,78 @@ private fun HomeMainContent(
                         )
                     }
 
-                    // Difficulty + Achievements side by side (equal heights)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(IntrinsicSize.Max),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        uiState.solveStats?.let { solveStats ->
-                            DifficultyChartCard(
-                                difficulty = solveStats.stats.byDifficulty,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                            )
-                        }
+                    // MARK: Charts section
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        // Achievements and Insights side by side
+                        if (achievementStats != null && solves.isNotEmpty()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                AchievementStatsCard(
+                                    stats = achievementStats.stats,
+                                    onClick = onNavigateToAchievements,
+                                    modifier = Modifier.weight(1f)
+                                )
 
-                        uiState.achievementStats?.let { achievementStats ->
-                            AchievementCard(
+                                ProductivityInsightsCard(
+                                    solves = solves,
+                                    completedRevisions = uiState.completedRevisions,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        } else if (achievementStats != null) {
+                            AchievementStatsCard(
                                 stats = achievementStats.stats,
-                                onClick = onNavigateToAchievements,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
+                                onClick = onNavigateToAchievements
                             )
                         }
-                    }
 
-                    // Productivity Insights (bar graph)
-                    if (uiState.recentSolves.isNotEmpty()) {
-                        ProductivityInsightsCard(solves = uiState.recentSolves)
-                    }
+                        if (solveStats != null) {
+                            // Difficulty and Activity side by side
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                DifficultyChartCard(
+                                    difficulty = solveStats.stats.byDifficulty,
+                                    modifier = Modifier.weight(1f)
+                                )
 
-                    // Performance Charts (side by side)
-                    if (uiState.recentSolves.isNotEmpty()) {
-                        TimePerformanceCard(solves = uiState.recentSolves)
-                    }
+                                SolveHeatmapCard(
+                                    solves = solves,
+                                    frozenDates = uiState.frozenDates,
+                                    onClick = onNavigateToActivity,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
 
-                    // Mistake Tags
-                    if (uiState.recentSolves.isNotEmpty()) {
-                        MistakeTagsCard(
-                            solves = uiState.recentSolves,
-                            onViewAll = onNavigateToMistakes
-                        )
-                    }
+                            // Mistake Tags Analysis full width
+                            MistakeTagsAnalysisCard(
+                                solves = solves,
+                                onViewAll = onNavigateToMistakes
+                            )
 
-                    // Recent Solves (clickable)
-                    if (uiState.recentSolves.isNotEmpty()) {
-                        RecentSolvesCard(
-                            solves = uiState.recentSolves, onClick = onNavigateToSolves
-                        )
-                    }
+                            // Best Solving Hours
+                            BestSolvingHoursCard(solves = solves)
+                        }
 
-                    // Bottom spacing
-                    Spacer(modifier = Modifier.height(16.dp))
+                        if (solves.isNotEmpty()) {
+                            RecentSolvesCard(
+                                solves = solves,
+                                onViewAll = onNavigateToSolves
+                            )
+
+                            // New Performance Charts
+                            PerformanceMetricsCard(solves = solves)
+
+                            TriesDistributionCard(solves = solves)
+                        }
+                    }
                 }
             }
-        }
-    }
-}
-
-private fun hasSolvedToday(solves: List<Solve>): Boolean {
-    if (solves.isEmpty()) return false
-    val today = LocalDate.now()
-    return solves.any { solve ->
-        try {
-            LocalDate.parse(solve.solvedAt.substring(0, 10)) == today
-        } catch (e: Exception) {
-            false
         }
     }
 }

@@ -35,9 +35,9 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
+import com.traverse.android.ui.theme.palettePrimary
+import com.traverse.android.ui.theme.currentPalette
 
-private val AccentPastel = Color(0xFFB8D4E3)
-private val SecondaryPastel = Color(0xFFA8E6CF)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,14 +88,14 @@ fun QRScannerScreen(
             
             // Prevent self-scanning
             if (username.equals(currentUsername, ignoreCase = true)) {
-                errorMessage = "You cannot add yourself as a friend"
+                errorMessage = "You can't add yourself as a friend!"
                 return
             }
             
             isProcessing = true
             onUserScanned(username)
         } else {
-            errorMessage = "Invalid QR code. Please scan a Traverse friend QR code."
+            errorMessage = "This doesn't appear to be a Traverse friend QR code."
         }
     }
     
@@ -162,7 +162,7 @@ fun QRScannerScreen(
                             )
                         } else {
                             Text(
-                                text = "Position the QR code within the frame",
+                                text = "Point at a Traverse QR code",
                                 style = MaterialTheme.typography.bodyLarge.copy(
                                     color = Color.White,
                                     fontWeight = FontWeight.Medium
@@ -285,7 +285,7 @@ private fun ScanningOverlay() {
             
             // Gradient colors
             val gradientBrush = Brush.linearGradient(
-                colors = listOf(AccentPastel, SecondaryPastel)
+                colors = listOf(palettePrimary, currentPalette.secondary)
             )
             
             // Draw rounded rectangle frame
@@ -340,30 +340,30 @@ private fun PermissionDeniedView(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Camera Permission Required",
+            text = "Camera Access Required",
             style = MaterialTheme.typography.headlineSmall.copy(
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             ),
             textAlign = TextAlign.Center
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         Text(
-            text = "To scan QR codes, Traverse needs access to your camera. Please grant camera permission to continue.",
+            text = "To scan QR codes, please allow camera access in Settings.",
             style = MaterialTheme.typography.bodyLarge.copy(
                 color = Color.White.copy(alpha = 0.8f)
             ),
             textAlign = TextAlign.Center
         )
-        
+
         Spacer(modifier = Modifier.height(32.dp))
-        
+
         Button(
             onClick = onRequestPermission,
             colors = ButtonDefaults.buttonColors(
-                containerColor = AccentPastel
+                containerColor = palettePrimary
             ),
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier
@@ -371,7 +371,7 @@ private fun PermissionDeniedView(
                 .height(56.dp)
         ) {
             Text(
-                text = "Grant Permission",
+                text = "Open Settings",
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold
                 )

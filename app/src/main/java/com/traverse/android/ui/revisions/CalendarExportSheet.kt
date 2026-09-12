@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import com.traverse.android.data.NetworkService
 import com.traverse.android.data.TokenManager
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
+import com.traverse.android.ui.theme.palettePrimary
 
 private val CardBackground = Color(0xFF1A1A1A)
 
@@ -90,7 +91,7 @@ fun CalendarExportSheet(
             Icon(
                 imageVector = Icons.Default.CalendarMonth,
                 contentDescription = null,
-                tint = Color(0xFF00E676),
+                tint = palettePrimary,
                 modifier = Modifier.size(44.dp)
             )
 
@@ -118,7 +119,7 @@ fun CalendarExportSheet(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 color = Color(0xFF242424),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF00E676).copy(alpha = 0.3f))
+                border = androidx.compose.foundation.BorderStroke(1.dp, palettePrimary.copy(alpha = 0.3f))
             ) {
                 Row(
                     modifier = Modifier.padding(14.dp),
@@ -127,7 +128,7 @@ fun CalendarExportSheet(
                     Icon(
                         imageVector = Icons.Default.Link,
                         contentDescription = null,
-                        tint = Color(0xFF00E676),
+                        tint = palettePrimary,
                         modifier = Modifier.size(20.dp)
                     )
 
@@ -154,7 +155,7 @@ fun CalendarExportSheet(
                         Icon(
                             imageVector = Icons.Default.ContentCopy,
                             contentDescription = "Copy",
-                            tint = Color(0xFF00E676),
+                            tint = palettePrimary,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -193,7 +194,7 @@ fun CalendarExportSheet(
                     clipboard.setPrimaryClip(ClipData.newPlainText("Traverse Calendar Feed", calendarFeedUrl))
                     Toast.makeText(context, "Feed URL copied to clipboard", Toast.LENGTH_SHORT).show()
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                colors = ButtonDefaults.buttonColors(containerColor = palettePrimary),
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -228,12 +229,12 @@ private fun InstructionStep(step: String, text: String) {
         Box(
             modifier = Modifier
                 .size(20.dp)
-                .background(Color(0xFF00E676).copy(alpha = 0.2f), CircleShape),
+                .background(palettePrimary.copy(alpha = 0.2f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = step,
-                color = Color(0xFF00E676),
+                color = palettePrimary,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold
             )

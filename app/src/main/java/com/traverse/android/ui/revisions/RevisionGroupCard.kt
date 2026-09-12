@@ -25,12 +25,9 @@ import com.traverse.android.data.Revision
 import com.traverse.android.data.RevisionGroup
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import com.traverse.android.ui.theme.paletteColorAt
+import com.traverse.android.ui.theme.palettePrimary
 
-private val EasyPastel = Color(0xFFA8E6CF)
-private val MediumPastel = Color(0xFFFFD3B6)
-private val HardPastel = Color(0xFFFFAAA5)
-private val AccentPastel = Color(0xFFB8D4E3)
-private val PurplePastel = Color(0xFFC084FC)
 private val CardBackground = Color(0xFF1A1A1A)
 
 @Composable
@@ -47,9 +44,9 @@ fun RevisionGroupCard(
     val groupDate = group.displayDate
 
     val (dateIcon, dateColor) = when {
-        groupDate == today -> Icons.Default.Schedule to AccentPastel
-        groupDate == today.plusDays(1) -> Icons.Default.Event to AccentPastel
-        groupDate.isBefore(today) -> Icons.Default.Warning to HardPastel
+        groupDate == today -> Icons.Default.Schedule to palettePrimary
+        groupDate == today.plusDays(1) -> Icons.Default.Event to palettePrimary
+        groupDate.isBefore(today) -> Icons.Default.Warning to paletteColorAt(0)
         else -> Icons.Default.CalendarMonth to Color.White.copy(alpha = 0.5f)
     }
 
@@ -141,13 +138,13 @@ private fun RevisionItem(
     var showCodeHistorySheet by remember { mutableStateOf(false) }
 
     val difficultyColor = when (revision.problem.difficulty.lowercase()) {
-        "easy" -> EasyPastel
-        "medium" -> MediumPastel
-        "hard" -> HardPastel
+        "easy" -> paletteColorAt(0)
+        "medium" -> paletteColorAt(1)
+        "hard" -> paletteColorAt(2)
         else -> Color.Gray
     }
 
-    val buttonColor = if (revision.isOverdue) HardPastel else AccentPastel
+    val buttonColor = if (revision.isOverdue) paletteColorAt(0) else palettePrimary
 
     Row(
         modifier = Modifier
@@ -213,7 +210,7 @@ private fun RevisionItem(
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = "Completed",
-                        tint = EasyPastel,
+                        tint = paletteColorAt(1),
                         modifier = Modifier.size(28.dp)
                     )
                 }
@@ -225,7 +222,7 @@ private fun RevisionItem(
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
                             contentDescription = "AI Coach & Hints",
-                            tint = PurplePastel,
+                            tint = paletteColorAt(4),
                             modifier = Modifier.size(26.dp)
                         )
                     }
@@ -240,7 +237,7 @@ private fun RevisionItem(
             ) {
                 // 1. AI Revision Coach & Hints
                 DropdownMenuItem(
-                    text = { Text("AI Revision Coach & Hints", color = PurplePastel, fontWeight = FontWeight.SemiBold) },
+                    text = { Text("AI Revision Coach & Hints", color = paletteColorAt(4), fontWeight = FontWeight.SemiBold) },
                     onClick = {
                         showCoachSheet = true
                         showContextMenu = false
@@ -249,7 +246,7 @@ private fun RevisionItem(
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
                             contentDescription = null,
-                            tint = PurplePastel
+                            tint = paletteColorAt(4)
                         )
                     }
                 )
@@ -265,7 +262,7 @@ private fun RevisionItem(
                         Icon(
                             imageVector = Icons.Default.OpenInNew,
                             contentDescription = null,
-                            tint = Color(0xFF00E676)
+                            tint = palettePrimary
                         )
                     }
                 )
@@ -281,7 +278,7 @@ private fun RevisionItem(
                         Icon(
                             imageVector = Icons.Default.Code,
                             contentDescription = null,
-                            tint = AccentPastel
+                            tint = palettePrimary
                         )
                     }
                 )
@@ -297,7 +294,7 @@ private fun RevisionItem(
                         Icon(
                             imageVector = Icons.Default.Psychology,
                             contentDescription = null,
-                            tint = MediumPastel
+                            tint = paletteColorAt(2)
                         )
                     }
                 )
@@ -316,7 +313,7 @@ private fun RevisionItem(
                             Icon(
                                 imageVector = Icons.Default.CalendarMonth,
                                 contentDescription = null,
-                                tint = AccentPastel
+                                tint = palettePrimary
                             )
                         }
                     )
@@ -332,7 +329,7 @@ private fun RevisionItem(
                             Icon(
                                 imageVector = Icons.Default.Event,
                                 contentDescription = null,
-                                tint = AccentPastel
+                                tint = palettePrimary
                             )
                         }
                     )
@@ -341,7 +338,7 @@ private fun RevisionItem(
 
                     // 7. Remove from Revision List (Destructive)
                     DropdownMenuItem(
-                        text = { Text("Remove from Revision List", color = HardPastel) },
+                        text = { Text("Remove from Revision List", color = paletteColorAt(0)) },
                         onClick = {
                             onDeleteProblem()
                             showContextMenu = false
@@ -350,14 +347,14 @@ private fun RevisionItem(
                             Icon(
                                 imageVector = Icons.Default.DeleteSweep,
                                 contentDescription = null,
-                                tint = HardPastel
+                                tint = paletteColorAt(0)
                             )
                         }
                     )
 
                     // 8. Delete Single Revision (Destructive)
                     DropdownMenuItem(
-                        text = { Text("Delete Single ML Revision", color = HardPastel) },
+                        text = { Text("Delete Single ML Revision", color = paletteColorAt(0)) },
                         onClick = {
                             onDeleteSingle()
                             showContextMenu = false
@@ -366,7 +363,7 @@ private fun RevisionItem(
                             Icon(
                                 imageVector = Icons.Default.Delete,
                                 contentDescription = null,
-                                tint = HardPastel
+                                tint = paletteColorAt(0)
                             )
                         }
                     )

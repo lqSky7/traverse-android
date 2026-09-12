@@ -51,6 +51,8 @@ import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import kotlinx.coroutines.launch
+import com.traverse.android.ui.theme.paletteColorAt
+import com.traverse.android.ui.theme.palettePrimary
 
 private val CardBackground = Color(0xFF1A1A1A)
 
@@ -96,7 +98,7 @@ fun MLControlsSheet(
             Icon(
                 imageVector = Icons.Default.Psychology,
                 contentDescription = null,
-                tint = Color(0xFFE040FB),
+                tint = paletteColorAt(4),
                 modifier = Modifier.size(40.dp)
             )
 
@@ -171,15 +173,15 @@ fun MLControlsSheet(
                                     .weight(1f)
                                     .clickable { pauseDays = days },
                                 shape = RoundedCornerShape(12.dp),
-                                color = if (isSel) Color(0xFFE040FB).copy(alpha = 0.2f) else Color(0xFF242424),
+                                color = if (isSel) paletteColorAt(4).copy(alpha = 0.2f) else Color(0xFF242424),
                                 border = androidx.compose.foundation.BorderStroke(
                                     1.dp,
-                                    if (isSel) Color(0xFFE040FB) else Color.White.copy(alpha = 0.08f)
+                                    if (isSel) paletteColorAt(4) else Color.White.copy(alpha = 0.08f)
                                 )
                             ) {
                                 Text(
                                     text = "$days Days",
-                                    color = if (isSel) Color(0xFFE040FB) else Color.White,
+                                    color = if (isSel) paletteColorAt(4) else Color.White,
                                     fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
                                     fontSize = 13.sp,
                                     textAlign = TextAlign.Center,
@@ -208,7 +210,7 @@ fun MLControlsSheet(
                                 }
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE040FB)),
+                        colors = ButtonDefaults.buttonColors(containerColor = paletteColorAt(4)),
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -252,15 +254,15 @@ fun MLControlsSheet(
                                     .weight(1f)
                                     .clickable { backlogDays = days },
                                 shape = RoundedCornerShape(12.dp),
-                                color = if (isSel) Color(0xFF00E676).copy(alpha = 0.2f) else Color(0xFF242424),
+                                color = if (isSel) palettePrimary.copy(alpha = 0.2f) else Color(0xFF242424),
                                 border = androidx.compose.foundation.BorderStroke(
                                     1.dp,
-                                    if (isSel) Color(0xFF00E676) else Color.White.copy(alpha = 0.08f)
+                                    if (isSel) palettePrimary else Color.White.copy(alpha = 0.08f)
                                 )
                             ) {
                                 Text(
                                     text = "$days Days",
-                                    color = if (isSel) Color(0xFF00E676) else Color.White,
+                                    color = if (isSel) palettePrimary else Color.White,
                                     fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
                                     fontSize = 13.sp,
                                     textAlign = TextAlign.Center,
@@ -289,7 +291,7 @@ fun MLControlsSheet(
                                 }
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                        colors = ButtonDefaults.buttonColors(containerColor = palettePrimary),
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -339,7 +341,7 @@ fun MLControlsSheet(
                                 }
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2979FF)),
+                        colors = ButtonDefaults.buttonColors(containerColor = palettePrimary),
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -359,7 +361,7 @@ fun MLControlsSheet(
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = statusMessage ?: "",
-                    color = if (isError) Color(0xFFFF5252) else Color(0xFF00E676),
+                    color = if (isError) Color(0xFFFF5252) else palettePrimary,
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center
                 )

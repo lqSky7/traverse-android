@@ -58,6 +58,8 @@ import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
 import kotlinx.coroutines.launch
 import java.util.TimeZone
+import com.traverse.android.ui.theme.paletteColorAt
+import com.traverse.android.ui.theme.palettePrimary
 
 /**
  * 1:1 Kotlin port of iOS OnboardingFlow.swift.
@@ -95,7 +97,7 @@ fun OnboardingFlowDialog(
             border = androidx.compose.foundation.BorderStroke(
                 1.dp,
                 Brush.verticalGradient(
-                    listOf(Color(0xFF00E676).copy(alpha = 0.5f), Color(0xFF7C4DFF).copy(alpha = 0.2f))
+                    listOf(palettePrimary.copy(alpha = 0.5f), paletteColorAt(4).copy(alpha = 0.2f))
                 )
             )
         ) {
@@ -118,7 +120,7 @@ fun OnboardingFlowDialog(
                                 .width(if (i == step) 28.dp else 12.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    if (i <= step) Color(0xFF00E676) else Color.White.copy(alpha = 0.2f)
+                                    if (i <= step) palettePrimary else Color.White.copy(alpha = 0.2f)
                                 )
                         )
                     }
@@ -132,7 +134,7 @@ fun OnboardingFlowDialog(
                         Icon(
                             imageVector = Icons.Default.Schedule,
                             contentDescription = null,
-                            tint = Color(0xFF00E676),
+                            tint = palettePrimary,
                             modifier = Modifier.size(48.dp)
                         )
                         Spacer(modifier = Modifier.height(12.dp))
@@ -155,7 +157,7 @@ fun OnboardingFlowDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(Color(0xFF242424), RoundedCornerShape(16.dp))
-                                .border(1.dp, Color(0xFF00E676).copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                                .border(1.dp, palettePrimary.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
                                 .padding(16.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -173,7 +175,7 @@ fun OnboardingFlowDialog(
                         Icon(
                             imageVector = Icons.Default.Public,
                             contentDescription = null,
-                            tint = Color(0xFF2979FF),
+                            tint = palettePrimary,
                             modifier = Modifier.size(48.dp)
                         )
                         Spacer(modifier = Modifier.height(12.dp))
@@ -197,7 +199,7 @@ fun OnboardingFlowDialog(
                             description = "Visible on leaderboards and user search",
                             icon = Icons.Default.Public,
                             selected = selectedVisibility == "PUBLIC",
-                            color = Color(0xFF00E676),
+                            color = palettePrimary,
                             onClick = { selectedVisibility = "PUBLIC" }
                         )
 
@@ -208,7 +210,7 @@ fun OnboardingFlowDialog(
                             description = "Only accepted friends can view stats",
                             icon = Icons.Default.People,
                             selected = selectedVisibility == "FRIENDS_ONLY",
-                            color = Color(0xFF2979FF),
+                            color = palettePrimary,
                             onClick = { selectedVisibility = "FRIENDS_ONLY" }
                         )
 
@@ -229,7 +231,7 @@ fun OnboardingFlowDialog(
                         Icon(
                             imageVector = Icons.Default.Speed,
                             contentDescription = null,
-                            tint = Color(0xFFE040FB),
+                            tint = paletteColorAt(4),
                             modifier = Modifier.size(48.dp)
                         )
                         Spacer(modifier = Modifier.height(12.dp))
@@ -252,7 +254,7 @@ fun OnboardingFlowDialog(
                             text = "${maxDailyReviews.toInt()} problems / day",
                             fontSize = 24.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF00E676)
+                            color = palettePrimary
                         )
 
                         Slider(
@@ -261,8 +263,8 @@ fun OnboardingFlowDialog(
                             valueRange = 5f..50f,
                             steps = 8,
                             colors = SliderDefaults.colors(
-                                thumbColor = Color(0xFF00E676),
-                                activeTrackColor = Color(0xFF00E676),
+                                thumbColor = palettePrimary,
+                                activeTrackColor = palettePrimary,
                                 inactiveTrackColor = Color.White.copy(alpha = 0.2f)
                             ),
                             modifier = Modifier.padding(horizontal = 8.dp)
@@ -326,7 +328,7 @@ fun OnboardingFlowDialog(
                             }
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF00E676)
+                            containerColor = palettePrimary
                         ),
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier.weight(1f),

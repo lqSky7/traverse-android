@@ -23,6 +23,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
+import com.traverse.android.ui.theme.paletteColorAt
+import com.traverse.android.ui.theme.palettePrimary
 
 @Composable
 fun ExamModeActiveView(
@@ -65,9 +67,9 @@ fun ExamModeActiveView(
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
-                                Color(0xFF7C4DFF).copy(alpha = 0.75f + 0.15f * animatedOffset),
-                                Color(0xFFE040FB).copy(alpha = 0.55f),
-                                Color(0xFF00E676).copy(alpha = 0.35f + 0.1f * animatedOffset)
+                                paletteColorAt(4).copy(alpha = 0.75f + 0.15f * animatedOffset),
+                                paletteColorAt(4).copy(alpha = 0.55f),
+                                palettePrimary.copy(alpha = 0.35f + 0.1f * animatedOffset)
                             )
                         )
                     )

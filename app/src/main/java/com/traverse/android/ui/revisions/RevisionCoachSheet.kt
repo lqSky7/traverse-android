@@ -42,21 +42,9 @@ import com.traverse.android.data.Revision
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.traverse.android.ui.theme.paletteColorAt
+import com.traverse.android.ui.theme.palettePrimary
 
-private val EasyPastel = Color(0xFFA8E6CF)
-private val MediumPastel = Color(0xFFFFD3B6)
-private val HardPastel = Color(0xFFFFAAA5)
-private val AccentPastel = Color(0xFFB8D4E3)
-private val PurplePastel = Color(0xFFD1C4E9)
-
-private val TagColors = listOf(
-    Color(0xFFFFB6C1),
-    Color(0xFFB6E3FF),
-    Color(0xFFFFE4B6),
-    Color(0xFFB6FFD8),
-    Color(0xFFE6B6FF),
-    Color(0xFFFFF0B6)
-)
 
 private val loadingSteps = listOf(
     "Fetching backend data...",
@@ -249,7 +237,7 @@ fun RevisionCoachSheet(
                             Icon(
                                 imageVector = Icons.Default.Key,
                                 contentDescription = "Gemini API Key",
-                                tint = AccentPastel
+                                tint = palettePrimary
                             )
                         }
                     }
@@ -296,7 +284,7 @@ fun RevisionCoachSheet(
                                     Icon(
                                         imageVector = Icons.Default.History,
                                         contentDescription = "Code History",
-                                        tint = AccentPastel,
+                                        tint = palettePrimary,
                                         modifier = Modifier.size(24.dp)
                                     )
                                 }
@@ -305,7 +293,8 @@ fun RevisionCoachSheet(
                                 mistakeTags.forEachIndexed { idx, tag ->
                                     val style = getIconStyle(idx + 1)
                                     val isSelected = selectedTooltipTag == tag
-                                    val tagColor = TagColors[idx % TagColors.size]
+                                    // iOS `RevisionCoachSheet`: `paletteManager.color(at: (idx + 2) % 5)`
+                                    val tagColor = paletteColorAt((idx + 2) % 5)
                                     val icon = getTagIcon(tag)
 
                                     val scale by animateFloatAsState(
@@ -364,7 +353,7 @@ fun RevisionCoachSheet(
                                         Icon(
                                             imageVector = Icons.Default.Info,
                                             contentDescription = null,
-                                            tint = MediumPastel,
+                                            tint = paletteColorAt(2),
                                             modifier = Modifier.size(22.dp)
                                         )
 
@@ -412,7 +401,7 @@ fun RevisionCoachSheet(
                                 Icon(
                                     imageVector = Icons.Default.AutoAwesome,
                                     contentDescription = "AI Sparkles",
-                                    tint = PurplePastel,
+                                    tint = paletteColorAt(4),
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
@@ -522,11 +511,11 @@ fun RevisionCoachSheet(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Text("Get a free Gemini API Key", color = AccentPastel)
+                            Text("Get a free Gemini API Key", color = palettePrimary)
                             Icon(
                                 imageVector = Icons.Default.OpenInNew,
                                 contentDescription = null,
-                                tint = AccentPastel,
+                                tint = palettePrimary,
                                 modifier = Modifier.size(16.dp)
                             )
                         }

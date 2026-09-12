@@ -74,6 +74,10 @@ class DataManager private constructor(private val context: Context) {
     private val _recentSolves = MutableStateFlow<List<Solve>>(emptyList())
     val recentSolves: StateFlow<List<Solve>> = _recentSolves.asStateFlow()
 
+    /** YYYY-MM-DD strings for days the user froze their streak. Mirrors iOS `HomeViewModel.frozenDates`. */
+    private val _frozenDates = MutableStateFlow<List<String>>(emptyList())
+    val frozenDates: StateFlow<List<String>> = _frozenDates.asStateFlow()
+
     private val _todayRevisions = MutableStateFlow<List<Revision>>(emptyList())
     val todayRevisions: StateFlow<List<Revision>> = _todayRevisions.asStateFlow()
 
@@ -230,6 +234,18 @@ class DataManager private constructor(private val context: Context) {
 
     // MARK: - Atomic Parallel Fetch (1:1 with iOS fetchAllData)
 
+    /**
+     * Lightweight freeze-date fetch. Mirrors iOS `HomeViewModel.loadData` which always
+     * refreshes freeze dates first, independent of the main cache freshness check.
+     * Silent-fails, because freeze dates are non-critical for display.
+     */
+    suspend fun fetchFreezeDates() = withContext(Dispatchers.IO) {
+        val result = networkService.getUsedFreezeDates()
+        if (result is NetworkResult.Success) {
+            _frozenDates.value = result.data.getAllDates()
+        }
+    }
+
     suspend fun fetchAllData(username: String): Unit = withContext(Dispatchers.IO) {
         val mode = _revisionMode.value
 
@@ -339,6 +355,7 @@ class DataManager private constructor(private val context: Context) {
         _achievementStats.value = null
         _allAchievements.value = emptyList()
         _recentSolves.value = emptyList()
+        _frozenDates.value = emptyList()
         _todayRevisions.value = emptyList()
         _completedRevisions.value = emptyList()
 

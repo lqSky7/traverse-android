@@ -28,11 +28,9 @@ import com.traverse.android.data.RevisionTopicMetric
 import com.traverse.android.data.WeeklyCompletion
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import kotlin.math.roundToInt
+import com.traverse.android.ui.theme.paletteColorAt
+import com.traverse.android.ui.theme.palettePrimary
 
-private val EasyPastel = Color(0xFFA8E6CF)
-private val MediumPastel = Color(0xFFFFD3B6)
-private val HardPastel = Color(0xFFFFAAA5)
-private val AccentPastel = Color(0xFFB8D4E3)
 private val CardBackground = Color(0xFF1A1A1A)
 
 @Composable
@@ -170,7 +168,7 @@ private fun RevisionOverviewCard(
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.Bold,
                         fontFamily = BelfastGroteskBlackFamily,
-                        color = AccentPastel
+                        color = palettePrimary
                     )
                 )
                 Text(
@@ -188,7 +186,7 @@ private fun RevisionOverviewCard(
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.Bold,
                         fontFamily = BelfastGroteskBlackFamily,
-                        color = EasyPastel
+                        color = paletteColorAt(1)
                     )
                 )
                 Text(
@@ -230,7 +228,7 @@ private fun RevisionStabilityDistributionCard(
                     Icon(
                         imageVector = Icons.Default.ShowChart,
                         contentDescription = null,
-                        tint = AccentPastel,
+                        tint = palettePrimary,
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
@@ -253,11 +251,11 @@ private fun RevisionStabilityDistributionCard(
             }
 
             val buckets = listOf(
-                Triple("Critical", distribution.critical, Color(0xFFEF4444)),
-                Triple("Weak", distribution.weak, HardPastel),
-                Triple("Developing", distribution.developing, MediumPastel),
-                Triple("Strong", distribution.strong, AccentPastel),
-                Triple("Mastered", distribution.mastered, EasyPastel)
+                Triple("Critical", distribution.critical, paletteColorAt(0)),
+                Triple("Weak", distribution.weak, paletteColorAt(1)),
+                Triple("Developing", distribution.developing, paletteColorAt(2)),
+                Triple("Strong", distribution.strong, paletteColorAt(3)),
+                Triple("Mastered", distribution.mastered, paletteColorAt(4))
             )
 
             val maxCount = (buckets.maxOfOrNull { it.second } ?: 1).coerceAtLeast(1)
@@ -355,7 +353,7 @@ private fun WeeklyCompletionCard(
                     Icon(
                         imageVector = Icons.Default.CalendarToday,
                         contentDescription = null,
-                        tint = EasyPastel,
+                        tint = paletteColorAt(1),
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
@@ -400,14 +398,14 @@ private fun WeeklyCompletionCard(
                         Icon(
                             imageVector = if (delta > 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
                             contentDescription = null,
-                            tint = if (delta > 0) EasyPastel else HardPastel,
+                            tint = if (delta > 0) paletteColorAt(3) else paletteColorAt(0),
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
                             text = "${if (delta > 0) "+$delta" else "$delta"} this wk",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = if (delta > 0) EasyPastel else HardPastel
+                                color = if (delta > 0) paletteColorAt(3) else paletteColorAt(0)
                             )
                         )
                     }
@@ -429,7 +427,7 @@ private fun WeeklyCompletionCard(
                 weeklyCompletion.takeLast(4).forEachIndexed { idx, item ->
                     val isCurrentWeek = idx == weeklyCompletion.takeLast(4).size - 1
                     val barHeightFraction = (item.count.toFloat() / maxCount).coerceIn(0.06f, 1f)
-                    val barColor = if (isCurrentWeek) EasyPastel else EasyPastel.copy(alpha = 0.45f)
+                    val barColor = if (isCurrentWeek) paletteColorAt(3) else paletteColorAt(3).copy(alpha = 0.45f)
                     val label = weekLabels.getOrNull(idx) ?: item.week
 
                     Column(
@@ -513,7 +511,7 @@ private fun RevisionTopicBreakdownCard(
                     Icon(
                         imageVector = Icons.Default.Folder,
                         contentDescription = null,
-                        tint = MediumPastel,
+                        tint = paletteColorAt(2),
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
@@ -540,9 +538,9 @@ private fun RevisionTopicBreakdownCard(
                 topics.take(4).forEach { topic ->
                     val retentionPct = (topic.averageRetention * 100).roundToInt()
                     val retentionColor = when {
-                        retentionPct >= 80 -> EasyPastel
-                        retentionPct >= 60 -> MediumPastel
-                        else -> HardPastel
+                        retentionPct >= 80 -> paletteColorAt(3)
+                        retentionPct >= 60 -> paletteColorAt(1)
+                        else -> paletteColorAt(0)
                     }
 
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -630,13 +628,13 @@ private fun RevisionTopicBreakdownCard(
                         text = "View All Topics (${topics.size})",
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Bold,
-                            color = AccentPastel
+                            color = palettePrimary
                         )
                     )
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = null,
-                        tint = AccentPastel,
+                        tint = palettePrimary,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -679,7 +677,7 @@ private fun RevisionRetentionRiskCard(
                     Icon(
                         imageVector = Icons.Default.Warning,
                         contentDescription = null,
-                        tint = HardPastel,
+                        tint = paletteColorAt(0),
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
@@ -709,7 +707,7 @@ private fun RevisionRetentionRiskCard(
                 Surface(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFEF4444).copy(alpha = 0.15f)
+                    color = paletteColorAt(0).copy(alpha = 0.15f)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -720,7 +718,7 @@ private fun RevisionRetentionRiskCard(
                         Text(
                             text = "$leechesCount",
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFEF4444)
+                            color = paletteColorAt(0)
                         )
                     }
                 }
@@ -728,7 +726,7 @@ private fun RevisionRetentionRiskCard(
                 Surface(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
-                    color = MediumPastel.copy(alpha = 0.15f)
+                    color = paletteColorAt(2).copy(alpha = 0.15f)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -739,7 +737,7 @@ private fun RevisionRetentionRiskCard(
                         Text(
                             text = "$lowRetentionCount",
                             fontWeight = FontWeight.Bold,
-                            color = MediumPastel
+                            color = paletteColorAt(2)
                         )
                     }
                 }
@@ -756,9 +754,9 @@ private fun RevisionRetentionRiskCard(
                 focusItems.forEach { item ->
                     val retrievabilityPct = (item.retrievability * 100).roundToInt()
                     val dotColor = when {
-                        item.isLeech || retrievabilityPct < 50 -> Color(0xFFEF4444)
-                        retrievabilityPct < 70 -> MediumPastel
-                        else -> EasyPastel
+                        item.isLeech || retrievabilityPct < 50 -> paletteColorAt(0)
+                        retrievabilityPct < 70 -> paletteColorAt(1)
+                        else -> paletteColorAt(1)
                     }
 
                     Row(
@@ -831,13 +829,13 @@ private fun RevisionRetentionRiskCard(
                         text = "View All At-Risk Problems (${items.size})",
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Bold,
-                            color = AccentPastel
+                            color = palettePrimary
                         )
                     )
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = null,
-                        tint = AccentPastel,
+                        tint = palettePrimary,
                         modifier = Modifier.size(18.dp)
                     )
                 }

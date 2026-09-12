@@ -2,114 +2,147 @@ package com.traverse.android.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.traverse.android.data.Solve
+import com.traverse.android.ui.theme.rememberPalette
 
 private val CardBackground = Color(0xFF1A1A1A)
-private val EasyPastel = Color(0xFFA8E6CF)
-private val MediumPastel = Color(0xFFFFD3B6)
-private val HardPastel = Color(0xFFFFAAA5)
 
+/**
+ * 1:1 port of the iOS `RecentSolvesCard`: header with a "View All" link, a hero solve count
+ * and the five most recent solves rendered as expandable [SolveRow]s.
+ *
+ * Palette mapping from iOS: header icon and hero count use `color(at: 0)`;
+ * the "View All" link uses `selectedPalette.primary`.
+ */
 @Composable
 fun RecentSolvesCard(
     solves: List<Solve>,
-    onClick: () -> Unit = {},
+    onViewAll: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
-        onClick = onClick
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.7f),
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Recent Solves",
-                    style = MaterialTheme.typography.titleSmall.copy(color = Color.White)
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = "View all",
-                    tint = Color.White.copy(alpha = 0.5f),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 12.dp),
-                color = Color.White.copy(alpha = 0.1f)
-            )
-            
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                solves.take(4).forEach { solve -> SolveRow(solve = solve) }
-            }
-        }
-    }
-}
+    val palette = rememberPalette()
+    val accentColor = palette.colorAt(0)
+    val linkColor = palette.primary
 
-@Composable
-private fun SolveRow(solve: Solve) {
-    val difficultyColor = when (solve.problem.difficulty.lowercase()) {
-        "easy" -> EasyPastel
-        "medium" -> MediumPastel
-        "hard" -> HardPastel
-        else -> Color.White.copy(alpha = 0.5f)
-    }
-    
-    Row(
-        modifier = Modifier
+    val rows = solves.take(5)
+
+    Column(
+        modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(Color.White.copy(alpha = 0.05f))
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clip(RoundedCornerShape(16.dp))
+            .background(CardBackground)
     ) {
-        Box(
+        Row(
             modifier = Modifier
-                .size(8.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(difficultyColor)
-        )
-        
-        Spacer(modifier = Modifier.width(12.dp))
-        
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = solve.problem.title,
-                style = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(18.dp)
             )
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = solve.problem.platform,
-                style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
+                text = "Recent Solves",
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onViewAll)
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "View All",
+                    style = MaterialTheme.typography.bodySmall.copy(color = linkColor)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = linkColor,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
+
+        HorizontalDivider(color = Color.Gray.copy(alpha = 0.3f))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(top = 16.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Text(
+                text = "${solves.size}",
+                fontSize = 40.sp,
+                lineHeight = 44.sp,
+                fontWeight = FontWeight.Bold,
+                color = accentColor
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "PROBLEMS",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White.copy(alpha = 0.6f)
+                ),
+                modifier = Modifier.padding(bottom = 6.dp)
             )
         }
-        
-        Text(
-            text = "+${solve.xpAwarded} XP",
-            style = MaterialTheme.typography.labelMedium.copy(color = Color.White.copy(alpha = 0.7f))
-        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 16.dp)
+        ) {
+            rows.forEachIndexed { index, solve ->
+                SolveRow(solve = solve)
+
+                if (index < minOf(4, rows.size - 1)) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HorizontalDivider(color = Color.Gray.copy(alpha = 0.3f))
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+        }
     }
 }

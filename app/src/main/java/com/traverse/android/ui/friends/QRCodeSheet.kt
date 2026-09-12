@@ -30,9 +30,9 @@ import android.graphics.Canvas
 import androidx.core.content.FileProvider
 import java.io.File
 import java.io.FileOutputStream
+import com.traverse.android.ui.theme.palettePrimary
 
 private val CardBackground = Color(0xFF1A1A1A)
-private val AccentPastel = Color(0xFFB8D4E3)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -134,7 +134,7 @@ fun QRCodeSheet(
                             Icon(
                                 imageVector = Icons.Default.Share,
                                 contentDescription = "Share",
-                                tint = if (qrBitmap != null) AccentPastel else Color.Gray
+                                tint = if (qrBitmap != null) palettePrimary else Color.Gray
                             )
                         }
                         IconButton(onClick = onDismiss) {
@@ -176,7 +176,7 @@ fun QRCodeSheet(
                     text = "@$username",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
-                        color = AccentPastel
+                        color = palettePrimary
                     )
                 )
                 

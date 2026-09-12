@@ -23,12 +23,9 @@ import com.traverse.android.data.RevisionStatsResponse
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.viewmodel.RevisionsViewModel
+import com.traverse.android.ui.theme.paletteColorAt
+import com.traverse.android.ui.theme.palettePrimary
 
-private val EasyPastel = Color(0xFFA8E6CF)
-private val MediumPastel = Color(0xFFFFD3B6)
-private val HardPastel = Color(0xFFFFAAA5)
-private val AccentPastel = Color(0xFFB8D4E3)
-private val PurplePastel = Color(0xFFC084FC)
 private val CardBackground = Color(0xFF1A1A1A)
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,20 +74,11 @@ fun RevisionsScreen(
                     )
                 },
                 actions = {
-                    // Daily Review Cap / Limit Action
-                    IconButton(onClick = { showDailyLimitSheet = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Tune,
-                            contentDescription = "Daily Review Limit",
-                            tint = AccentPastel
-                        )
-                    }
-
-                    // More Menu
+                    // Single overflow Menu — mirrors iOS `ellipsis.circle` toolbar Menu
                     Box {
                         IconButton(onClick = { showMenu = true }) {
                             Icon(
-                                imageVector = Icons.Default.MoreVert,
+                                imageVector = Icons.Default.MoreHoriz,
                                 contentDescription = "Menu"
                             )
                         }
@@ -101,7 +89,96 @@ fun RevisionsScreen(
                             containerColor = CardBackground,
                             modifier = Modifier.width(230.dp)
                         ) {
-                            // 1. Show Completed Toggle
+                            // 1. How ML Scheduling Works — iOS: Label("How ML Scheduling Works", systemImage: "brain.head.profile")
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        "How ML Scheduling Works",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontFamily = BelfastGroteskBlackFamily,
+                                            fontWeight = FontWeight.Bold,
+                                            color = paletteColorAt(2)
+                                        )
+                                    )
+                                },
+                                onClick = {
+                                    showSchedulingInfoSheet = true
+                                    showMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Psychology,
+                                        contentDescription = null,
+                                        tint = paletteColorAt(2)
+                                    )
+                                },
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+
+                            // 2. Daily Revision Limit — iOS: Label("Daily Revision Limit", systemImage: "slider.horizontal.3")
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        "Daily Revision Limit",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontFamily = BelfastGroteskBlackFamily,
+                                            fontWeight = FontWeight.Bold,
+                                            color = palettePrimary
+                                        )
+                                    )
+                                },
+                                onClick = {
+                                    showDailyLimitSheet = true
+                                    showMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Tune,
+                                        contentDescription = null,
+                                        tint = palettePrimary
+                                    )
+                                },
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+
+                            // 3. Exam Mode — iOS: "Exam Mode" (graduationcap.fill) / "Stop Exam Mode" (play.circle.fill)
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        if (uiState.isExamModeActive) "Stop Exam Mode" else "Exam Mode",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontFamily = BelfastGroteskBlackFamily,
+                                            fontWeight = FontWeight.Bold,
+                                            color = paletteColorAt(4)
+                                        )
+                                    )
+                                },
+                                onClick = {
+                                    viewModel.setExamMode(!uiState.isExamModeActive)
+                                    showMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = if (uiState.isExamModeActive) {
+                                            Icons.Default.PlayCircle
+                                        } else {
+                                            Icons.Default.School
+                                        },
+                                        contentDescription = null,
+                                        tint = paletteColorAt(4)
+                                    )
+                                },
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+
+                            HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 4.dp),
+                                color = Color.White.copy(alpha = 0.1f)
+                            )
+
+                            // Android-only extras (no iOS counterpart)
+
+                            // Show Completed Toggle
                             DropdownMenuItem(
                                 text = {
                                     Row(
@@ -131,64 +208,7 @@ fun RevisionsScreen(
                                 modifier = Modifier.padding(horizontal = 4.dp)
                             )
 
-                            // 2. Exam Mode Toggle
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        if (uiState.isExamModeActive) "Deactivate Exam Mode" else "Activate Exam Mode",
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontFamily = BelfastGroteskBlackFamily,
-                                            fontWeight = FontWeight.Bold,
-                                            color = AccentPastel
-                                        )
-                                    )
-                                },
-                                onClick = {
-                                    viewModel.setExamMode(!uiState.isExamModeActive)
-                                    showMenu = false
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.School,
-                                        contentDescription = null,
-                                        tint = AccentPastel
-                                    )
-                                },
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            )
-
-                            HorizontalDivider(
-                                modifier = Modifier.padding(vertical = 4.dp),
-                                color = Color.White.copy(alpha = 0.1f)
-                            )
-
-                            // 3. FSRS Info
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        "FSRS Spaced Repetition",
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontFamily = BelfastGroteskBlackFamily,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MediumPastel
-                                        )
-                                    )
-                                },
-                                onClick = {
-                                    showSchedulingInfoSheet = true
-                                    showMenu = false
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.Psychology,
-                                        contentDescription = null,
-                                        tint = MediumPastel
-                                    )
-                                },
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            )
-
-                            // 4. ML Controls & Pause
+                            // ML Controls & Pause
                             DropdownMenuItem(
                                 text = {
                                     Text(
@@ -196,7 +216,7 @@ fun RevisionsScreen(
                                         style = MaterialTheme.typography.bodyMedium.copy(
                                             fontFamily = BelfastGroteskBlackFamily,
                                             fontWeight = FontWeight.Bold,
-                                            color = PurplePastel
+                                            color = paletteColorAt(4)
                                         )
                                     )
                                 },
@@ -208,13 +228,13 @@ fun RevisionsScreen(
                                     Icon(
                                         imageVector = Icons.Default.CalendarMonth,
                                         contentDescription = null,
-                                        tint = PurplePastel
+                                        tint = paletteColorAt(4)
                                     )
                                 },
                                 modifier = Modifier.padding(horizontal = 4.dp)
                             )
 
-                            // 5. Calendar Export
+                            // Calendar Export
                             DropdownMenuItem(
                                 text = {
                                     Text(
@@ -222,7 +242,7 @@ fun RevisionsScreen(
                                         style = MaterialTheme.typography.bodyMedium.copy(
                                             fontFamily = BelfastGroteskBlackFamily,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF00E676)
+                                            color = palettePrimary
                                         )
                                     )
                                 },
@@ -234,7 +254,7 @@ fun RevisionsScreen(
                                     Icon(
                                         imageVector = Icons.Default.CalendarMonth,
                                         contentDescription = null,
-                                        tint = Color(0xFF00E676)
+                                        tint = palettePrimary
                                     )
                                 },
                                 modifier = Modifier.padding(horizontal = 4.dp)
@@ -425,6 +445,13 @@ private fun RevisionsListContent(
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(60.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
                                 Text(
                                     text = uiState.errorMessage ?: "Unknown error",
                                     style = MaterialTheme.typography.bodyLarge,
@@ -491,19 +518,19 @@ private fun FloatingStatsToolbar(
         horizontalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         StatBadge(
-            title = "Due Today",
-            value = stats.dueToday.toString(),
-            color = AccentPastel
+            title = "Tracked",
+            value = stats.total.toString(),
+            color = paletteColorAt(4)
         )
         StatBadge(
-            title = "Overdue",
-            value = stats.overdue.toString(),
-            color = HardPastel
+            title = "Due Today",
+            value = stats.dueToday.toString(),
+            color = paletteColorAt(2)
         )
         StatBadge(
             title = "Done",
             value = "${stats.completionRate}%",
-            color = EasyPastel
+            color = paletteColorAt(1)
         )
     }
 }
@@ -544,8 +571,8 @@ private fun EmptyRevisionsState(modifier: Modifier = Modifier) {
             Icon(
                 imageVector = Icons.Default.CalendarMonth,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.3f),
-                modifier = Modifier.size(80.dp)
+                tint = Color.White.copy(alpha = 0.6f),
+                modifier = Modifier.size(60.dp)
             )
             Text(
                 text = "No Revisions Scheduled",

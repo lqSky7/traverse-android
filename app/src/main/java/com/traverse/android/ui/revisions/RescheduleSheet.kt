@@ -52,6 +52,7 @@ import com.traverse.android.data.NetworkService
 import com.traverse.android.data.Revision
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import kotlinx.coroutines.launch
+import com.traverse.android.ui.theme.palettePrimary
 
 private val CardBackground = Color(0xFF1A1A1A)
 
@@ -95,7 +96,7 @@ fun RescheduleSheet(
             Icon(
                 imageVector = Icons.Default.CalendarMonth,
                 contentDescription = null,
-                tint = Color(0xFF00E676),
+                tint = palettePrimary,
                 modifier = Modifier.size(40.dp)
             )
 
@@ -111,7 +112,7 @@ fun RescheduleSheet(
             Text(
                 text = revision.problem.title,
                 fontSize = 14.sp,
-                color = Color(0xFF00E676),
+                color = palettePrimary,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(top = 4.dp)
             )
@@ -130,10 +131,10 @@ fun RescheduleSheet(
                             .weight(1f)
                             .clickable { selectedDays = days },
                         shape = RoundedCornerShape(12.dp),
-                        color = if (isSelected) Color(0xFF00E676).copy(alpha = 0.2f) else Color(0xFF242424),
+                        color = if (isSelected) palettePrimary.copy(alpha = 0.2f) else Color(0xFF242424),
                         border = androidx.compose.foundation.BorderStroke(
                             1.dp,
-                            if (isSelected) Color(0xFF00E676) else Color.White.copy(alpha = 0.08f)
+                            if (isSelected) palettePrimary else Color.White.copy(alpha = 0.08f)
                         )
                     ) {
                         Text(
@@ -145,7 +146,7 @@ fun RescheduleSheet(
                                 30 -> "+1m"
                                 else -> "+${days}d"
                             },
-                            color = if (isSelected) Color(0xFF00E676) else Color.White.copy(alpha = 0.8f),
+                            color = if (isSelected) palettePrimary else Color.White.copy(alpha = 0.8f),
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                             fontSize = 13.sp,
                             textAlign = TextAlign.Center,
@@ -238,7 +239,7 @@ fun RescheduleSheet(
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF00E676)
+                    containerColor = palettePrimary
                 ),
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier

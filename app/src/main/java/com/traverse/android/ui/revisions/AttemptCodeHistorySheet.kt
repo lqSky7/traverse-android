@@ -66,6 +66,8 @@ import com.traverse.android.data.NetworkService
 import com.traverse.android.data.Revision
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import kotlinx.coroutines.launch
+import com.traverse.android.ui.theme.paletteColorAt
+import com.traverse.android.ui.theme.palettePrimary
 
 private val CardBackground = Color(0xFF1A1A1A)
 
@@ -125,7 +127,7 @@ fun AttemptCodeHistorySheet(
                 Icon(
                     imageVector = Icons.Default.Code,
                     contentDescription = null,
-                    tint = Color(0xFF00E676),
+                    tint = palettePrimary,
                     modifier = Modifier.size(28.dp)
                 )
 
@@ -141,7 +143,7 @@ fun AttemptCodeHistorySheet(
                     Text(
                         text = revision.problem.title,
                         fontSize = 13.sp,
-                        color = Color(0xFF00E676),
+                        color = palettePrimary,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -160,7 +162,7 @@ fun AttemptCodeHistorySheet(
                         .height(180.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = Color(0xFF00E676), modifier = Modifier.size(32.dp))
+                    CircularProgressIndicator(color = palettePrimary, modifier = Modifier.size(32.dp))
                 }
             } else if (todayAttempts.isEmpty() && previousAttempts.isEmpty()) {
                 Box(
@@ -188,7 +190,7 @@ fun AttemptCodeHistorySheet(
                 if (todayAttempts.isNotEmpty()) {
                     Text(
                         text = "Session Attempts (${todayAttempts.size})",
-                        color = Color(0xFF00E676),
+                        color = palettePrimary,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(bottom = 8.dp)
@@ -204,7 +206,7 @@ fun AttemptCodeHistorySheet(
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Previous Attempts (${previousAttempts.size})",
-                        color = Color(0xFF7C4DFF),
+                        color = paletteColorAt(4),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(bottom = 8.dp)
@@ -236,7 +238,7 @@ private fun CodeAttemptCard(
         color = Color(0xFF242424),
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
-            if (isSuccess) Color(0xFF00E676).copy(alpha = 0.3f) else Color(0xFFFF9100).copy(alpha = 0.3f)
+            if (isSuccess) palettePrimary.copy(alpha = 0.3f) else paletteColorAt(2).copy(alpha = 0.3f)
         )
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -249,7 +251,7 @@ private fun CodeAttemptCard(
                 Icon(
                     imageVector = if (isSuccess) Icons.Default.CheckCircle else Icons.Default.Warning,
                     contentDescription = null,
-                    tint = if (isSuccess) Color(0xFF00E676) else Color(0xFFFF9100),
+                    tint = if (isSuccess) palettePrimary else paletteColorAt(2),
                     modifier = Modifier.size(18.dp)
                 )
 

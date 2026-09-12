@@ -82,12 +82,10 @@ import com.traverse.android.viewmodel.getLeaderboard
 import com.traverse.android.viewmodel.isSelf
 import com.traverse.android.viewmodel.getTotalPendingCount
 import com.traverse.android.viewmodel.getFriendStreakCount
+import com.traverse.android.ui.theme.paletteColorAt
+import com.traverse.android.ui.theme.palettePrimary
 
 // Pastel colors matching Android app's monochromish-pastel theme
-private val EasyPastel = Color(0xFFA8E6CF)
-private val MediumPastel = Color(0xFFFFD3B6)
-private val HardPastel = Color(0xFFFFAAA5)
-private val AccentPastel = Color(0xFFB8D4E3)
 private val CardBackground = Color(0xFF1A1A1A)
 
 // Leaderboard colors
@@ -394,7 +392,7 @@ private fun FriendsMainContent(
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(AccentPastel.copy(alpha = 0.15f))
+                                        .background(palettePrimary.copy(alpha = 0.15f))
                                         .padding(horizontal = 10.dp, vertical = 4.dp)
                                 ) {
                                     Text(
@@ -402,7 +400,7 @@ private fun FriendsMainContent(
                                         style = MaterialTheme.typography.labelLarge.copy(
                                             fontFamily = BelfastGroteskBlackFamily,
                                             fontWeight = FontWeight.Bold,
-                                            color = AccentPastel
+                                            color = palettePrimary
                                         )
                                     )
                                 }
@@ -513,7 +511,7 @@ private fun LeaderboardRow(
         else -> Color.Gray to Color.Gray.copy(alpha = 0.08f)
     }
 
-    val effectiveBgColor = if (isSelf) AccentPastel.copy(alpha = 0.15f) else bgColor
+    val effectiveBgColor = if (isSelf) palettePrimary.copy(alpha = 0.15f) else bgColor
 
     Row(
         modifier = modifier
@@ -592,7 +590,7 @@ private fun LeaderboardRow(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
-                            .background(AccentPastel.copy(alpha = 0.3f))
+                            .background(palettePrimary.copy(alpha = 0.3f))
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
@@ -600,7 +598,7 @@ private fun LeaderboardRow(
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontFamily = BelfastGroteskBlackFamily,
                                 fontWeight = FontWeight.Bold,
-                                color = AccentPastel
+                                color = palettePrimary
                             )
                         )
                     }
@@ -639,7 +637,7 @@ private fun LeaderboardRow(
             Icon(
                 imageVector = Icons.Default.LocalFireDepartment,
                 contentDescription = null,
-                tint = HardPastel,
+                tint = paletteColorAt(0),
                 modifier = Modifier.size(22.dp)
             )
             Text(
@@ -686,7 +684,7 @@ private fun FriendRow(
                         .clip(CircleShape)
                         .background(
                             Brush.linearGradient(
-                                colors = listOf(AccentPastel, EasyPastel)
+                                colors = listOf(palettePrimary, paletteColorAt(1))
                             )
                         ),
                     contentAlignment = Alignment.Center
@@ -728,7 +726,7 @@ private fun FriendRow(
                         Icon(
                             imageVector = Icons.Default.LocalFireDepartment,
                             contentDescription = null,
-                            tint = HardPastel,
+                            tint = paletteColorAt(0),
                             modifier = Modifier.size(14.dp)
                         )
                         Text(
@@ -774,7 +772,7 @@ private fun FriendRow(
                         style = MaterialTheme.typography.displayLarge.copy(
                             fontWeight = FontWeight.Black,
                             fontSize = 64.sp,
-                            color = HardPastel.copy(alpha = 0.25f)
+                            color = paletteColorAt(0).copy(alpha = 0.25f)
                         )
                     )
                 } else {
@@ -782,7 +780,7 @@ private fun FriendRow(
                         text = "Start!",
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Black,
-                            color = HardPastel.copy(alpha = 0.25f)
+                            color = paletteColorAt(0).copy(alpha = 0.25f)
                         )
                     )
                 }
@@ -810,14 +808,14 @@ private fun EmptyFriendsContent(
                 modifier = Modifier
                     .size(80.dp)
                     .clip(CircleShape)
-                    .background(AccentPastel.copy(alpha = 0.1f)),
+                    .background(palettePrimary.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.PeopleOutline,
                     contentDescription = null,
                     modifier = Modifier.size(40.dp),
-                    tint = AccentPastel.copy(alpha = 0.6f)
+                    tint = palettePrimary.copy(alpha = 0.6f)
                 )
             }
 
@@ -844,7 +842,7 @@ private fun EmptyFriendsContent(
             Button(
                 onClick = onAddFriend,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = AccentPastel
+                    containerColor = palettePrimary
                 ),
                 shape = RoundedCornerShape(12.dp),
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)

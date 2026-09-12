@@ -27,12 +27,11 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import com.traverse.android.ui.theme.currentPalette
+import com.traverse.android.ui.theme.paletteColorAt
+import com.traverse.android.ui.theme.palettePrimary
 
 // Pastel colors
-private val EasyPastel = Color(0xFFA8E6CF)
-private val MediumPastel = Color(0xFFFFD3B6)
-private val HardPastel = Color(0xFFFFAAA5)
-private val AccentPastel = Color(0xFFB8D4E3)
 private val CardBackground = Color(0xFF1A1A1A)
 private val GoldColor = Color(0xFFFFD700)
 
@@ -396,6 +395,7 @@ fun UserProfileScreen(
                         item {
                             FriendActionButton(
                                 friendshipStatus = friendshipStatus,
+                                username = username,
                                 friendStreakStatus = friendStreakStatus,
                                 activeFriendStreak = activeFriendStreak,
                                 isLoading = isActionLoading || isGiftingFreeze,
@@ -420,7 +420,7 @@ fun UserProfileScreen(
                                 TabRow(
                                     selectedTabIndex = selectedTab,
                                     containerColor = Color.Transparent,
-                                    contentColor = AccentPastel
+                                    contentColor = palettePrimary
                                 ) {
                                     Tab(
                                         selected = selectedTab == 0,
@@ -452,8 +452,8 @@ fun UserProfileScreen(
                                     } else if (solves.isEmpty()) {
                                         item {
                                             EmptyTabContent(
-                                                icon = Icons.Default.Code,
-                                                message = "No solves yet"
+                                                icon = Icons.Default.CheckCircle,
+                                                message = "No solves to display"
                                             )
                                         }
                                     } else {
@@ -478,12 +478,25 @@ fun UserProfileScreen(
                                         item {
                                             EmptyTabContent(
                                                 icon = Icons.Default.EmojiEvents,
-                                                message = "No achievements yet"
+                                                message = "No achievements unlocked yet",
+                                                subtitle = "Complete challenges to earn achievements",
+                                                iconColor = paletteColorAt(1),
+                                                circled = true
                                             )
                                         }
                                     } else {
                                         items(achievements, key = { it.id }) { achievement ->
                                             AchievementRow(achievement = achievement)
+                                        }
+                                        // Summary — iOS: "\(n) achievement(s) unlocked"
+                                        item {
+                                            Text(
+                                                text = "${achievements.size} achievement" +
+                                                    (if (achievements.size == 1) "" else "s") + " unlocked",
+                                                style = MaterialTheme.typography.labelMedium.copy(
+                                                    color = Color.White.copy(alpha = 0.5f)
+                                                )
+                                            )
                                         }
                                     }
                                 }
@@ -505,7 +518,7 @@ fun UserProfileScreen(
                         .align(Alignment.BottomCenter)
                         .padding(16.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(EasyPastel)
+                        .background(paletteColorAt(1))
                         .padding(16.dp)
                 ) {
                     Row(
@@ -555,7 +568,7 @@ private fun ProfileHeader(
                     .clip(CircleShape)
                     .background(
                         Brush.linearGradient(
-                            colors = listOf(AccentPastel, EasyPastel)
+                            colors = listOf(palettePrimary, paletteColorAt(1))
                         )
                     ),
                 contentAlignment = Alignment.Center
@@ -580,72 +593,126 @@ private fun ProfileHeader(
                 )
             )
             
-            // Visibility badge
-            Text(
-                text = profile.visibility.replaceFirstChar { it.uppercase() },
-                style = MaterialTheme.typography.bodySmall.copy(
-                    color = Color.White.copy(alpha = 0.5f)
+            // Visibility badge — iOS: Label(visibility.capitalized, systemImage: globe / lock / person.2)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = when (profile.visibility.lowercase()) {
+                        "public" -> Icons.Default.Public
+                        "private" -> Icons.Default.Lock
+                        else -> Icons.Default.People
+                    },
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.75f),
+                    modifier = Modifier.size(14.dp)
                 )
-            )
+                Text(
+                    text = profile.visibility.replaceFirstChar { it.uppercase() },
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        color = Color.White.copy(alpha = 0.75f)
+                    )
+                )
+            }
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Stats row
+            // Stats row — iOS ProfileHeaderView: coloured value on top, then Label(icon + text)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 StatColumn(
                     icon = Icons.Default.LocalFireDepartment,
                     value = "${profile.currentStreak}",
-                    label = "Streak",
-                    color = HardPastel
+                    label = "My Streak",
+                    valueColor = paletteColorAt(0),
+                    modifier = Modifier.weight(1f)
                 )
+
+                ProfileStatDivider()
+
                 StatColumn(
                     icon = Icons.Default.Star,
                     value = "${profile.totalXp}",
                     label = "XP",
-                    color = GoldColor
+                    valueColor = paletteColorAt(1),
+                    modifier = Modifier.weight(1f)
                 )
+
+                if (statistics != null) {
+                    ProfileStatDivider()
+
+                    StatColumn(
+                        icon = null,
+                        value = "${statistics.totalSolves}",
+                        label = "Solves",
+                        valueColor = Color.White,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
+private fun ProfileStatDivider() {
+    Box(
+        modifier = Modifier
+            .height(30.dp)
+            .width(1.dp)
+            .background(Color.White.copy(alpha = 0.3f))
+    )
+}
+
+@Composable
 private fun StatColumn(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: androidx.compose.ui.graphics.vector.ImageVector?,
     value: String,
     label: String,
-    color: Color
+    valueColor: Color,
+    modifier: Modifier = Modifier
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.height(4.dp))
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
         Text(
             text = value,
-            style = MaterialTheme.typography.titleLarge.copy(
+            style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = valueColor
             )
         )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall.copy(
-                color = Color.White.copy(alpha = 0.6f)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier.size(12.dp)
+                )
+            }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    color = Color.White.copy(alpha = 0.7f)
+                )
             )
-        )
+        }
     }
 }
 
 @Composable
 private fun FriendActionButton(
     friendshipStatus: FriendshipStatus,
+    username: String,
     friendStreakStatus: FriendStreakStatus,
     activeFriendStreak: FriendStreak?,
     isLoading: Boolean,
@@ -669,7 +736,7 @@ private fun FriendActionButton(
                 enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = AccentPastel,
+                    containerColor = palettePrimary,
                     contentColor = Color.Black
                 )
             ) {
@@ -691,35 +758,21 @@ private fun FriendActionButton(
         }
         
         FriendshipStatus.REQUEST_SENT -> {
-            OutlinedButton(
-                onClick = { },
-                enabled = false,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Schedule,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Request Pending")
-            }
+            // iOS: HStack { clock; "Friend Request Sent" } .foregroundStyle(.secondary)
+            StatusPill(
+                icon = Icons.Default.Schedule,
+                text = "Friend Request Sent",
+                color = Color.White.copy(alpha = 0.6f)
+            )
         }
         
         FriendshipStatus.REQUEST_RECEIVED -> {
-            OutlinedButton(
-                onClick = { },
-                enabled = false,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Inbox,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Request Received - Check Requests")
-            }
+            // iOS: HStack { envelope.badge; "Friend Request Received" } .foregroundStyle(.blue)
+            StatusPill(
+                icon = Icons.Default.MarkEmailUnread,
+                text = "Friend Request Received",
+                color = Color(0xFF007AFF)
+            )
         }
         
         FriendshipStatus.FRIENDS -> {
@@ -734,7 +787,7 @@ private fun FriendActionButton(
                             enabled = !isLoading,
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = HardPastel,
+                                containerColor = paletteColorAt(0),
                                 contentColor = Color.White
                             )
                         ) {
@@ -750,45 +803,26 @@ private fun FriendActionButton(
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Start Streak Together")
+                                Text("Start Streak")
                             }
                         }
                     }
                     FriendStreakStatus.REQUEST_SENT -> {
-                        OutlinedButton(
-                            onClick = { },
-                            enabled = false,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = HardPastel.copy(alpha = 0.7f)
-                            )
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Schedule,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Streak Request Pending")
-                        }
+                        // iOS: HStack { flame.badge.checkmark; "Streak Request Sent" } color(at: 0)
+                        StatusPill(
+                            icon = Icons.Default.LocalFireDepartment,
+                            text = "Streak Request Sent",
+                            color = paletteColorAt(0)
+                        )
                     }
                     FriendStreakStatus.REQUEST_RECEIVED -> {
-                        OutlinedButton(
-                            onClick = { },
-                            enabled = false,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = HardPastel
-                            )
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.LocalFireDepartment,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Streak Request Received")
-                        }
+                        // iOS: "Streak Request Received" with trailing "Check requests"
+                        StatusPill(
+                            icon = Icons.Default.LocalFireDepartment,
+                            text = "Streak Request Received",
+                            color = paletteColorAt(0),
+                            trailing = "Check requests"
+                        )
                     }
                     FriendStreakStatus.ACTIVE -> {
                         // Active streak card
@@ -819,11 +853,27 @@ private fun FriendActionButton(
                     contentAlignment = Alignment.Center
                 ) {
                     if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = Color.Cyan
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AcUnit,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = Color.Cyan
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            // iOS: Text(isGifting ? "Sending..." : "Gift Freeze (70 XP)")
+                            Text(
+                                "Sending...",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    color = Color.Cyan,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            )
+                        }
                     } else {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -865,7 +915,7 @@ private fun FriendActionButton(
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
                             strokeWidth = 2.dp,
-                            color = HardPastel
+                            color = paletteColorAt(0)
                         )
                     } else {
                         Row(
@@ -877,13 +927,13 @@ private fun FriendActionButton(
                                 imageVector = Icons.Default.PersonRemove,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
-                                tint = HardPastel
+                                tint = paletteColorAt(0)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 "Remove Friend",
                                 style = MaterialTheme.typography.bodyMedium.copy(
-                                    color = HardPastel,
+                                    color = paletteColorAt(0),
                                     fontWeight = FontWeight.SemiBold
                                 )
                             )
@@ -923,7 +973,7 @@ private fun FriendActionButton(
         AlertDialog(
             onDismissRequest = { showGiftDialog = false },
             title = { Text("Gift a Streak Freeze?") },
-            text = { Text("This will cost 70 XP from your balance. Your friend can use it to protect their streak!") },
+            text = { Text("This will cost 70 XP from your balance. $username can use it to protect their streak!") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -943,99 +993,125 @@ private fun FriendActionButton(
     }
 }
 
+/**
+ * iOS `StatisticsView`: "Statistics" headline outside, then a card holding two
+ * label/value rows, a divider, "Problems by Difficulty" and three tinted badges.
+ */
 @Composable
 private fun StatisticsCard(statistics: UserStatisticsData) {
-    Card(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        Text(
+            text = "Statistics",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = CardBackground)
         ) {
-            Text(
-                text = "Statistics",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            )
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                StatItem(value = "${statistics.totalSolves}", label = "Solves", modifier = Modifier.weight(1f))
-                VerticalDivider(
-                    modifier = Modifier
-                        .height(48.dp)
-                        .width(1.dp),
-                    color = Color.White.copy(alpha = 0.2f)
+                StatRow(label = "Total Submissions", value = "${statistics.totalSubmissions}")
+                StatRow(label = "Total Streak Days", value = "${statistics.totalStreakDays}")
+
+                HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+
+                Text(
+                    text = "Problems by Difficulty",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = Color.White.copy(alpha = 0.6f)
+                    )
                 )
-                StatItem(value = "${statistics.totalStreakDays}", label = "Streak Days", modifier = Modifier.weight(1f))
-                VerticalDivider(
-                    modifier = Modifier
-                        .height(48.dp)
-                        .width(1.dp),
-                    color = Color.White.copy(alpha = 0.2f)
-                )
-                StatItem(value = "${statistics.totalSubmissions}", label = "Submissions", modifier = Modifier.weight(1f))
-            }
-            
-            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-            
-            // Difficulty breakdown
-            Text(
-                text = "By Difficulty",
-                style = MaterialTheme.typography.labelMedium.copy(
-                    color = Color.White.copy(alpha = 0.6f)
-                )
-            )
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                DifficultyChip(
-                    label = "Easy",
-                    count = statistics.problemsByDifficulty.easy,
-                    color = EasyPastel
-                )
-                DifficultyChip(
-                    label = "Medium",
-                    count = statistics.problemsByDifficulty.medium,
-                    color = MediumPastel
-                )
-                DifficultyChip(
-                    label = "Hard",
-                    count = statistics.problemsByDifficulty.hard,
-                    color = HardPastel
-                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    DifficultyBadge(
+                        difficulty = "Easy",
+                        count = statistics.problemsByDifficulty.easy,
+                        color = paletteColorAt(1),
+                        modifier = Modifier.weight(1f)
+                    )
+                    DifficultyBadge(
+                        difficulty = "Medium",
+                        count = statistics.problemsByDifficulty.medium,
+                        color = paletteColorAt(2),
+                        modifier = Modifier.weight(1f)
+                    )
+                    DifficultyBadge(
+                        difficulty = "Hard",
+                        count = statistics.problemsByDifficulty.hard,
+                        color = paletteColorAt(0),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     }
 }
 
+/** iOS `StatRow`: label on the left (.secondary), bold value on the right. */
 @Composable
-private fun StatItem(value: String, label: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
+private fun StatRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                color = Color.White.copy(alpha = 0.6f)
+            )
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
             text = value,
-            style = MaterialTheme.typography.titleLarge.copy(
+            style = MaterialTheme.typography.bodyMedium.copy(
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
         )
+    }
+}
+
+/** iOS `DifficultyBadge`: count on top in the badge colour, label beneath, tinted background. */
+@Composable
+private fun DifficultyBadge(
+    difficulty: String,
+    count: Int,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(color.copy(alpha = 0.1f))
+            .padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
         Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall.copy(
+            text = "$count",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+        )
+        Text(
+            text = difficulty,
+            style = MaterialTheme.typography.labelSmall.copy(
                 color = Color.White.copy(alpha = 0.6f)
             )
         )
@@ -1043,32 +1119,12 @@ private fun StatItem(value: String, label: String, modifier: Modifier = Modifier
 }
 
 @Composable
-private fun DifficultyChip(label: String, count: Int, color: Color) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(color)
-        )
-        Text(
-            text = "$label: $count",
-            style = MaterialTheme.typography.bodySmall.copy(
-                color = Color.White.copy(alpha = 0.8f)
-            )
-        )
-    }
-}
-
-@Composable
 private fun SolveRow(solve: Solve) {
+    // iOS DifficultyTag.color: easy -> color(at: 1), medium -> color(at: 2), hard -> color(at: 0)
     val difficultyColor = when (solve.problem.difficulty.lowercase()) {
-        "easy" -> EasyPastel
-        "medium" -> MediumPastel
-        "hard" -> HardPastel
+        "easy" -> paletteColorAt(1)
+        "medium" -> paletteColorAt(2)
+        "hard" -> paletteColorAt(0)
         else -> Color.Gray
     }
     
@@ -1112,20 +1168,41 @@ private fun SolveRow(solve: Solve) {
                 )
             }
             
-            // XP
+            // XP — iOS: .foregroundStyle(paletteManager.selectedPalette.secondary)
             Text(
                 text = "+${solve.xpAwarded} XP",
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontWeight = FontWeight.Bold,
-                    color = GoldColor
+                    color = currentPalette.secondary
                 )
             )
         }
     }
 }
 
+// iOS ProfileAchievementsViews: categoryIcon / categoryColor tables
+private fun achievementCategoryIcon(category: String): androidx.compose.ui.graphics.vector.ImageVector =
+    when (category.lowercase()) {
+        "solve", "solves" -> Icons.Default.CheckCircle          // checkmark.seal.fill
+        "streak" -> Icons.Default.LocalFireDepartment           // flame.fill
+        "social" -> Icons.Default.People                        // person.2.fill
+        "revision", "revisions", "ml" -> Icons.Default.Psychology // brain.head.profile
+        else -> Icons.Default.EmojiEvents                       // trophy.fill
+    }
+
+private fun achievementCategoryColor(category: String): Color =
+    when (category.lowercase()) {
+        "solve", "solves" -> paletteColorAt(1)
+        "streak" -> paletteColorAt(0)
+        "social" -> paletteColorAt(2)
+        "revision", "revisions", "ml" -> paletteColorAt(4)
+        else -> paletteColorAt(3)
+    }
+
 @Composable
 private fun AchievementRow(achievement: FriendAchievement) {
+    val categoryColor = achievementCategoryColor(achievement.category)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
@@ -1138,11 +1215,11 @@ private fun AchievementRow(achievement: FriendAchievement) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Trophy icon
+            // Category icon
             Icon(
-                imageVector = Icons.Default.EmojiEvents,
+                imageVector = achievementCategoryIcon(achievement.category),
                 contentDescription = null,
-                tint = GoldColor,
+                tint = categoryColor,
                 modifier = Modifier.size(32.dp)
             )
             
@@ -1167,10 +1244,55 @@ private fun AchievementRow(achievement: FriendAchievement) {
     }
 }
 
+/**
+ * iOS-style status pill: HStack { icon; text } with a 10%-opacity tinted background
+ * and 12pt corner radius. Used for friend-request and streak-request states.
+ */
+@Composable
+private fun StatusPill(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    color: Color,
+    trailing: String? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(color.copy(alpha = 0.1f))
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(18.dp)
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium.copy(color = color)
+        )
+        if (trailing != null) {
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = trailing,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    color = Color.White.copy(alpha = 0.6f)
+                )
+            )
+        }
+    }
+}
+
 @Composable
 private fun EmptyTabContent(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    message: String
+    message: String,
+    subtitle: String? = null,
+    iconColor: Color = Color.White.copy(alpha = 0.3f),
+    circled: Boolean = false
 ) {
     Box(
         modifier = Modifier
@@ -1182,18 +1304,43 @@ private fun EmptyTabContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = Color.White.copy(alpha = 0.3f)
-            )
+            if (circled) {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(iconColor.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(36.dp),
+                        tint = iconColor
+                    )
+                }
+            } else {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = iconColor
+                )
+            }
             Text(
                 text = message,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color.White.copy(alpha = 0.5f)
+                style = MaterialTheme.typography.titleMedium.copy(
+                    color = Color.White.copy(alpha = 0.6f)
                 )
             )
+            subtitle?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        color = Color.White.copy(alpha = 0.5f)
+                    )
+                )
+            }
         }
     }
 }
@@ -1205,117 +1352,117 @@ private fun ActiveStreakCard(
     isLoading: Boolean
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
-    
+    // iOS ActiveStreakCard.streakColor = paletteManager.color(at: 2)
+    val streakColor = paletteColorAt(2)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = CardBackground.copy(alpha = 0.8f)
-        )
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBackground)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Header
+        Box {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.LocalFireDepartment,
-                    contentDescription = null,
-                    tint = HardPastel,
-                    modifier = Modifier.size(20.dp)
-                )
-                Text(
-                    text = "Streak with ${friendStreak.friend.username}",
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
-                IconButton(
-                    onClick = { showDeleteDialog = true },
-                    enabled = !isLoading
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete streak",
-                            tint = Color.White.copy(alpha = 0.5f),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            }
-            
-            // Stats
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
+                // Friend Streak column
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(
-                        text = "${friendStreak.currentStreak}",
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = HardPastel
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.People,
+                            contentDescription = null,
+                            tint = streakColor,
+                            modifier = Modifier.size(14.dp)
                         )
-                    )
+                        Text(
+                            text = "${friendStreak.currentStreak}",
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        )
+                    }
                     Text(
-                        text = "Current Streak",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = Color.White.copy(alpha = 0.7f)
+                        text = "With ${friendStreak.friend.username}",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = Color.White.copy(alpha = 0.6f)
                         )
                     )
                 }
-                
-                // Vertical separator
+
+                // Divider
                 Box(
                     modifier = Modifier
                         .width(1.dp)
                         .height(40.dp)
                         .background(Color.White.copy(alpha = 0.2f))
                 )
-                
+
+                // Best streak column
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
                         text = "${friendStreak.longestStreak}",
                         style = MaterialTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            color = GoldColor
+                            color = Color.White
                         )
                     )
                     Text(
-                        text = "Best Streak",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = Color.White.copy(alpha = 0.7f)
+                        text = "Best",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = Color.White.copy(alpha = 0.6f)
                         )
+                    )
+                }
+            }
+
+            // Android has no context menu idiom, so keep an explicit End Streak affordance
+            IconButton(
+                onClick = { showDeleteDialog = true },
+                enabled = !isLoading,
+                modifier = Modifier.align(Alignment.TopEnd)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "End Streak",
+                        tint = Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
         }
     }
-    
-    // Delete confirmation dialog
+
+    // Confirmation dialog — iOS: confirmationDialog("End Streak with \(username)?")
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("End Streak") },
-            text = { Text("Are you sure you want to end your streak with ${friendStreak.friend.username}? This cannot be undone.") },
+            title = { Text("End Streak with ${friendStreak.friend.username}?") },
+            text = {
+                Text(
+                    "This will permanently delete your streak of " +
+                        "${friendStreak.currentStreak} days. This cannot be undone."
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -1328,7 +1475,7 @@ private fun ActiveStreakCard(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Keep Streak")
+                    Text("Cancel")
                 }
             }
         )

@@ -54,6 +54,8 @@ import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import kotlinx.coroutines.launch
+import com.traverse.android.ui.theme.paletteColorAt
+import com.traverse.android.ui.theme.palettePrimary
 
 private val CardBackground = Color(0xFF1A1A1A)
 
@@ -98,7 +100,7 @@ fun FriendStreakRequestsSheet(
                 Icon(
                     imageVector = Icons.Default.LocalFireDepartment,
                     contentDescription = null,
-                    tint = Color(0xFFFF6D00),
+                    tint = paletteColorAt(0),
                     modifier = Modifier.size(28.dp)
                 )
 
@@ -113,7 +115,7 @@ fun FriendStreakRequestsSheet(
                 )
 
                 IconButton(onClick = onDismiss) {
-                    Text("Done", color = Color(0xFF00E676), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Done", color = palettePrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
             }
 
@@ -232,7 +234,7 @@ private fun StreakRequestCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = Color(0xFF242424),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF6D00).copy(alpha = 0.25f))
+        border = androidx.compose.foundation.BorderStroke(1.dp, paletteColorAt(0).copy(alpha = 0.25f))
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -242,12 +244,12 @@ private fun StreakRequestCard(
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .background(Color(0xFFFF6D00).copy(alpha = 0.2f), CircleShape),
+                    .background(paletteColorAt(0).copy(alpha = 0.2f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = username.take(1).uppercase(),
-                    color = Color(0xFFFF6D00),
+                    color = paletteColorAt(0),
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
@@ -266,7 +268,7 @@ private fun StreakRequestCard(
                     Icon(
                         imageVector = Icons.Default.LocalFireDepartment,
                         contentDescription = null,
-                        tint = Color(0xFFFF6D00),
+                        tint = paletteColorAt(0),
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
@@ -280,7 +282,7 @@ private fun StreakRequestCard(
 
             if (isProcessing) {
                 CircularProgressIndicator(
-                    color = Color(0xFFFF6D00),
+                    color = paletteColorAt(0),
                     modifier = Modifier.size(24.dp),
                     strokeWidth = 2.dp
                 )
@@ -306,12 +308,12 @@ private fun StreakRequestCard(
                     onClick = onAccept,
                     modifier = Modifier
                         .size(36.dp)
-                        .background(Color(0xFFFF6D00).copy(alpha = 0.2f), CircleShape)
+                        .background(paletteColorAt(0).copy(alpha = 0.2f), CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = "Accept",
-                        tint = Color(0xFFFF6D00),
+                        tint = paletteColorAt(0),
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -345,7 +347,7 @@ private fun StreakTabButton(
     ) {
         Text(
             text = title,
-            color = if (selected) Color(0xFFFF6D00) else Color.White.copy(alpha = 0.5f),
+            color = if (selected) paletteColorAt(0) else Color.White.copy(alpha = 0.5f),
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
             fontSize = 13.sp,
             textAlign = TextAlign.Center,

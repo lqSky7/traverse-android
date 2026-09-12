@@ -10,12 +10,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,31 +24,31 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.traverse.android.ui.revisions.AnalyticsInfoSheet
-import com.traverse.android.ui.theme.Peach
+import com.traverse.android.ui.theme.rememberPalette
+import kotlin.math.PI
+import kotlin.math.sin
 
 private val ScoreCardBackground = Color.Black
-private val ScoreAccent = Color(0xFFB8D4E3)
 
-private const val REVISION_SCORE_EXPLANATION =
-    "Tracks your overall revision consistency and memory retention health over the past 7 days.\n\n" +
-        "\u2022 Memory Retention: Measures how effectively your review habit reinforces learned DSA " +
-        "concepts to maintain strong long-term recall.\n\n" +
-        "\u2022 Outcome-Independent: Focuses purely on engagement and recall effort \u2014 it is not " +
-        "penalized when you struggle on difficult problems."
+private const val RAD_TO_DEG = 57.29578f
 
 /**
- * Revision health score card — 1:1 port of the iOS `RevisionScoreCard`.
+ * 1:1 port of the iOS `RevisionScoreCard`.
  *
- * A black card showing the 7-day revision score with a soft animated "thinking orb"
- * in the top-right corner. Tapping it opens the explanation sheet.
+ * A pure-black card showing the 7-day revision score with the animated "Thinking Orb"
+ * pushed into the top-right corner. Tapping anywhere opens the explanation sheet.
  */
 @Composable
 fun RevisionScoreCard(
@@ -62,7 +60,7 @@ fun RevisionScoreCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(120.dp)
+            .height(110.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(ScoreCardBackground)
             .border(
@@ -76,14 +74,14 @@ fun RevisionScoreCard(
             score = score,
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .offset(x = 28.dp, y = (-28).dp)
-                .size(120.dp)
+                .offset(x = 24.dp, y = (-24).dp)
         )
 
         Text(
             text = "$score",
             style = MaterialTheme.typography.displayLarge.copy(
                 fontSize = 40.sp,
+                lineHeight = 44.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             ),
@@ -92,72 +90,94 @@ fun RevisionScoreCard(
     }
 
     if (showExplanation) {
-        AnalyticsInfoSheet(
-            title = "Revision Score",
-            description = REVISION_SCORE_EXPLANATION,
-            onDismiss = { showExplanation = false }
-        )
+        RevisionScoreExplanationSheet(onDismiss = { showExplanation = false })
     }
 }
 
 /**
- * Soft ambient glow whose scale and opacity scale with [score], mirroring the
- * iOS "Thinking Orb" shader effect without needing a GPU shader.
+ * 1:1 port of the iOS `ThinkingOrbScoreView`: three additive, blurred layers whose
+ * rotation speed, scale and opacity all scale with [score]. Colours come from the active
+ * palette — `color(at: 0)` for the ambient body and `color(at: 1)` for the core layer.
  */
 @Composable
 private fun ThinkingOrbScoreView(
     score: Int,
     modifier: Modifier = Modifier
 ) {
+    val palette = rememberPalette()
+    val orbPrimary = palette.colorAt(0)
+    val orbSecondary = palette.colorAt(1)
+
     val normalized = score.coerceIn(0, 100) / 100f
+
+    // iOS drives the phase from the render clock: speed = 0.6 + normalized * 0.8.
+    val speed = 0.6f + normalized * 0.8f
+    val durationMs = ((2.0 * PI / speed) * 1000.0).toInt().coerceAtLeast(1)
 
     val transition = rememberInfiniteTransition(label = "revisionOrb")
     val phase by transition.animateFloat(
         initialValue = 0f,
-        targetValue = 360f,
+        targetValue = (2.0 * PI).toFloat(),
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 4200, easing = LinearEasing),
+            animation = tween(durationMillis = durationMs, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "revisionOrbPhase"
     )
+    val progress = sin(phase)
 
     val orbScale = 0.55f + 0.35f * normalized
     val orbAlpha = 0.40f + 0.55f * normalized
 
     Box(
-        modifier = modifier,
+        modifier = modifier
+            .size(110.dp)
+            .graphicsLayer {
+                scaleX = orbScale
+                scaleY = orbScale
+                alpha = orbAlpha
+                blendMode = BlendMode.Screen
+            },
         contentAlignment = Alignment.Center
     ) {
         // Primary ambient glow body
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    alpha = orbAlpha
-                    scaleX = orbScale
-                    scaleY = orbScale
-                    rotationZ = phase * 0.7f
-                }
+                .size(110.dp)
+                .graphicsLayer { rotationZ = progress * 0.7f * RAD_TO_DEG }
+                .blur(24.dp, BlurredEdgeTreatment.Unbounded)
                 .background(
-                    brush = Brush.radialGradient(colors = listOf(Peach, Color.Transparent)),
-                    shape = CircleShape
+                    brush = Brush.linearGradient(
+                        colors = listOf(orbPrimary, orbSecondary),
+                        start = Offset.Zero,
+                        end = Offset.Infinite
+                    ),
+                    shape = RoundedCornerShape(120.dp)
                 )
         )
 
-        // Secondary core filament
+        // Secondary core layer
         Box(
             modifier = Modifier
-                .fillMaxSize(0.6f)
-                .graphicsLayer {
-                    alpha = orbAlpha
-                    scaleX = orbScale
-                    scaleY = orbScale * 0.62f
-                    rotationZ = -phase * 0.7f
-                }
+                .size(width = 70.dp, height = 42.dp)
+                .graphicsLayer { rotationZ = -progress * 0.7f * RAD_TO_DEG }
+                .blur(18.dp, BlurredEdgeTreatment.Unbounded)
                 .background(
-                    brush = Brush.radialGradient(colors = listOf(ScoreAccent, Color.Transparent)),
-                    shape = CircleShape
+                    color = lerp(orbSecondary, Color.White, 0.35f),
+                    shape = RoundedCornerShape(120.dp)
+                )
+        )
+
+        // Bright white filament highlight
+        Box(
+            modifier = Modifier
+                .size(width = 80.dp, height = 40.dp)
+                .offset(y = (-14).dp)
+                .graphicsLayer { rotationZ = progress * 0.35f * RAD_TO_DEG }
+                .blur(24.dp, BlurredEdgeTreatment.Unbounded)
+                .background(
+                    color = Color.White.copy(alpha = 0.85f),
+                    shape = RoundedCornerShape(120.dp)
                 )
         )
     }

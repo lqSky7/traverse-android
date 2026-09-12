@@ -52,9 +52,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.traverse.android.ui.theme.Peach
+import com.traverse.android.ui.theme.palettePrimary
 
 private val RoundedShape = RoundedCornerShape(24.dp)
-private val AccentPastel = Color(0xFFB8D4E3)
 
 @Composable
 fun RegisterScreen(
@@ -113,9 +113,9 @@ fun RegisterScreen(
             ) {
                 Spacer(modifier = Modifier.weight(1f))
                 
-                // Title
+                // Title — iOS WelcomeScreen: "Welcome to\nTraverse" / "We can't wait to have you on board"
                 Text(
-                    text = "traverse",
+                    text = "Welcome to Traverse",
                     style = MaterialTheme.typography.displayLarge.copy(
                         fontSize = 56.sp,
                         fontWeight = FontWeight.Black,
@@ -123,9 +123,9 @@ fun RegisterScreen(
                     ),
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                
+
                 Text(
-                    text = "Start your journey",
+                    text = "We can't wait to have you on board",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp)
@@ -133,15 +133,16 @@ fun RegisterScreen(
                 
                 Spacer(modifier = Modifier.height(48.dp))
                 
-                // Username field
+                // Username field — iOS placeholder "Enter username"
                 OutlinedTextField(
                     value = username,
                     onValueChange = { username = it },
                     label = { Text("Username") },
+                    placeholder = { Text("Enter username") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedShape,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentPastel,
+                        focusedBorderColor = palettePrimary,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                     ),
                     keyboardOptions = KeyboardOptions(
@@ -157,15 +158,16 @@ fun RegisterScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // Email field
+                // Email field — iOS placeholder "Enter your email"
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
                     label = { Text("Email") },
+                    placeholder = { Text("Enter your email") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedShape,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentPastel,
+                        focusedBorderColor = palettePrimary,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                     ),
                     keyboardOptions = KeyboardOptions(
@@ -181,15 +183,16 @@ fun RegisterScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // Password field
+                // Password field — iOS placeholder "Enter password"
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
                     label = { Text("Password") },
+                    placeholder = { Text("Enter password") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedShape,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentPastel,
+                        focusedBorderColor = palettePrimary,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                     ),
                     trailingIcon = {
@@ -222,7 +225,7 @@ fun RegisterScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedShape,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = if (passwordsMatch) AccentPastel else MaterialTheme.colorScheme.error,
+                        focusedBorderColor = if (passwordsMatch) palettePrimary else MaterialTheme.colorScheme.error,
                         unfocusedBorderColor = if (passwordsMatch) 
                             MaterialTheme.colorScheme.outline.copy(alpha = 0.3f) 
                         else 
@@ -260,7 +263,7 @@ fun RegisterScreen(
                     shape = RoundedShape,
                     enabled = !isLoading && canRegister,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = AccentPastel,
+                        containerColor = palettePrimary,
                         contentColor = Color.White
                     )
                 ) {

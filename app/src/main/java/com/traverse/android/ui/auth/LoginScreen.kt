@@ -52,9 +52,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.traverse.android.ui.theme.Peach
+import com.traverse.android.ui.theme.palettePrimary
 
 private val RoundedShape = RoundedCornerShape(24.dp)
-private val AccentPastel = Color(0xFFB8D4E3)
 
 @Composable
 fun LoginScreen(
@@ -107,9 +107,9 @@ fun LoginScreen(
             ) {
                 Spacer(modifier = Modifier.weight(1f))
                 
-                // Title
+                // Title — iOS OnboardingFlow: "Welcome Back" / "Sign in to continue your journey"
                 Text(
-                    text = "traverse",
+                    text = "Welcome Back",
                     style = MaterialTheme.typography.displayLarge.copy(
                         fontSize = 56.sp,
                         fontWeight = FontWeight.Black,
@@ -117,9 +117,9 @@ fun LoginScreen(
                     ),
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                
+
                 Text(
-                    text = "Level up your coding journey",
+                    text = "Sign in to continue your journey",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp)
@@ -127,15 +127,16 @@ fun LoginScreen(
                 
                 Spacer(modifier = Modifier.height(64.dp))
                 
-                // Username field
+                // Username field — iOS placeholder "Enter username"
                 OutlinedTextField(
                     value = username,
                     onValueChange = { username = it },
                     label = { Text("Username") },
+                    placeholder = { Text("Enter username") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedShape,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentPastel,
+                        focusedBorderColor = palettePrimary,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                     ),
                     keyboardOptions = KeyboardOptions(
@@ -151,15 +152,16 @@ fun LoginScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // Password field
+                // Password field — iOS placeholder "Enter password"
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
                     label = { Text("Password") },
+                    placeholder = { Text("Enter password") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedShape,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentPastel,
+                        focusedBorderColor = palettePrimary,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                     ),
                     trailingIcon = {
@@ -198,7 +200,7 @@ fun LoginScreen(
                     shape = RoundedShape,
                     enabled = !isLoading && username.isNotBlank() && password.isNotBlank(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = AccentPastel,
+                        containerColor = palettePrimary,
                         contentColor = Color.White
                     )
                 ) {
@@ -231,7 +233,7 @@ fun LoginScreen(
                     enabled = !isLoading
                 ) {
                     Text(
-                        text = "Forgot Password?",
+                        text = "Forgot password?",
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Medium

@@ -18,9 +18,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
+import com.traverse.android.ui.theme.palettePrimary
 
 private val CardBackground = Color(0xFF1A1A1A)
-private val AccentPastel = Color(0xFFB8D4E3)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,7 +58,7 @@ fun AnalyticsInfoSheet(
                     Icon(
                         imageVector = Icons.Default.Info,
                         contentDescription = null,
-                        tint = AccentPastel,
+                        tint = palettePrimary,
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
@@ -105,7 +105,7 @@ fun AnalyticsInfoSheet(
                     .fillMaxWidth()
                     .height(48.dp),
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = AccentPastel)
+                colors = ButtonDefaults.buttonColors(containerColor = palettePrimary)
             ) {
                 Text(
                     text = "Got It",

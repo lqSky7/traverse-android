@@ -1,69 +1,239 @@
 package com.traverse.android.ui.home
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Square
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.traverse.android.data.Solve
+import com.traverse.android.ui.theme.RingiftFamily
+import com.traverse.android.ui.theme.rememberPalette
 
-private val CardBackground = Color(0xFF1A1A1A)
-private val EasyPastel = Color(0xFFA8E6CF)
-private val MediumPastel = Color(0xFFFFD3B6)
-private val HardPastel = Color(0xFFFFAAA5)
-private val AIPastel = Color(0xFFE6B6FF)
-private val TagPastel = Color(0xFFB6E3FF)
-private val NotePastel = Color(0xFFFFE4B6)
-
+/**
+ * 1:1 port of the iOS `AllSolvesView`: a search field, a horizontally scrolling topic
+ * filter, and the full list of solves rendered as expandable [SolveRow]s.
+ *
+ * The selected topic chip is filled with `selectedPalette.primary`, matching iOS.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AllSolvesScreen(
     solves: List<Solve>,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    var expandedSolveId by remember { mutableStateOf<Int?>(null) }
-    
+    var searchText by remember { mutableStateOf("") }
+    var selectedTopic by remember { mutableStateOf<String?>(null) }
+
+    val availableTopics = remember(solves) {
+        solves.mapNotNull { it.problem.topic }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .sorted()
+    }
+
+    val filteredSolves = remember(solves, searchText, selectedTopic) {
+        solves.filter { solve ->
+            val query = searchText
+            val matchesSearch = query.isEmpty() ||
+                solve.problem.title.contains(query, ignoreCase = true) ||
+                solve.problem.slug.contains(query, ignoreCase = true) ||
+                (solve.problem.topic ?: "").contains(query, ignoreCase = true) ||
+                (solve.problem.subtopic ?: "").contains(query, ignoreCase = true)
+
+            val matchesTopic = selectedTopic == null || solve.problem.topic == selectedTopic
+
+            matchesSearch && matchesTopic
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("All Solves") },
+                title = {
+                    Text(
+                        text = "All Solves",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontFamily = RingiftFamily
+                        )
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
                     }
                 }
             )
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier
+        Column(
+            modifier = modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
         ) {
-            items(solves, key = { it.id }) { solve ->
-                ExpandableSolveCard(
-                    solve = solve,
-                    isExpanded = expandedSolveId == solve.id,
-                    onClick = {
-                        expandedSolveId = if (expandedSolveId == solve.id) null else solve.id
+            SearchField(
+                value = searchText,
+                onValueChange = { searchText = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(vertical = 8.dp)
+            )
+
+            if (availableTopics.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TopicChip(
+                        label = "All Topics",
+                        selected = selectedTopic == null,
+                        onClick = { selectedTopic = null }
+                    )
+                    availableTopics.forEach { topic ->
+                        TopicChip(
+                            label = topic,
+                            selected = selectedTopic == topic,
+                            onClick = {
+                                selectedTopic = if (selectedTopic == topic) null else topic
+                            }
+                        )
                     }
+                }
+            }
+
+            if (filteredSolves.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 40.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Square,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.6f),
+                        modifier = Modifier.size(40.dp)
+                    )
+                    Text(
+                        text = "No solves match your criteria",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = Color.White.copy(alpha = 0.6f)
+                        )
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(filteredSolves, key = { it.id }) { solve ->
+                        SolveRow(solve = solve)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color.White.copy(alpha = 0.1f))
+            .padding(10.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.6f),
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Box(modifier = Modifier.weight(1f)) {
+                if (value.isEmpty()) {
+                    Text(
+                        text = "Search problems, topics, subtopics...",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = Color.White.copy(alpha = 0.4f)
+                        )
+                    )
+                }
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    singleLine = true,
+                    textStyle = TextStyle(color = Color.White, fontSize = 15.sp),
+                    cursorBrush = SolidColor(Color.White),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            if (value.isNotEmpty()) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Default.Cancel,
+                    contentDescription = "Clear search",
+                    tint = Color.White.copy(alpha = 0.6f),
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clickable { onValueChange("") }
                 )
             }
         }
@@ -71,270 +241,26 @@ fun AllSolvesScreen(
 }
 
 @Composable
-private fun ExpandableSolveCard(
-    solve: Solve,
-    isExpanded: Boolean,
+private fun TopicChip(
+    label: String,
+    selected: Boolean,
     onClick: () -> Unit
 ) {
-    val difficultyColor = when (solve.problem.difficulty.lowercase()) {
-        "easy" -> EasyPastel
-        "medium" -> MediumPastel
-        "hard" -> HardPastel
-        else -> Color.White.copy(alpha = 0.5f)
-    }
-    
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
-        onClick = onClick
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Header row
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = solve.problem.title,
-                        style = MaterialTheme.typography.bodyLarge.copy(color = Color.White),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Row {
-                        Text(
-                            text = solve.problem.difficulty.replaceFirstChar { it.uppercase() },
-                            style = MaterialTheme.typography.labelSmall.copy(color = difficultyColor)
-                        )
-                        Text(
-                            text = " • ",
-                            style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
-                        )
-                        Text(
-                            text = solve.problem.platform.replaceFirstChar { it.uppercase() },
-                            style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
-                        )
-                    }
-                }
-                
-                Spacer(modifier = Modifier.width(12.dp))
-                
-                Column(horizontalAlignment = Alignment.End) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "+${solve.xpAwarded}",
-                            style = MaterialTheme.typography.bodyMedium.copy(color = MediumPastel)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = null,
-                            tint = MediumPastel,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
-                    Text(
-                        text = formatDate(solve.solvedAt),
-                        style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
-                    )
-                }
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                Icon(
-                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.5f),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            
-            // Expandable details
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Column(modifier = Modifier.padding(top = 16.dp)) {
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Language
-                    DetailRow(
-                        icon = Icons.Default.Code,
-                        iconColor = EasyPastel,
-                        text = "Language: ${solve.submission.language.replaceFirstChar { it.uppercase() }}"
-                    )
-                    
-                    // Number of tries
-                    solve.submission.numberOfTries?.let { tries ->
-                        Spacer(modifier = Modifier.height(8.dp))
-                        DetailRow(
-                            icon = Icons.Default.Refresh,
-                            iconColor = MediumPastel,
-                            text = "Attempts: $tries"
-                        )
-                    }
-                    
-                    // Time taken
-                    solve.submission.timeTaken?.let { time ->
-                        Spacer(modifier = Modifier.height(8.dp))
-                        DetailRow(
-                            icon = Icons.Default.Schedule,
-                            iconColor = HardPastel,
-                            text = "Time: ${formatTime(time)}"
-                        )
-                    }
-                    
-                    // AI Analysis
-                    val analysis = solve.aiAnalysis ?: solve.submission.aiAnalysis
-                    if (!analysis.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = AIPastel,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "AI Analysis",
-                                style = MaterialTheme.typography.labelMedium.copy(color = Color.White)
-                            )
-                        }
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        // Render markdown-like formatting
-                        Text(
-                            text = analysis.replace("**", "").replace("*", ""), // Basic cleanup
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = Color.White.copy(alpha = 0.7f)
-                            )
-                        )
-                    }
-                    
-                    // Mistake Tags
-                    val tags = solve.mistakeTags ?: solve.submission.mistakeTags
-                    if (!tags.isNullOrEmpty()) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Label,
-                                contentDescription = null,
-                                tint = TagPastel,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Mistake Tags",
-                                style = MaterialTheme.typography.labelMedium.copy(color = Color.White)
-                            )
-                        }
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.horizontalScroll(rememberScrollState())
-                        ) {
-                            tags.forEach { tag ->
-                                TagChip(tag = tag, color = TagPastel)
-                            }
-                        }
-                    }
-                    
-                    // Highlight (user note)
-                    solve.highlight?.let { highlight ->
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Notes,
-                                contentDescription = null,
-                                tint = NotePastel,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Your Note",
-                                style = MaterialTheme.typography.labelMedium.copy(color = Color.White)
-                            )
-                        }
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        Text(
-                            text = highlight.note,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = Color.White.copy(alpha = 0.7f)
-                            )
-                        )
-                        
-                        if (highlight.tags.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier.horizontalScroll(rememberScrollState())
-                            ) {
-                                highlight.tags.forEach { tag ->
-                                    TagChip(tag = tag, color = NotePastel)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
+    val primary = rememberPalette().primary
 
-@Composable
-private fun DetailRow(icon: androidx.compose.ui.graphics.vector.ImageVector, iconColor: Color, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = iconColor,
-            modifier = Modifier.size(16.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium.copy(color = Color.White)
-        )
-    }
-}
-
-@Composable
-private fun TagChip(tag: String, color: Color) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(color.copy(alpha = 0.2f))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) primary else Color.White.copy(alpha = 0.1f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Text(
-            text = tag,
-            style = MaterialTheme.typography.labelSmall.copy(color = color)
+            text = label,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.Medium,
+                color = if (selected) Color.Black else Color.White
+            )
         )
-    }
-}
-
-private fun formatTime(seconds: Int): String {
-    val minutes = seconds / 60
-    val secs = seconds % 60
-    return if (minutes > 0) "${minutes}m ${secs}s" else "${secs}s"
-}
-
-private fun formatDate(dateString: String): String {
-    return try {
-        val date = java.time.LocalDate.parse(dateString.take(10))
-        val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM d")
-        date.format(formatter)
-    } catch (e: Exception) {
-        dateString.take(10)
     }
 }

@@ -21,11 +21,9 @@ import com.traverse.android.data.RevisionTopicMetric
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import kotlin.math.roundToInt
+import com.traverse.android.ui.theme.paletteColorAt
+import com.traverse.android.ui.theme.palettePrimary
 
-private val EasyPastel = Color(0xFFA8E6CF)
-private val MediumPastel = Color(0xFFFFD3B6)
-private val HardPastel = Color(0xFFFFAAA5)
-private val AccentPastel = Color(0xFFB8D4E3)
 private val CardBackground = Color(0xFF1A1A1A)
 
 enum class TopicSortOption(val label: String) {
@@ -92,7 +90,7 @@ fun AllTopicsSheet(
                             Icon(
                                 imageVector = Icons.Default.Sort,
                                 contentDescription = "Sort",
-                                tint = AccentPastel
+                                tint = palettePrimary
                             )
                         }
                         DropdownMenu(
@@ -105,7 +103,7 @@ fun AllTopicsSheet(
                                     text = {
                                         Text(
                                             text = option.label,
-                                            color = if (sortOption == option) AccentPastel else Color.White,
+                                            color = if (sortOption == option) palettePrimary else Color.White,
                                             fontWeight = if (sortOption == option) FontWeight.Bold else FontWeight.Normal
                                         )
                                     },
@@ -163,9 +161,9 @@ fun AllTopicsSheet(
 private fun TopicDetailCard(topic: RevisionTopicMetric) {
     val retentionPct = (topic.averageRetention * 100).roundToInt()
     val retentionColor = when {
-        retentionPct >= 80 -> EasyPastel
-        retentionPct >= 60 -> MediumPastel
-        else -> HardPastel
+        retentionPct >= 80 -> paletteColorAt(3)
+        retentionPct >= 60 -> paletteColorAt(1)
+        else -> paletteColorAt(0)
     }
 
     Card(

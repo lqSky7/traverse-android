@@ -1,56 +1,89 @@
 package com.traverse.android.ui.home
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.TrackChanges
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.traverse.android.data.AchievementDetail
 import com.traverse.android.data.AchievementStatsData
-import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import com.traverse.android.ui.theme.RingiftFamily
-import kotlin.math.sin
+import com.traverse.android.ui.theme.rememberPalette
+import java.time.Duration
+import java.time.LocalDateTime
 
-private val CardBackground = Color(0xFF141414)
-private val RainbowColors = listOf(
-    Color(0xFFFFB6C1), // Pastel Pink
-    Color(0xFFB6E3FF), // Pastel Sky Blue
-    Color(0xFFFFE4B6), // Pastel Peach
-    Color(0xFFB6FFD8), // Pastel Mint
-    Color(0xFFE6B6FF), // Pastel Purple
-    Color(0xFFFFF0B6)  // Pastel Yellow
-)
+private val CardBackground = Color(0xFF1A1A1A)
 
-private val categoryIcons = mapOf(
-    "Streaks" to Icons.Default.LocalFireDepartment,
-    "Progress" to Icons.Default.TrendingUp,
-    "Speed" to Icons.Default.Speed,
-    "Premium" to Icons.Default.Star,
-    "Social" to Icons.Default.People,
-    "Variety" to Icons.Default.Category,
-    "Difficulty" to Icons.Default.Psychology,
-    "Milestones" to Icons.Default.EmojiEvents,
-    "Community" to Icons.Default.Groups,
-    "Learning" to Icons.Default.School
-)
+/** SwiftUI `.green` — the unlocked checkmark on iOS. */
+private val UnlockedGreen = Color(0xFF34C759)
+
+/** SwiftUI's default accent (`Color.blue`) — used by the iOS filter `Menu`. */
+private val MenuAccent = Color(0xFF007AFF)
 
 enum class AchievementFilter(val label: String) {
     ALL("All"),
@@ -58,15 +91,20 @@ enum class AchievementFilter(val label: String) {
     LOCKED("Locked")
 }
 
+/**
+ * 1:1 port of the iOS `AllAchievementsView`: a sticky glass summary card (Total / Progress /
+ * Remaining), achievements grouped into expandable category cards, and a toolbar filter menu.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AllAchievementsScreen(
     achievements: List<AchievementDetail>,
     stats: AchievementStatsData?,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var filterMode by remember { mutableStateOf(AchievementFilter.ALL) }
-    var expandedAchievementId by remember { mutableStateOf<Int?>(null) }
+    var expandedCategory by remember { mutableStateOf<String?>(null) }
 
     val filteredAchievements = remember(achievements, filterMode) {
         when (filterMode) {
@@ -76,7 +114,12 @@ fun AllAchievementsScreen(
         }
     }
 
+    val grouped = remember(filteredAchievements) {
+        filteredAchievements.groupBy { it.category }.toSortedMap(compareBy { it.lowercase() })
+    }
+
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = {
@@ -104,27 +147,25 @@ fun AllAchievementsScreen(
                             containerColor = CardBackground,
                             modifier = Modifier.width(180.dp)
                         ) {
-                            AchievementFilter.entries.forEachIndexed { index, filter ->
+                            AchievementFilter.entries.forEach { filter ->
                                 DropdownMenuItem(
                                     text = {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
                                             Text(
-                                                filter.label,
+                                                text = filter.label,
                                                 style = MaterialTheme.typography.bodyMedium.copy(
-                                                    fontFamily = BelfastGroteskBlackFamily,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = if (filterMode == filter) RainbowColors[0] else Color.White
+                                                    color = if (filterMode == filter) MenuAccent else Color.White
                                                 )
                                             )
                                             if (filterMode == filter) {
                                                 Icon(
                                                     imageVector = Icons.Default.Check,
                                                     contentDescription = null,
-                                                    tint = RainbowColors[0],
+                                                    tint = MenuAccent,
                                                     modifier = Modifier.size(18.dp)
                                                 )
                                             }
@@ -133,15 +174,8 @@ fun AllAchievementsScreen(
                                     onClick = {
                                         filterMode = filter
                                         showMenu = false
-                                    },
-                                    modifier = Modifier.padding(horizontal = 4.dp)
+                                    }
                                 )
-                                if (index < AchievementFilter.entries.size - 1) {
-                                    HorizontalDivider(
-                                        modifier = Modifier.padding(vertical = 4.dp),
-                                        color = Color.White.copy(alpha = 0.1f)
-                                    )
-                                }
                             }
                         }
                     }
@@ -149,215 +183,108 @@ fun AllAchievementsScreen(
             )
         }
     ) { padding ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
         ) {
-            // Summary card with Rainbow Mesh Shader
-            stats?.let { statsData ->
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 146.dp,
+                    bottom = 16.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 item {
-                    RainbowMeshSummaryCard(
-                        total = statsData.total,
-                        unlocked = statsData.unlocked,
-                        remaining = statsData.total - statsData.unlocked
+                    Text(
+                        text = "Achievements by Category",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
+                }
+
+                items(grouped.keys.toList(), key = { it }) { category ->
+                    AchievementCategoryCard(
+                        category = category,
+                        achievements = grouped[category].orEmpty(),
+                        isExpanded = expandedCategory == category,
+                        onToggle = {
+                            expandedCategory = if (expandedCategory == category) null else category
+                        }
+                    )
                 }
             }
 
-            // Achievements as expandable cards
-            items(filteredAchievements, key = { it.id }) { achievement ->
-                ExpandableAchievementCard(
-                    achievement = achievement,
-                    isExpanded = expandedAchievementId == achievement.id,
-                    onClick = {
-                        expandedAchievementId = if (expandedAchievementId == achievement.id) null else achievement.id
-                    }
+            // Sticky summary card
+            stats?.let { statsData ->
+                SummaryCard(
+                    total = statsData.total,
+                    unlocked = statsData.unlocked,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 20.dp)
                 )
             }
         }
     }
 }
 
-// MARK: - Rainbow Mesh Shader Summary Card
+/**
+ * Glass-effect summary card. Compose has no native glass material, so this approximates
+ * `glassEffect(.regular.interactive())` with a translucent panel and hairline border.
+ */
 @Composable
-private fun RainbowMeshSummaryCard(total: Int, unlocked: Int, remaining: Int) {
-    val progress = unlocked.toFloat() / total.coerceAtLeast(1)
-    val percentage = (progress * 100).toInt()
+private fun SummaryCard(
+    total: Int,
+    unlocked: Int,
+    modifier: Modifier = Modifier
+) {
+    val palette = rememberPalette()
+    val progressPercentage = if (total > 0) ((unlocked.toDouble() / total) * 100).toInt() else 0
+    val remaining = total - unlocked
 
-    // Smooth infinite animation phase for rainbow mesh shader
-    val infiniteTransition = rememberInfiniteTransition(label = "RainbowMeshTransition")
-    val phase by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = (2 * Math.PI).toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 6000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "phase"
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White.copy(alpha = 0.08f))
+            .border(
+                width = 1.dp,
+                color = Color.White.copy(alpha = 0.12f),
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Animated Rainbow Mesh Background Layers
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(Color(0xFF0C0E14))
-        ) {
-            // Orb 1: Pastel Pink (rotating top-left)
-            val orb1X = (0.25f + 0.2f * sin(phase))
-            val orb1Y = (0.3f + 0.2f * sin(phase + 1f))
-            Box(
-                modifier = Modifier
-                    .size(220.dp)
-                    .align(Alignment.TopStart)
-                    .offset(x = (orb1X * 120).dp - 60.dp, y = (orb1Y * 60).dp - 40.dp)
-                    .blur(50.dp)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                RainbowColors[0].copy(alpha = 0.45f),
-                                RainbowColors[0].copy(alpha = 0.15f),
-                                Color.Transparent
-                            )
-                        ),
-                        shape = CircleShape
-                    )
-            )
-
-            // Orb 2: Pastel Sky Blue (rotating top-right)
-            val orb2X = (0.7f - 0.2f * sin(phase + 2f))
-            val orb2Y = (0.4f + 0.2f * sin(phase))
-            Box(
-                modifier = Modifier
-                    .size(240.dp)
-                    .align(Alignment.TopEnd)
-                    .offset(x = (orb2X * 60).dp - 40.dp, y = (orb2Y * 60).dp - 40.dp)
-                    .blur(60.dp)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                RainbowColors[1].copy(alpha = 0.4f),
-                                RainbowColors[1].copy(alpha = 0.12f),
-                                Color.Transparent
-                            )
-                        ),
-                        shape = CircleShape
-                    )
-            )
-
-            // Orb 3: Pastel Mint / Purple (bottom sweep)
-            val orb3X = (0.5f + 0.3f * sin(phase + 3.5f))
-            val orb3Y = (0.7f - 0.2f * sin(phase + 1.5f))
-            Box(
-                modifier = Modifier
-                    .size(260.dp)
-                    .align(Alignment.BottomCenter)
-                    .offset(x = (orb3X * 80).dp - 40.dp, y = (orb3Y * 40).dp - 20.dp)
-                    .blur(65.dp)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                RainbowColors[4].copy(alpha = 0.35f),
-                                RainbowColors[3].copy(alpha = 0.2f),
-                                Color.Transparent
-                            )
-                        ),
-                        shape = CircleShape
-                    )
-            )
-        }
-
-        // Glass / Translucent Overlay Card
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = Color.Black.copy(alpha = 0.35f),
-            shape = RoundedCornerShape(20.dp),
-            tonalElevation = 4.dp
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // 3 Stats with vertical dividers
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    SummaryStatItem(
-                        value = "$total",
-                        label = "Total",
-                        color = RainbowColors[0]
-                    )
-                    VerticalDivider(
-                        modifier = Modifier.height(44.dp),
-                        color = Color.White.copy(alpha = 0.2f)
-                    )
-                    SummaryStatItem(
-                        value = "$percentage%",
-                        label = "Progress",
-                        color = RainbowColors[3]
-                    )
-                    VerticalDivider(
-                        modifier = Modifier.height(44.dp),
-                        color = Color.White.copy(alpha = 0.2f)
-                    )
-                    SummaryStatItem(
-                        value = "$remaining",
-                        label = "Remaining",
-                        color = Color.White.copy(alpha = 0.6f)
-                    )
-                }
-
-                // Rainbow Linear Progress Track
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(Color.White.copy(alpha = 0.12f))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .fillMaxWidth(fraction = progress.coerceIn(0.04f, 1f))
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(
-                                Brush.horizontalGradient(
-                                    colors = listOf(
-                                        RainbowColors[0],
-                                        RainbowColors[1],
-                                        RainbowColors[3],
-                                        RainbowColors[4]
-                                    )
-                                )
-                            )
-                    )
-                }
-            }
-        }
+        SummaryStat(value = "$total", label = "Total", color = palette.colorAt(0), modifier = Modifier.weight(1f))
+        SummaryDivider()
+        SummaryStat(value = "$progressPercentage%", label = "Progress", color = palette.colorAt(3), modifier = Modifier.weight(1f))
+        SummaryDivider()
+        SummaryStat(value = "$remaining", label = "Remaining", color = Color.Gray, modifier = Modifier.weight(1f))
     }
 }
 
 @Composable
-private fun SummaryStatItem(value: String, label: String, color: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun SummaryStat(
+    value: String,
+    label: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
         Text(
             text = value,
-            style = MaterialTheme.typography.headlineMedium.copy(
+            style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.Bold,
-                fontFamily = BelfastGroteskBlackFamily,
                 color = color
             )
         )
@@ -371,108 +298,251 @@ private fun SummaryStatItem(value: String, label: String, color: Color) {
 }
 
 @Composable
-private fun ExpandableAchievementCard(
-    achievement: AchievementDetail,
-    isExpanded: Boolean,
-    onClick: () -> Unit
-) {
-    val categoryIcon = categoryIcons[achievement.category] ?: Icons.Default.EmojiEvents
-    val iconColor = if (achievement.unlocked) RainbowColors[0] else Color.White.copy(alpha = 0.3f)
+private fun SummaryDivider() {
+    Box(
+        modifier = Modifier
+            .width(1.dp)
+            .height(40.dp)
+            .background(Color.White.copy(alpha = 0.15f))
+    )
+}
 
-    Card(
-        onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
-        modifier = Modifier.fillMaxWidth()
+@Composable
+private fun AchievementCategoryCard(
+    category: String,
+    achievements: List<AchievementDetail>,
+    isExpanded: Boolean,
+    onToggle: () -> Unit
+) {
+    val unlockedCount = achievements.count { it.unlocked }
+    val categoryColor = categoryColor(category)
+
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "achievementCategoryChevron"
+    )
+
+    val sortedAchievements = achievements.sortedWith(
+        compareByDescending<AchievementDetail> { it.unlocked }.thenBy { it.name.lowercase() }
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(CardBackground)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .clickable(onClick = onToggle)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(categoryColor.copy(alpha = 0.18f)),
+                contentAlignment = Alignment.Center
             ) {
-                // Icon Box
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (achievement.unlocked) RainbowColors[0].copy(alpha = 0.15f)
-                            else Color.White.copy(alpha = 0.05f)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = categoryIcon,
-                        contentDescription = null,
-                        tint = iconColor,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = achievement.name,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = if (achievement.unlocked) Color.White else Color.White.copy(alpha = 0.5f)
-                        )
-                    )
-                    Text(
-                        text = achievement.category,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = Color.White.copy(alpha = 0.4f)
-                        )
-                    )
-                }
-
-                if (achievement.unlocked) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Unlocked",
-                        tint = RainbowColors[3],
-                        modifier = Modifier.size(20.dp)
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = "Locked",
-                        tint = Color.White.copy(alpha = 0.3f),
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
+                Icon(
+                    imageVector = categoryIcon(category),
+                    contentDescription = null,
+                    tint = categoryColor,
+                    modifier = Modifier.size(20.dp)
+                )
             }
 
-            // Expandable details
-            AnimatedVisibility(visible = isExpanded) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
-                    Text(
-                        text = achievement.description,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = Color.White.copy(alpha = 0.8f),
-                            lineHeight = 18.sp
-                        )
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = category.split(" ").joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } },
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
-                    if (achievement.unlocked && achievement.unlockedAt != null) {
-                        Text(
-                            text = "Unlocked on ${achievement.unlockedAt.take(10)}",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = RainbowColors[3],
-                                fontWeight = FontWeight.Medium
-                            )
-                        )
+                )
+                Text(
+                    text = "$unlockedCount of ${achievements.size} unlocked",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = Color.White.copy(alpha = 0.6f)
+                    )
+                )
+            }
+
+            Icon(
+                imageVector = Icons.Default.ExpandMore,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.6f),
+                modifier = Modifier
+                    .size(16.dp)
+                    .graphicsLayer { rotationZ = chevronRotation }
+            )
+        }
+
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                HorizontalDivider(color = Color.Gray.copy(alpha = 0.25f))
+                sortedAchievements.forEachIndexed { index, achievement ->
+                    AchievementRow(achievement = achievement)
+                    if (index < sortedAchievements.size - 1) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 68.dp)
+                        ) {
+                            HorizontalDivider(color = Color.Gray.copy(alpha = 0.25f))
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AchievementRow(achievement: AchievementDetail) {
+    val categoryColor = if (achievement.unlocked) categoryColor(achievement.category) else Color.Gray
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .graphicsLayer { alpha = if (achievement.unlocked) 1f else 0.65f },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(
+                    if (achievement.unlocked) categoryColor.copy(alpha = 0.18f)
+                    else Color.Gray.copy(alpha = 0.1f)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (achievement.unlocked) {
+                    achievementIcon(achievement.icon, achievement.category)
+                } else {
+                    Icons.Default.Lock
+                },
+                contentDescription = null,
+                tint = if (achievement.unlocked) categoryColor else Color.Gray.copy(alpha = 0.6f),
+                modifier = Modifier.size(if (achievement.unlocked) 18.dp else 15.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(14.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = achievement.name,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (achievement.unlocked) Color.White else Color.Gray
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                if (achievement.unlocked) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = UnlockedGreen,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
+            }
+
+            Text(
+                text = achievement.description,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    color = Color.White.copy(alpha = 0.6f),
+                    lineHeight = 16.sp
+                ),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            if (achievement.unlocked && achievement.unlockedAt != null) {
+                Text(
+                    text = "Unlocked ${formatUnlockedDate(achievement.unlockedAt)}",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = categoryColor.copy(alpha = 0.9f),
+                        fontSize = 10.sp
+                    )
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun categoryColor(category: String): Color {
+    val palette = rememberPalette()
+    return when (category.lowercase()) {
+        "solve", "solves" -> palette.colorAt(1)
+        "streak" -> palette.colorAt(0)
+        "social" -> palette.colorAt(2)
+        "revision", "revisions", "ml" -> palette.colorAt(4)
+        else -> palette.colorAt(3)
+    }
+}
+
+private fun categoryIcon(category: String): ImageVector = when (category.lowercase()) {
+    "solve", "solves" -> Icons.Default.CheckCircle
+    "streak" -> Icons.Default.LocalFireDepartment
+    "social" -> Icons.Default.People
+    "revision", "revisions", "ml" -> Icons.Default.Psychology
+    else -> Icons.Default.EmojiEvents
+}
+
+/** Maps the backend's SF Symbol icon names onto Material equivalents. */
+private fun achievementIcon(icon: String?, category: String): ImageVector {
+    val lower = icon?.lowercase().orEmpty()
+    return when {
+        lower.contains("flame") || lower.contains("fire") -> Icons.Default.LocalFireDepartment
+        lower.contains("trophy") -> Icons.Default.EmojiEvents
+        lower.contains("star") -> Icons.Default.Star
+        lower.contains("bolt") || lower.contains("zap") -> Icons.Default.Bolt
+        lower.contains("brain") -> Icons.Default.Psychology
+        lower.contains("crown") -> Icons.Default.WorkspacePremium
+        lower.contains("target") -> Icons.Default.TrackChanges
+        lower.contains("seal") || lower.contains("badge") -> Icons.Default.Verified
+        lower.contains("chart") -> Icons.Default.TrendingUp
+        lower.contains("sparkle") -> Icons.Default.AutoAwesome
+        lower.contains("award") -> Icons.Default.EmojiEvents
+        else -> categoryIcon(category)
+    }
+}
+
+private fun formatUnlockedDate(dateString: String): String {
+    val parsed = try {
+        LocalDateTime.parse(dateString.take(19))
+    } catch (_: Exception) {
+        null
+    } ?: return "recently"
+
+    val duration = Duration.between(parsed, LocalDateTime.now())
+    val days = duration.toDays()
+    val hours = duration.toHours()
+    val minutes = duration.toMinutes()
+
+    return when {
+        days > 0 -> "${days}d ago"
+        hours > 0 -> "${hours}h ago"
+        minutes > 0 -> "${minutes}m ago"
+        else -> "just now"
     }
 }

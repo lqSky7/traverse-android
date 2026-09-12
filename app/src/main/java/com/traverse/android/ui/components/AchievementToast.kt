@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.traverse.android.ui.theme.rememberPalette
 
 @Composable
 fun AchievementToastOverlayContainer(
@@ -154,20 +155,28 @@ fun AchievementToastView(
 
 private typealias Void_Or_Unit = () -> Unit
 
+/**
+ * iOS `AchievementToastView.categoryColor` — the toast accent follows the selected palette,
+ * with a distinct colour index per achievement category.
+ */
+@Composable
 private fun getToastCategoryColor(category: String, count: Int): Color {
+    val palette = rememberPalette()
     if (count > 1 || category.equals("multi", ignoreCase = true)) {
-        return Color(0xFF00E676) // Neon Green
+        return palette.primary
     }
     return when (category.lowercase()) {
-        "friend_request" -> Color(0xFF2979FF) // Blue
-        "streak_request" -> Color(0xFFFF6D00) // Orange Flame
-        "gift_freeze", "freeze" -> Color(0xFF00E5FF) // Ice Cyan
-        "solve", "solves" -> Color(0xFF00E676) // Green
-        "streak" -> Color(0xFFFF9100) // Flame
-        "xp" -> Color(0xFFFFD600) // Gold
-        "social" -> Color(0xFF7C4DFF) // Purple
-        "revision", "revisions", "ml" -> Color(0xFFE040FB) // Magenta
-        else -> Color(0xFFFFD600) // Trophy Gold
+        "friend_request" -> palette.colorAt(2)
+        "streak_request" -> palette.colorAt(0)
+        "gift_freeze", "freeze" -> palette.colorAt(1)
+        "solve", "solves" -> palette.colorAt(1)
+        "streak" -> palette.colorAt(0)
+        "xp" -> palette.colorAt(3)
+        "social" -> palette.colorAt(2)
+        "language" -> palette.colorAt(1)
+        "revision", "revisions", "ml" -> palette.colorAt(4)
+        "fun" -> palette.colorAt(0)
+        else -> palette.colorAt(3)
     }
 }
 

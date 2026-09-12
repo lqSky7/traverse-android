@@ -31,6 +31,7 @@ import com.traverse.android.ui.auth.OnboardingFlowDialog
 import com.traverse.android.ui.components.AchievementToastManager
 import com.traverse.android.ui.components.AchievementToastOverlayContainer
 import com.traverse.android.ui.navigation.MainNavigation
+import com.traverse.android.ui.theme.ColorPaletteManager
 import com.traverse.android.ui.theme.TraverseTheme
 import com.traverse.android.viewmodel.AuthViewModel
 import com.traverse.android.viewmodel.FriendsViewModel
@@ -44,6 +45,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Restore the persisted colour palette before the first composition.
+        ColorPaletteManager.init(applicationContext)
 
         setContent {
             TraverseTheme {

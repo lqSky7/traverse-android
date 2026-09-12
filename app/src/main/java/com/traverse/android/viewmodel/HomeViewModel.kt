@@ -20,6 +20,7 @@ data class HomeUiState(
     val allAchievements: List<AchievementDetail> = emptyList(),
     val frozenDates: List<String> = emptyList(),
     val revisionScore: RevisionScoreResponse? = null,
+    val completedRevisions: List<Revision> = emptyList(),
     val isFromCache: Boolean = false
 )
 
@@ -49,6 +50,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         viewModelScope.launch {
+            dataManager.frozenDates.collect { dates ->
+                _uiState.update { it.copy(frozenDates = dates) }
+            }
+        }
+        viewModelScope.launch {
             dataManager.achievementStats.collect { stats ->
                 _uiState.update { it.copy(achievementStats = stats) }
             }
@@ -61,6 +67,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             dataManager.revisionScore.collect { score ->
                 _uiState.update { it.copy(revisionScore = score) }
+            }
+        }
+        viewModelScope.launch {
+            dataManager.completedRevisions.collect { revisions ->
+                _uiState.update { it.copy(completedRevisions = revisions) }
             }
         }
 
@@ -79,6 +90,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val username = dataManager.userStats.value?.username ?: ""
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            // Freeze dates are always refreshed first and fail silently (1:1 with iOS loadData).
+            try {
+                dataManager.fetchFreezeDates()
+            } catch (_: Exception) {
+                // Non-critical for display
+            }
             try {
                 dataManager.fetchAllData(username)
                 _uiState.update { it.copy(isLoading = false) }

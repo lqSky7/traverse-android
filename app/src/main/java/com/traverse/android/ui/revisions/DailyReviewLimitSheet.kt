@@ -25,11 +25,9 @@ import com.traverse.android.data.RevisionTodayResponse
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import kotlinx.coroutines.launch
+import com.traverse.android.ui.theme.paletteColorAt
+import com.traverse.android.ui.theme.palettePrimary
 
-private val EasyPastel = Color(0xFFA8E6CF)
-private val MediumPastel = Color(0xFFFFD3B6)
-private val HardPastel = Color(0xFFFFAAA5)
-private val AccentPastel = Color(0xFFB8D4E3)
 private val CardBackground = Color(0xFF1A1A1A)
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,7 +80,7 @@ fun DailyReviewLimitSheet(
                     Icon(
                         imageVector = Icons.Default.CalendarMonth,
                         contentDescription = null,
-                        tint = AccentPastel,
+                        tint = palettePrimary,
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
@@ -139,7 +137,7 @@ fun DailyReviewLimitSheet(
                             text = "${draftLimit.toInt()}",
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = AccentPastel
+                                color = palettePrimary
                             )
                         )
                     }
@@ -150,8 +148,8 @@ fun DailyReviewLimitSheet(
                         valueRange = 1f..100f,
                         steps = 99,
                         colors = SliderDefaults.colors(
-                            thumbColor = AccentPastel,
-                            activeTrackColor = AccentPastel,
+                            thumbColor = palettePrimary,
+                            activeTrackColor = palettePrimary,
                             inactiveTrackColor = Color.White.copy(alpha = 0.15f)
                         )
                     )
@@ -169,7 +167,7 @@ fun DailyReviewLimitSheet(
                     MetricBox(
                         title = "Showing",
                         value = "${summary.revisions.size}",
-                        color = EasyPastel,
+                        color = paletteColorAt(1),
                         modifier = Modifier.weight(1f)
                     )
                     MetricBox(
@@ -181,7 +179,7 @@ fun DailyReviewLimitSheet(
                     MetricBox(
                         title = "Overflow",
                         value = "${summary.overflow}",
-                        color = HardPastel,
+                        color = paletteColorAt(0),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -200,7 +198,7 @@ fun DailyReviewLimitSheet(
             if (successMessage != null) {
                 Text(
                     text = successMessage!!,
-                    color = EasyPastel,
+                    color = paletteColorAt(1),
                     fontSize = 12.sp,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
@@ -227,7 +225,7 @@ fun DailyReviewLimitSheet(
                     .fillMaxWidth()
                     .height(52.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = AccentPastel),
+                colors = ButtonDefaults.buttonColors(containerColor = palettePrimary),
                 enabled = !isSaving
             ) {
                 if (isSaving) {

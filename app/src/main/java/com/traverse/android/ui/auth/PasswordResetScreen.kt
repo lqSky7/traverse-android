@@ -39,11 +39,10 @@ import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
 import com.traverse.android.ui.theme.Peach
 import kotlinx.coroutines.launch
+import com.traverse.android.ui.theme.paletteColorAt
+import com.traverse.android.ui.theme.palettePrimary
 
 private val RoundedShape = RoundedCornerShape(24.dp)
-private val AccentPastel = Color(0xFFB8D4E3)
-private val EasyPastel = Color(0xFFA8E6CF)
-private val HardPastel = Color(0xFFFFAAA5)
 
 enum class RecoveryStep {
     ACCOUNT, CODE, PASSWORD, COMPLETE
@@ -243,7 +242,7 @@ fun PasswordResetScreen(
                                     .height(4.dp)
                                     .clip(CircleShape)
                                     .background(
-                                        if (isActive) AccentPastel
+                                        if (isActive) palettePrimary
                                         else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
                                     )
                             )
@@ -303,7 +302,7 @@ fun PasswordResetScreen(
                                     shape = RoundedShape,
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = AccentPastel,
+                                        focusedBorderColor = palettePrimary,
                                         unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                                     ),
                                     keyboardOptions = KeyboardOptions(
@@ -346,7 +345,7 @@ fun PasswordResetScreen(
                                     shape = RoundedShape,
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = AccentPastel,
+                                        focusedBorderColor = palettePrimary,
                                         unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                                     ),
                                     keyboardOptions = KeyboardOptions(
@@ -398,7 +397,7 @@ fun PasswordResetScreen(
                                     shape = RoundedShape,
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = AccentPastel,
+                                        focusedBorderColor = palettePrimary,
                                         unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                                     ),
                                     keyboardOptions = KeyboardOptions(
@@ -435,14 +434,14 @@ fun PasswordResetScreen(
                                     shape = RoundedShape,
                                     isError = confirmPassword.isNotEmpty() && newPassword != confirmPassword,
                                     supportingText = if (confirmPassword.isNotEmpty() && newPassword != confirmPassword) {
-                                        { Text("Passwords don't match", color = HardPastel) }
+                                        { Text("Passwords don't match", color = paletteColorAt(0)) }
                                     } else null,
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = AccentPastel,
+                                        focusedBorderColor = palettePrimary,
                                         unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                        errorBorderColor = HardPastel,
-                                        errorLabelColor = HardPastel
+                                        errorBorderColor = paletteColorAt(0),
+                                        errorLabelColor = paletteColorAt(0)
                                     ),
                                     keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Password,
@@ -470,13 +469,13 @@ fun PasswordResetScreen(
                                         modifier = Modifier
                                             .size(72.dp)
                                             .clip(CircleShape)
-                                            .background(EasyPastel.copy(alpha = 0.15f)),
+                                            .background(paletteColorAt(1).copy(alpha = 0.15f)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.CheckCircle,
                                             contentDescription = null,
-                                            tint = EasyPastel,
+                                            tint = paletteColorAt(1),
                                             modifier = Modifier.size(44.dp)
                                         )
                                     }
@@ -514,7 +513,12 @@ fun PasswordResetScreen(
                     shape = RoundedShape,
                     enabled = canSubmit && !isLoading,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = AccentPastel,
+                        // iOS: "Send Reset Code" → color(at: 2), "Reset Password" → color(at: 1)
+                        containerColor = when (currentStep) {
+                            RecoveryStep.ACCOUNT -> paletteColorAt(2)
+                            RecoveryStep.PASSWORD -> paletteColorAt(1)
+                            else -> palettePrimary
+                        },
                         contentColor = Color.White
                     )
                 ) {
@@ -573,10 +577,10 @@ private fun StatusCallout(
     expiresInMinutes: Int? = null
 ) {
     val (iconColor, icon) = when (tone) {
-        StatusTone.NEUTRAL -> Pair(AccentPastel, Icons.Default.Info)
-        StatusTone.SUCCESS -> Pair(EasyPastel, Icons.Default.CheckCircle)
+        StatusTone.NEUTRAL -> Pair(palettePrimary, Icons.Default.Info)
+        StatusTone.SUCCESS -> Pair(paletteColorAt(1), Icons.Default.CheckCircle)
         StatusTone.WARNING -> Pair(Peach, Icons.Default.Warning)
-        StatusTone.ERROR -> Pair(HardPastel, Icons.Default.Error)
+        StatusTone.ERROR -> Pair(paletteColorAt(0), Icons.Default.Error)
     }
     
     Card(

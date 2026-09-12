@@ -35,6 +35,7 @@ import com.traverse.android.ui.friends.FriendsScreen
 import com.traverse.android.ui.home.HomeScreen
 import com.traverse.android.ui.revisions.RevisionsScreen
 import com.traverse.android.ui.settings.SettingsScreen
+import com.traverse.android.ui.theme.rememberPalette
 import com.traverse.android.viewmodel.FriendsViewModel
 import com.traverse.android.viewmodel.HomeViewModel
 import com.traverse.android.viewmodel.RevisionsViewModel
@@ -64,6 +65,9 @@ fun MainNavigation(
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    // iOS `MainTabView` applies `.tint(paletteManager.selectedPalette.primary)` to the TabView,
+    // which colours the selected tab item and its selection indicator.
+    val palette = rememberPalette()
     
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -99,9 +103,9 @@ fun MainNavigation(
                             )
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedIconColor = palette.primary,
+                            selectedTextColor = palette.primary,
+                            indicatorColor = palette.primary.copy(alpha = 0.2f),
                             unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -122,7 +126,7 @@ fun MainNavigation(
             popExitTransition = { ExitTransition.None }
         ) {
             composable(MainRoute.Home.route) {
-                HomeScreen(viewModel = homeViewModel, friendsViewModel = friendsViewModel)
+                HomeScreen(viewModel = homeViewModel)
             }
             composable(MainRoute.Revisions.route) {
                 RevisionsScreen(viewModel = revisionsViewModel)

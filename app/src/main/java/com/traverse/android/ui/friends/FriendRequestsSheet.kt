@@ -25,12 +25,11 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import com.traverse.android.ui.theme.currentPalette
+import com.traverse.android.ui.theme.paletteColorAt
+import com.traverse.android.ui.theme.palettePrimary
 
 // Pastel colors
-private val EasyPastel = Color(0xFFA8E6CF)
-private val MediumPastel = Color(0xFFFFD3B6)
-private val HardPastel = Color(0xFFFFAAA5)
-private val AccentPastel = Color(0xFFB8D4E3)
 private val CardBackground = Color(0xFF1A1A1A)
 private val GoldColor = Color(0xFFFFD700)
 
@@ -68,7 +67,7 @@ fun FriendRequestsSheet(
         ) {
             // Title
             Text(
-                text = "Friend & Streak Requests",
+                text = "Friend Requests",
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold
                 ),
@@ -79,14 +78,14 @@ fun FriendRequestsSheet(
             ScrollableTabRow(
                 selectedTabIndex = selectedTab,
                 containerColor = Color.Transparent,
-                contentColor = AccentPastel,
+                contentColor = palettePrimary,
                 modifier = Modifier.padding(bottom = 16.dp)
             ) {
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
                     text = { 
-                        Text("Friends (${receivedRequests.size})") 
+                        Text("Received (${receivedRequests.size})") 
                     }
                 )
                 Tab(
@@ -200,7 +199,7 @@ private fun ReceivedRequestCard(
                         .clip(CircleShape)
                         .background(
                             Brush.linearGradient(
-                                colors = listOf(AccentPastel, EasyPastel)
+                                colors = listOf(palettePrimary, paletteColorAt(1))
                             )
                         ),
                     contentAlignment = Alignment.Center
@@ -235,7 +234,7 @@ private fun ReceivedRequestCard(
                             Icon(
                                 imageVector = Icons.Default.LocalFireDepartment,
                                 contentDescription = null,
-                                tint = HardPastel,
+                                tint = paletteColorAt(0),
                                 modifier = Modifier.size(14.dp)
                             )
                             Text(
@@ -254,7 +253,7 @@ private fun ReceivedRequestCard(
                             Icon(
                                 imageVector = Icons.Default.Star,
                                 contentDescription = null,
-                                tint = GoldColor,
+                                tint = paletteColorAt(1),
                                 modifier = Modifier.size(14.dp)
                             )
                             Text(
@@ -286,7 +285,7 @@ private fun ReceivedRequestCard(
                     enabled = !isProcessing,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = EasyPastel,
+                        containerColor = palettePrimary,
                         contentColor = Color.Black
                     )
                 ) {
@@ -305,7 +304,7 @@ private fun ReceivedRequestCard(
                     enabled = !isProcessing,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = HardPastel
+                        contentColor = currentPalette.secondary
                     )
                 ) {
                     Text("Reject")
@@ -370,7 +369,7 @@ private fun SentRequestCard(
                     .clip(CircleShape)
                     .background(
                         Brush.linearGradient(
-                            colors = listOf(MediumPastel, AccentPastel)
+                            colors = listOf(paletteColorAt(2), palettePrimary)
                         )
                     ),
                 contentAlignment = Alignment.Center
@@ -405,7 +404,7 @@ private fun SentRequestCard(
                         Icon(
                             imageVector = Icons.Default.LocalFireDepartment,
                             contentDescription = null,
-                            tint = HardPastel,
+                            tint = paletteColorAt(0),
                             modifier = Modifier.size(14.dp)
                         )
                         Text(
@@ -424,7 +423,7 @@ private fun SentRequestCard(
                         Icon(
                             imageVector = Icons.Default.Star,
                             contentDescription = null,
-                            tint = GoldColor,
+                            tint = paletteColorAt(1),
                             modifier = Modifier.size(14.dp)
                         )
                         Text(
@@ -616,7 +615,7 @@ private fun ReceivedStreakRequestCard(
                         .clip(CircleShape)
                         .background(
                             Brush.linearGradient(
-                                colors = listOf(HardPastel, GoldColor)
+                                colors = listOf(paletteColorAt(0), paletteColorAt(2))
                             )
                         ),
                     contentAlignment = Alignment.Center
@@ -646,7 +645,7 @@ private fun ReceivedStreakRequestCard(
                         Icon(
                             imageVector = Icons.Default.LocalFireDepartment,
                             contentDescription = null,
-                            tint = HardPastel,
+                            tint = paletteColorAt(0),
                             modifier = Modifier.size(14.dp)
                         )
                         Text(
@@ -677,7 +676,7 @@ private fun ReceivedStreakRequestCard(
                     enabled = !isProcessing,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = HardPastel,
+                        containerColor = paletteColorAt(0),
                         contentColor = Color.White
                     )
                 ) {
@@ -771,7 +770,7 @@ private fun SentStreakRequestCard(
                     .clip(CircleShape)
                     .background(
                         Brush.linearGradient(
-                            colors = listOf(HardPastel.copy(alpha = 0.7f), GoldColor.copy(alpha = 0.7f))
+                            colors = listOf(paletteColorAt(0).copy(alpha = 0.7f), paletteColorAt(2).copy(alpha = 0.7f))
                         )
                     ),
                 contentAlignment = Alignment.Center
@@ -801,7 +800,7 @@ private fun SentStreakRequestCard(
                     Icon(
                         imageVector = Icons.Default.LocalFireDepartment,
                         contentDescription = null,
-                        tint = HardPastel,
+                        tint = paletteColorAt(0),
                         modifier = Modifier.size(14.dp)
                     )
                     Text(

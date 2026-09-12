@@ -23,11 +23,9 @@ import com.traverse.android.data.RevisionRetentionItem
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import kotlin.math.roundToInt
+import com.traverse.android.ui.theme.paletteColorAt
+import com.traverse.android.ui.theme.palettePrimary
 
-private val EasyPastel = Color(0xFFA8E6CF)
-private val MediumPastel = Color(0xFFFFD3B6)
-private val HardPastel = Color(0xFFFFAAA5)
-private val AccentPastel = Color(0xFFB8D4E3)
 private val CardBackground = Color(0xFF1A1A1A)
 
 enum class RiskSortOption(val label: String) {
@@ -95,7 +93,7 @@ fun AllAtRiskProblemsSheet(
                             Icon(
                                 imageVector = Icons.Default.Sort,
                                 contentDescription = "Sort",
-                                tint = AccentPastel
+                                tint = palettePrimary
                             )
                         }
                         DropdownMenu(
@@ -108,7 +106,7 @@ fun AllAtRiskProblemsSheet(
                                     text = {
                                         Text(
                                             text = option.label,
-                                            color = if (sortOption == option) AccentPastel else Color.White,
+                                            color = if (sortOption == option) palettePrimary else Color.White,
                                             fontWeight = if (sortOption == option) FontWeight.Bold else FontWeight.Normal
                                         )
                                     },
@@ -166,9 +164,9 @@ fun AllAtRiskProblemsSheet(
 private fun RiskProblemDetailCard(item: RevisionRetentionItem) {
     val retrievabilityPct = (item.retrievability * 100).roundToInt()
     val dotColor = when {
-        item.isLeech || retrievabilityPct < 50 -> Color(0xFFEF4444)
-        retrievabilityPct < 70 -> MediumPastel
-        else -> EasyPastel
+        item.isLeech || retrievabilityPct < 50 -> paletteColorAt(0)
+        retrievabilityPct < 70 -> paletteColorAt(1)
+        else -> paletteColorAt(2)
     }
 
     Card(
@@ -221,11 +219,11 @@ private fun RiskProblemDetailCard(item: RevisionRetentionItem) {
                 if (item.isLeech) {
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = HardPastel.copy(alpha = 0.15f)
+                        color = paletteColorAt(0).copy(alpha = 0.15f)
                     ) {
                         Text(
                             text = "LEECH",
-                            color = HardPastel,
+                            color = paletteColorAt(0),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -279,7 +277,7 @@ private fun RiskProblemDetailCard(item: RevisionRetentionItem) {
                     Text(
                         text = "Lapses: ${item.lapses}",
                         style = MaterialTheme.typography.labelSmall.copy(
-                            color = if (item.lapses > 3) HardPastel else Color.White.copy(alpha = 0.7f),
+                            color = if (item.lapses > 3) paletteColorAt(0) else Color.White.copy(alpha = 0.7f),
                             fontWeight = FontWeight.Medium
                         )
                     )
