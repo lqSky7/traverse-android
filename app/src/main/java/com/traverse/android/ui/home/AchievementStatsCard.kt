@@ -1,11 +1,5 @@
 package com.traverse.android.ui.home
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,7 +12,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,19 +20,18 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.traverse.android.data.AchievementStatsData
 import com.traverse.android.ui.theme.rememberPalette
-import kotlin.math.PI
-import kotlin.math.sin
 
 private val CardBackground = Color(0xFF1A1A1A)
 
 /**
  * 1:1 port of the iOS `AchievementStatsCard`: a hero-only card (unlocked / of N / unlocked)
- * with a breathing radial glow anchored to the bottom edge. No header, no icon and no
- * progress bar — the whole card is a navigation target for the achievements list.
+ * with a radial glow anchored to the bottom edge. No header, no icon and no progress bar — the
+ * whole card is a navigation target for the achievements list.
  */
 @Composable
 fun AchievementStatsCard(
@@ -50,19 +42,12 @@ fun AchievementStatsCard(
     val accentColor = rememberPalette().colorAt(3)
     val progress = stats.unlocked.toFloat() / stats.total.coerceAtLeast(1)
 
-    val transition = rememberInfiniteTransition(label = "achievementGlow")
-    val glowPhase by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = (2.0 * PI).toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "achievementGlowPhase"
-    )
-
-    // iOS: 0.15 + (progress * 0.4) * (0.5 + 0.5 * sin(glowPhase))
-    val glowFillOpacity = 0.15f + (progress * 0.4f) * (0.5f + 0.5f * sin(glowPhase))
+    // iOS drives the glow with `.repeatForever(autoreverses: true)` and modulates it through
+    // `sin(glowPhase)`. Here the card sits inside the scrolling home feed, where a per-frame
+    // animation would recompose the entire feed on every frame for a purely decorative effect, so
+    // the glow is pinned to the mid-point of the iOS range (its `animationFactor` averages 0.5).
+    // The resting look is identical to iOS; only the breathing motion is dropped.
+    val glowFillOpacity = 0.15f + (progress * 0.4f) * 0.5f
 
     Box(
         modifier = modifier
@@ -94,22 +79,32 @@ fun AchievementStatsCard(
         ) {
             Text(
                 text = "${stats.unlocked}",
+                // iOS is `.font(.system(size: 72, weight: .bold))` with no line height of its own.
+                // Compose's `lineHeight` is the distance between baselines, so a value *below* the
+                // font's natural line height (~84sp for 72sp Roboto) makes the glyph overflow its
+                // own line box — which is what dragged the number off the card's optical centre.
+                // Leaving it unset restores the natural metrics iOS uses.
                 fontSize = 72.sp,
-                lineHeight = 76.sp,
                 fontWeight = FontWeight.Bold,
-                color = accentColor
+                color = accentColor,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
             Text(
                 text = "of ${stats.total}",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = Color.White.copy(alpha = 0.6f)
-                )
+                ),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
             Text(
                 text = "unlocked",
                 style = MaterialTheme.typography.labelSmall.copy(
                     color = Color.White.copy(alpha = 0.6f)
-                )
+                ),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
