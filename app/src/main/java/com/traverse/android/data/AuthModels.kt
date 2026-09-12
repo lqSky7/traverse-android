@@ -133,27 +133,3 @@ data class PasswordResetConfirmResponse(
     val status: String,
     val message: String
 )
-
-// MARK: - Social (WorkOS) Auth Models
-
-/**
- * Response of `GET /auth/social/{provider}` — the WorkOS authorization URL
- * the app should open in a Custom Tab.
- */
-@Serializable
-data class SocialAuthUrlResponse(
-    val url: String
-)
-
-/** Request body for `POST /auth/social/callback`. */
-@Serializable
-data class SocialCallbackRequest(
-    val code: String
-)
-
-/** Social identity providers exposed by the backend via WorkOS. */
-enum class SocialProvider(val id: String, val displayName: String) {
-    GOOGLE("google", "Google"),
-    GITHUB("github", "GitHub"),
-    APPLE("apple", "Apple")
-}

@@ -85,9 +85,6 @@ dependencies {
     // Security (for encrypted token storage)
     implementation(libs.androidx.security.crypto)
 
-    // Custom Tabs (WorkOS social sign-in)
-    implementation(libs.androidx.browser)
-
     // Image Loading
     implementation(libs.coil.compose)
 

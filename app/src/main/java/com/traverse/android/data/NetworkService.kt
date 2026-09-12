@@ -74,17 +74,6 @@ interface TraverseApi {
     
     @POST("auth/recover")
     suspend fun recoverAccount(@Body request: RecoverAccountRequest): RecoveryResponse
-
-    // MARK: - Social (WorkOS) Auth
-
-    @GET("auth/social/{provider}")
-    suspend fun getSocialAuthUrl(
-        @retrofit2.http.Path("provider") provider: String,
-        @Query("redirect_uri") redirectUri: String
-    ): SocialAuthUrlResponse
-
-    @POST("auth/social/callback")
-    suspend fun socialCallback(@Body request: SocialCallbackRequest): LoginResponse
     
     @GET("auth/me/stats")
     suspend fun getUserStats(): UserStats
@@ -494,28 +483,6 @@ class NetworkService private constructor(context: Context) {
     suspend fun recoverAccount(username: String, password: String? = null): NetworkResult<RecoveryResponse> {
         return try {
             val response = api.recoverAccount(RecoverAccountRequest(username, password))
-            response.token?.let { tokenManager.saveToken(it) }
-            NetworkResult.Success(response)
-        } catch (e: Exception) {
-            NetworkResult.Error(parseError(e))
-        }
-    }
-
-    // MARK: - Social (WorkOS) Auth
-
-    suspend fun getSocialAuthUrl(provider: String, redirectUri: String): NetworkResult<SocialAuthUrlResponse> {
-        return try {
-            val response = api.getSocialAuthUrl(provider, redirectUri)
-            NetworkResult.Success(response)
-        } catch (e: Exception) {
-            NetworkResult.Error(parseError(e))
-        }
-    }
-
-    /** Exchanges the OAuth authorization code for a Traverse session and stores the token. */
-    suspend fun socialCallback(code: String): NetworkResult<LoginResponse> {
-        return try {
-            val response = api.socialCallback(SocialCallbackRequest(code))
             response.token?.let { tokenManager.saveToken(it) }
             NetworkResult.Success(response)
         } catch (e: Exception) {

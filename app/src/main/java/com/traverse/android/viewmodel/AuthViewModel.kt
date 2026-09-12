@@ -26,10 +26,7 @@ data class AuthUiState(
     val isAuthenticated: Boolean = false,
     val isDataLoaded: Boolean = false,
     val currentUser: User? = null,
-    val errorMessage: String? = null,
-    /** One-shot: WorkOS authorization URL waiting to be opened in a Custom Tab. */
-    val socialAuthUrl: String? = null,
-    val isSocialSigningIn: Boolean = false
+    val errorMessage: String? = null
 )
 
 @Serializable
@@ -221,69 +218,6 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             toastManager.resetState()
             
             _uiState.value = AuthUiState(isAuthenticated = false)
-        }
-    }
-
-    // MARK: - Social (WorkOS) Sign-In
-
-    /**
-     * Fetches the WorkOS authorization URL for [provider] and publishes it in
-     * [AuthUiState.socialAuthUrl] so the UI layer can open it in a Custom Tab.
-     */
-    fun startSocialLogin(provider: SocialProvider) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                isSocialSigningIn = true,
-                errorMessage = null,
-                socialAuthUrl = null
-            )
-
-            when (val result = networkService.getSocialAuthUrl(provider.id, SocialAuth.REDIRECT_URI)) {
-                is NetworkResult.Success -> {
-                    _uiState.value = _uiState.value.copy(
-                        isSocialSigningIn = false,
-                        socialAuthUrl = result.data.url
-                    )
-                }
-                is NetworkResult.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isSocialSigningIn = false,
-                        errorMessage = result.message
-                    )
-                }
-            }
-        }
-    }
-
-    /** Clears the pending authorization URL once the Custom Tab has been opened. */
-    fun consumeSocialAuthUrl() {
-        _uiState.value = _uiState.value.copy(socialAuthUrl = null)
-    }
-
-    /**
-     * Exchanges the authorization code captured from the `traverse-android://auth/callback`
-     * deep link for a Traverse session, then hydrates the user's data.
-     */
-    fun handleSocialCallback(code: String) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                isLoading = true,
-                isSocialSigningIn = false,
-                errorMessage = null
-            )
-
-            when (val result = networkService.socialCallback(code)) {
-                is NetworkResult.Success -> {
-                    _uiState.value = _uiState.value.copy(currentUser = result.data.user)
-                    preloadAllData(result.data.user.username)
-                }
-                is NetworkResult.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = result.message
-                    )
-                }
-            }
         }
     }
     

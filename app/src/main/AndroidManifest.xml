@@ -31,26 +31,10 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:launchMode="singleTask"
             android:theme="@style/Theme.TraverseAndroid">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-
-            <!--
-                WorkOS social sign-in redirect target.
-                Must match the redirect URI registered in the WorkOS dashboard
-                and SocialAuth.REDIRECT_URI.
-            -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="traverse-android"
-                    android:host="auth"
-                    android:pathPrefix="/callback" />
             </intent-filter>
         </activity>
     </application>
