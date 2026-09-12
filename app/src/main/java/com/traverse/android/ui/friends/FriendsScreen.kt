@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,20 +28,19 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PeopleOutline
 import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -62,10 +60,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -77,23 +77,20 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.traverse.android.data.Friend
 import com.traverse.android.ui.navigation.floatingBottomBarContentInset
-import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import com.traverse.android.ui.theme.RingiftFamily
-import com.traverse.android.viewmodel.FriendsViewModel
-import com.traverse.android.viewmodel.getLeaderboard
-import com.traverse.android.viewmodel.isSelf
-import com.traverse.android.viewmodel.getTotalPendingCount
-import com.traverse.android.viewmodel.getFriendStreakCount
 import com.traverse.android.ui.theme.paletteColorAt
-import com.traverse.android.ui.theme.palettePrimary
+import com.traverse.android.viewmodel.FriendsViewModel
+import com.traverse.android.viewmodel.getFriendStreakCount
+import com.traverse.android.viewmodel.getLeaderboard
+import com.traverse.android.viewmodel.getTotalPendingCount
 
 // Pastel colors matching Android app's monochromish-pastel theme
 private val CardBackground = Color(0xFF1A1A1A)
 
-// Leaderboard colors
-private val GoldColor = Color(0xFFFFD700)
-private val SilverColor = Color(0xFFC0C0CC)
-private val BronzeColor = Color(0xFFCD7F32)
+// iOS rank colours: gold (1.0, 0.84, 0), silver (0.75, 0.75, 0.8), bronze (0.8, 0.5, 0.2).
+private val GoldColor = Color(0xFFFFD600)
+private val SilverColor = Color(0xFFBFBFCC)
+private val BronzeColor = Color(0xFFCC8033)
 
 object FriendsDestinations {
     const val FRIENDS_MAIN = "friends_main"
@@ -346,27 +343,28 @@ private fun FriendsMainContent(
 
                 uiState.friends.isEmpty() -> {
                     LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
+                        modifier = Modifier.fillMaxSize(),
                         // Clears the floating bottom bar; the list still scrolls underneath it.
                         contentPadding = PaddingValues(
-                            top = 16.dp,
                             bottom = floatingBottomBarContentInset()
                         )
                     ) {
                         item {
-                            EmptyFriendsContent(onAddFriend = onShowSearchSheet)
+                            EmptyFriendsContent(modifier = Modifier.fillParentMaxSize())
                         }
                     }
                 }
 
                 else -> {
+                    // iOS `friendsList`: a ScrollView whose VStack (spacing 20) holds the leaderboard,
+                    // the "ALL FRIENDS" header and the rows, with the rows sitting on a gray6 surface
+                    // rounded to 12. The rows share that surface, so the 16pt gaps between them read
+                    // as part of the same block.
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(20.dp),
                         // Clears the floating bottom bar; the list still scrolls underneath it.
                         contentPadding = PaddingValues(
                             top = 16.dp,
@@ -376,11 +374,7 @@ private fun FriendsMainContent(
                         // Leaderboard Section
                         if (leaderboard.isNotEmpty()) {
                             item {
-                                LeaderboardCard(
-                                    leaderboard = leaderboard,
-                                    uiState = uiState,
-                                    onFriendClick = onNavigateToProfile
-                                )
+                                LeaderboardSection(leaderboard = leaderboard.take(3))
                             }
                         }
 
@@ -389,46 +383,44 @@ private fun FriendsMainContent(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 8.dp),
+                                    .padding(horizontal = 4.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "All Friends",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontFamily = BelfastGroteskBlackFamily,
+                                    text = "ALL FRIENDS",
+                                    style = MaterialTheme.typography.labelMedium.copy(
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.White.copy(alpha = 0.8f)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 )
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(palettePrimary.copy(alpha = 0.15f))
-                                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                                ) {
-                                    Text(
-                                        text = "${uiState.friends.size}",
-                                        style = MaterialTheme.typography.labelLarge.copy(
-                                            fontFamily = BelfastGroteskBlackFamily,
-                                            fontWeight = FontWeight.Bold,
-                                            color = palettePrimary
-                                        )
+                                Text(
+                                    text = "${uiState.friends.size}",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = paletteColorAt(3)
                                     )
-                                }
+                                )
                             }
                         }
 
                         // Friends List
-                        items(
-                            items = uiState.friends,
-                            key = { it.id }
-                        ) { friend ->
-                            FriendRow(
-                                friend = friend,
-                                streakCount = uiState.getFriendStreakCount(friend.username),
-                                onClick = { onNavigateToProfile(friend.username) }
-                            )
+                        item {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(CardBackground),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                uiState.friends.forEach { friend ->
+                                    FriendRow(
+                                        friend = friend,
+                                        streakCount = uiState.getFriendStreakCount(friend.username),
+                                        onClick = { onNavigateToProfile(friend.username) }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -437,234 +429,189 @@ private fun FriendsMainContent(
     }
 }
 
+/**
+ * iOS `LeaderboardSection`: one card washed with a top-leading to bottom-trailing gradient of the
+ * first three palette colours, a trophy header, and the top three ranked names.
+ */
 @Composable
-private fun LeaderboardCard(
+private fun LeaderboardSection(
     leaderboard: List<Friend>,
-    uiState: com.traverse.android.viewmodel.FriendsUiState,
-    onFriendClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground)
+    if (leaderboard.isEmpty()) {
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(CardBackground)
+                .padding(vertical = 40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.PeopleOutline,
+                contentDescription = null,
+                modifier = Modifier.size(32.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "Add friends to see the leaderboard",
+                style = MaterialTheme.typography.bodySmall.copy(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
+        }
+        return
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        paletteColorAt(0).copy(alpha = 0.4f),
+                        paletteColorAt(1).copy(alpha = 0.3f),
+                        paletteColorAt(2).copy(alpha = 0.2f)
+                    )
+                )
+            )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Header with Belfast typography
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(GoldColor.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.EmojiEvents,
-                        contentDescription = null,
-                        tint = GoldColor,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Column {
-                    Text(
-                        text = "Leaderboard",
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontFamily = BelfastGroteskBlackFamily,
-                            fontWeight = FontWeight.Black,
-                            color = Color.White
-                        )
-                    )
-                    Text(
-                        text = "Top performers",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = Color.White.copy(alpha = 0.5f)
-                        )
-                    )
-                }
-            }
-
-            // Leaderboard entries
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                leaderboard.forEachIndexed { index, friend ->
-                    val isSelf = uiState.isSelf(friend)
-                    LeaderboardRow(
-                        rank = index + 1,
-                        friend = friend,
-                        isSelf = isSelf,
-                        onClick = { if (!isSelf) onFriendClick(friend.username) }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun LeaderboardRow(
-    rank: Int,
-    friend: Friend,
-    isSelf: Boolean = false,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val (rankColor, bgColor) = when (rank) {
-        1 -> GoldColor to GoldColor.copy(alpha = 0.12f)
-        2 -> SilverColor to SilverColor.copy(alpha = 0.10f)
-        3 -> BronzeColor to BronzeColor.copy(alpha = 0.10f)
-        else -> Color.Gray to Color.Gray.copy(alpha = 0.08f)
-    }
-
-    val effectiveBgColor = if (isSelf) palettePrimary.copy(alpha = 0.15f) else bgColor
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(72.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(effectiveBgColor)
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        // Rank number with circle
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(rankColor.copy(alpha = 0.2f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "$rank",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontFamily = BelfastGroteskBlackFamily,
-                    fontWeight = FontWeight.Black,
-                    color = rankColor
+            // Header: yellow trophy plus an uppercase caption.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.EmojiEvents,
+                    contentDescription = null,
+                    tint = Color.Yellow,
+                    modifier = Modifier.size(20.dp)
                 )
-            )
-        }
-
-        // Avatar
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            rankColor.copy(alpha = 0.6f),
-                            rankColor.copy(alpha = 0.3f)
-                        )
-                    )
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = friend.username.first().uppercase(),
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontFamily = BelfastGroteskBlackFamily,
-                    fontWeight = FontWeight.Black,
-                    color = Color.White
-                )
-            )
-        }
-
-        // Username and stats
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = friend.username,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontFamily = BelfastGroteskBlackFamily,
+                    text = "LEADERBOARD",
+                    style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
                 )
-                if (isSelf) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(palettePrimary.copy(alpha = 0.3f))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "You",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontFamily = BelfastGroteskBlackFamily,
-                                fontWeight = FontWeight.Bold,
-                                color = palettePrimary
-                            )
+            }
+
+            // Divider after the header
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Color.White.copy(alpha = 0.1f))
+            )
+
+            // Top 3 names, separated by hairlines inset past the rank glyph
+            Column {
+                leaderboard.take(3).forEachIndexed { index, friend ->
+                    LeaderboardNameRow(rank = index + 1, friend = friend)
+
+                    if (index < minOf(leaderboard.size, 3) - 1) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 52.dp)
+                                .height(1.dp)
+                                .background(Color.White.copy(alpha = 0.08f))
                         )
                     }
                 }
             }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // XP
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = null,
-                        tint = GoldColor,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Text(
-                        text = "${friend.totalXp}",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = Color.White.copy(alpha = 0.7f)
-                        )
-                    )
-                }
-            }
+        }
+    }
+}
+
+/**
+ * iOS `LeaderboardNameRow`: rank glyph, name and XP, with the type scale and the row opacity
+ * stepping down from first to third place. iOS renders these as plain rows, so they are not
+ * tappable.
+ */
+@Composable
+private fun LeaderboardNameRow(
+    rank: Int,
+    friend: Friend,
+    modifier: Modifier = Modifier
+) {
+    val rankColor = when (rank) {
+        1 -> GoldColor
+        2 -> SilverColor
+        else -> BronzeColor
+    }
+
+    // iOS uses `crown.fill` for first place and `medal.fill` for second and third. The app already
+    // maps those two symbols to WorkspacePremium and Verified in AllAchievementsScreen.
+    val rankIcon = if (rank == 1) Icons.Default.WorkspacePremium else Icons.Default.Verified
+    val iconSize = if (rank == 1) 20.dp else 18.dp
+    val nameSize = if (rank == 1) 22.sp else 18.sp
+    val xpSize = if (rank == 1) 20.sp else 16.sp
+    val rowOpacity = when (rank) {
+        1 -> 1f
+        2 -> 0.9f
+        else -> 0.8f
+    }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp)
+            .alpha(rowOpacity),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Rank glyph, inside a fixed 32dp box so the names line up across ranks
+        Box(modifier = Modifier.size(32.dp), contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = rankIcon,
+                contentDescription = null,
+                tint = rankColor,
+                modifier = Modifier.size(iconSize)
+            )
         }
 
-        // Streak with fire icon
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.LocalFireDepartment,
-                contentDescription = null,
-                tint = paletteColorAt(0),
-                modifier = Modifier.size(22.dp)
+        // The name absorbs the slack so the XP block sits on the trailing edge, like iOS's Spacer
+        Text(
+            text = friend.username,
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontSize = nameSize,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+
+        // XP, baseline-aligned with its unit label
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = "${friend.totalXp}",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = xpSize,
+                    fontWeight = FontWeight.Bold,
+                    color = rankColor
+                ),
+                modifier = Modifier.alignByBaseline()
             )
             Text(
-                text = "${friend.currentStreak}",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontFamily = BelfastGroteskBlackFamily,
-                    fontWeight = FontWeight.Black,
-                    color = rankColor
-                )
+                text = "XP",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    color = Color.White.copy(alpha = 0.6f)
+                ),
+                modifier = Modifier.alignByBaseline()
             )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FriendRow(
     friend: Friend,
@@ -672,44 +619,55 @@ private fun FriendRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // iOS shows the glow whenever a friend streak exists, even at 0 days.
+    val hasActiveStreak = streakCount != null
+    val streakColor = paletteColorAt(0)
 
-    Card(
+    // iOS breathes this glow with `.repeatForever`. As with the home achievement card, the value is
+    // pinned to the mid-point of the iOS range (its `sin(glowPhase)` factor averages 0.5) so the
+    // resting appearance matches without a per-frame recomposition of the whole list.
+    val glowFillOpacity = if (hasActiveStreak) 0.15f + 0.1f * 0.5f else 0f
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground)
+            // iOS: `.background(systemGray6)` then `.clipShape(RoundedRectangle(cornerRadius: 12))`
+            .clip(RoundedCornerShape(12.dp))
+            .background(CardBackground)
+            .clickable { onClick() }
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Row(
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                // iOS: `.padding(16)` then `.padding(.trailing, 40)` to leave room for the number
+                .padding(16.dp)
+                .padding(end = 40.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Avatar, filled with the third palette colour at 50x50
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .padding(end = 40.dp), // Space for streak number
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                // Avatar
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(palettePrimary, paletteColorAt(1))
+                    .size(50.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                paletteColorAt(2),
+                                paletteColorAt(2).copy(alpha = 0.6f)
                             )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = friend.username.first().uppercase(),
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontFamily = BelfastGroteskBlackFamily,
-                            fontWeight = FontWeight.Black,
-                            color = Color.White
                         )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = friend.username.first().uppercase(),
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
-                }
+                )
+            }
 
             // Info
             Column(
@@ -719,8 +677,7 @@ private fun FriendRow(
                 Text(
                     text = friend.username,
                     style = MaterialTheme.typography.titleMedium.copy(
-                        fontFamily = BelfastGroteskBlackFamily,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                         color = Color.White
                     ),
                     maxLines = 1,
@@ -728,7 +685,8 @@ private fun FriendRow(
                 )
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Streak
                     Row(
@@ -739,12 +697,12 @@ private fun FriendRow(
                             imageVector = Icons.Default.LocalFireDepartment,
                             contentDescription = null,
                             tint = paletteColorAt(0),
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(12.dp)
                         )
                         Text(
                             text = "${friend.currentStreak}",
                             style = MaterialTheme.typography.bodySmall.copy(
-                                color = Color.White.copy(alpha = 0.7f)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         )
                     }
@@ -757,123 +715,111 @@ private fun FriendRow(
                         Icon(
                             imageVector = Icons.Default.Star,
                             contentDescription = null,
-                            tint = GoldColor,
-                            modifier = Modifier.size(14.dp)
+                            tint = paletteColorAt(1),
+                            modifier = Modifier.size(12.dp)
                         )
                         Text(
                             text = "${friend.totalXp}",
                             style = MaterialTheme.typography.bodySmall.copy(
-                                color = Color.White.copy(alpha = 0.7f)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         )
                     }
                 }
             }
         }
-            
-            // Large streak number overlay (like iOS)
+
+        // Oversized streak number, or "Start!" when there is no streak yet. iOS pins this to the
+        // trailing edge and nudges it with an offset in both cases.
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (streakCount != null) {
+                Text(
+                    text = streakCount.toString(),
+                    style = MaterialTheme.typography.displayLarge.copy(
+                        fontSize = 80.sp,
+                        fontWeight = FontWeight.Black,
+                        color = streakColor.copy(alpha = 0.25f)
+                    ),
+                    modifier = Modifier.offset(x = 10.dp)
+                )
+            } else {
+                Text(
+                    text = "Start!",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Black,
+                        color = streakColor.copy(alpha = 0.3f)
+                    ),
+                    modifier = Modifier.offset(x = (-8).dp)
+                )
+            }
+        }
+
+        // Bottom gradient wash while a streak is active. iOS overlays a vertical gradient that stays
+        // clear for two thirds and fades into the streak colour at the bottom edge.
+        if (hasActiveStreak) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                if (streakCount != null) {
-                    Text(
-                        text = streakCount.toString(),
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = 64.sp,
-                            color = paletteColorAt(0).copy(alpha = 0.25f)
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Transparent,
+                                streakColor.copy(alpha = glowFillOpacity)
+                            )
                         )
                     )
-                } else {
-                    Text(
-                        text = "Start!",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Black,
-                            color = paletteColorAt(0).copy(alpha = 0.25f)
-                        )
-                    )
-                }
-            }
+            )
         }
     }
 }
 
 @Composable
 private fun EmptyFriendsContent(
-    onAddFriend: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
+    // iOS `EmptyFriendsView`: a large `person.2.slash` over a bold headline and a centred subtitle.
+    // iOS has no call to action here, search lives in the toolbar.
+    Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(32.dp),
-        contentAlignment = Alignment.Center
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .background(palettePrimary.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PeopleOutline,
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp),
-                    tint = palettePrimary.copy(alpha = 0.6f)
-                )
-            }
+        Icon(
+            imageVector = Icons.Default.PeopleOutline,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
 
-            Text(
-                text = "No Friends Yet",
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontFamily = BelfastGroteskBlackFamily,
-                    fontWeight = FontWeight.Black,
-                    color = Color.White
-                )
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "No Friends Yet",
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.Bold,
+                color = Color.White
             )
+        )
 
-            Text(
-                text = "Search for users and send friend requests to start building your network",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color.White.copy(alpha = 0.5f)
-                ),
-                modifier = Modifier.padding(horizontal = 16.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
+        Spacer(modifier = Modifier.height(8.dp))
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = onAddFriend,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = palettePrimary
-                ),
-                shape = RoundedCornerShape(12.dp),
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PersonAdd,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Find Friends",
-                    color = Color.Black,
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-            }
-        }
+        Text(
+            text = "Search for users and send friend requests to start building your network",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            ),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 32.dp)
+        )
     }
 }
 
