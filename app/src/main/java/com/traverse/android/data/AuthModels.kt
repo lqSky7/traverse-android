@@ -26,6 +26,18 @@ data class UpdateProfileRequest(
     val maxDailyReviews: Int? = null
 )
 
+/**
+ * `PATCH /auth/profile` only accepts the lowercase tags `public` / `private` / `friends`, and the
+ * database stores them in that same casing. The UI historically used Swift-style labels
+ * (`PUBLIC`, `FRIENDS_ONLY`), which the API rejected with a 400 — so every visibility value is
+ * funnelled through here before it is sent or compared.
+ */
+fun canonicalVisibility(raw: String?): String = when (raw?.trim()?.lowercase()) {
+    "private" -> "private"
+    "friends", "friends_only" -> "friends"
+    else -> "public"
+}
+
 @Serializable
 data class ChangePasswordRequest(
     val currentPassword: String,
@@ -51,7 +63,7 @@ data class User(
     val username: String,
     val email: String? = null,
     val timezone: String = "UTC",
-    val visibility: String = "PUBLIC",
+    val visibility: String = "public",
     val currentStreak: Int = 0,
     val totalXp: Int = 0,
     val maxDailyReviews: Int? = null,

@@ -100,6 +100,8 @@ fun QRScannerScreen(
     }
     
     Scaffold(
+        // Bottom inset is owned by the root navigation Scaffold's bottom bar.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Text("Scan QR Code") },

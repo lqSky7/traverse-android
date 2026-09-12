@@ -3,7 +3,6 @@ package com.traverse.android.ui.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -54,7 +54,13 @@ fun DifficultyChartCard(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = CardBackground)
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
+        // Fills the height handed down by the caller so this card lines up exactly with the
+        // Activity heatmap card beside it; the trailing spacer pushes the bars to the bottom.
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
+        ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -94,6 +100,8 @@ fun DifficultyChartCard(
                 )
             }
 
+            Spacer(modifier = Modifier.weight(1f))
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -129,33 +137,34 @@ private fun DifficultyProgressRow(
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        BoxWithConstraints(
+        // Deliberately a plain Box rather than a BoxWithConstraints: the parent Row measures with
+        // `IntrinsicSize.Min`, which subcompose-based layouts cannot answer.
+        Box(
             modifier = Modifier
                 .weight(1f)
                 .height(12.dp)
         ) {
-            val trackWidth = maxWidth
-            val fillWidth = if (count > 0) {
-                maxOf(trackWidth * progress, 12.dp).coerceAtMost(trackWidth)
-            } else {
-                0.dp
-            }
-
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(6.dp))
                     .background(Color.Gray.copy(alpha = 0.2f))
             )
-            Box(
-                modifier = Modifier
-                    .width(fillWidth)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(
-                        Brush.horizontalGradient(listOf(color, color.copy(alpha = 0.7f)))
-                    )
-            )
+
+            if (count > 0) {
+                Box(
+                    modifier = Modifier
+                        // widthIn first so even a count of 1 still paints a 12.dp sliver,
+                        // preserving the previous minimum-width behaviour.
+                        .widthIn(min = 12.dp)
+                        .fillMaxWidth(progress)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(
+                            Brush.horizontalGradient(listOf(color, color.copy(alpha = 0.7f)))
+                        )
+                )
+            }
         }
 
         Spacer(modifier = Modifier.width(12.dp))

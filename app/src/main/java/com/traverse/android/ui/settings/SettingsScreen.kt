@@ -100,6 +100,8 @@ fun SettingsScreen(
     }
     
     Scaffold(
+        // Bottom inset is owned by the root navigation Scaffold's bottom bar.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = {
@@ -1014,13 +1016,15 @@ private fun EditProfileSheet(
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    // These tags are sent verbatim to `PATCH /auth/profile`, which only accepts the
+                    // lowercase forms — see `canonicalVisibility`.
                     listOf(
-                        "PUBLIC" to "Public",
-                        "PRIVATE" to "Private",
-                        "FRIENDS_ONLY" to "Friends"
+                        "public" to "Public",
+                        "private" to "Private",
+                        "friends" to "Friends"
                     ).forEach { (value, label) ->
                         FilterChip(
-                            selected = visibility.equals(value, ignoreCase = true),
+                            selected = visibility == value,
                             onClick = { visibility = value },
                             label = { Text(label) }
                         )

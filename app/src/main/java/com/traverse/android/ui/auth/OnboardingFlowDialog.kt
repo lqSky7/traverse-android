@@ -78,7 +78,7 @@ fun OnboardingFlowDialog(
 
     var step by remember { mutableStateOf(1) } // 1: Timezone, 2: Visibility, 3: Max Daily Reviews
     var selectedTimezone by remember { mutableStateOf(TimeZone.getDefault().id) }
-    var selectedVisibility by remember { mutableStateOf("PUBLIC") }
+    var selectedVisibility by remember { mutableStateOf("public") }
     var maxDailyReviews by remember { mutableFloatStateOf(20f) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -198,9 +198,9 @@ fun OnboardingFlowDialog(
                             title = "Public",
                             description = "Visible on leaderboards and user search",
                             icon = Icons.Default.Public,
-                            selected = selectedVisibility == "PUBLIC",
+                            selected = selectedVisibility == "public",
                             color = palettePrimary,
-                            onClick = { selectedVisibility = "PUBLIC" }
+                            onClick = { selectedVisibility = "public" }
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -209,9 +209,9 @@ fun OnboardingFlowDialog(
                             title = "Friends Only",
                             description = "Only accepted friends can view stats",
                             icon = Icons.Default.People,
-                            selected = selectedVisibility == "FRIENDS_ONLY",
+                            selected = selectedVisibility == "friends",
                             color = palettePrimary,
-                            onClick = { selectedVisibility = "FRIENDS_ONLY" }
+                            onClick = { selectedVisibility = "friends" }
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -220,9 +220,9 @@ fun OnboardingFlowDialog(
                             title = "Private",
                             description = "Hidden from public search and friend lists",
                             icon = Icons.Default.Lock,
-                            selected = selectedVisibility == "PRIVATE",
+                            selected = selectedVisibility == "private",
                             color = Color(0xFFFF5252),
-                            onClick = { selectedVisibility = "PRIVATE" }
+                            onClick = { selectedVisibility = "private" }
                         )
                     }
 

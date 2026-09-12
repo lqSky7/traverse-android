@@ -427,7 +427,16 @@ class NetworkService private constructor(context: Context) {
         maxDailyReviews: Int? = null
     ): NetworkResult<UpdateProfileResponse> {
         return try {
-            val response = api.updateProfile(UpdateProfileRequest(email, timezone, visibility, maxDailyReviews))
+            val response = api.updateProfile(
+                UpdateProfileRequest(
+                    email = email,
+                    timezone = timezone,
+                    // The API only accepts `public` / `private` / `friends`; normalise whatever the
+                    // UI handed us so a label like "FRIENDS_ONLY" can't cause a 400.
+                    visibility = visibility?.let(::canonicalVisibility),
+                    maxDailyReviews = maxDailyReviews
+                )
+            )
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))

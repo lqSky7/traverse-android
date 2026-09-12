@@ -5,9 +5,13 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -140,6 +144,10 @@ private fun HomeMainContent(
 
     Scaffold(
         containerColor = Color.Black,
+        // The root navigation Scaffold already reserves room for the bottom bar. Zeroing the insets
+        // here stops the system bottom inset being applied twice (it painted an opaque band
+        // immediately above the navigation bar).
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = {
@@ -238,21 +246,29 @@ private fun HomeMainContent(
 
                         if (solveStats != null) {
                             // Difficulty and Activity side by side
+                            // `IntrinsicSize.Min` + `fillMaxHeight()` keeps the Difficulty card exactly
+                            // as tall as the taller Activity heatmap card sitting next to it.
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(IntrinsicSize.Min),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                                 verticalAlignment = Alignment.Top
                             ) {
                                 DifficultyChartCard(
                                     difficulty = solveStats.stats.byDifficulty,
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
                                 )
 
                                 SolveHeatmapCard(
                                     solves = solves,
                                     frozenDates = uiState.frozenDates,
                                     onClick = onNavigateToActivity,
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
                                 )
                             }
 

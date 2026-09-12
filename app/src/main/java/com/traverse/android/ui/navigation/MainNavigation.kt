@@ -1,11 +1,7 @@
 package com.traverse.android.ui.navigation
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
@@ -15,22 +11,23 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.traverse.android.ui.components.bottombar.AnimatedBottomBar
+import com.traverse.android.ui.components.bottombar.BottomBarDefaults
+import com.traverse.android.ui.components.bottombar.BottomBarItem
+import com.traverse.android.ui.components.bottombar.IconSource
 import com.traverse.android.ui.friends.FriendsScreen
 import com.traverse.android.ui.home.HomeScreen
 import com.traverse.android.ui.revisions.RevisionsScreen
@@ -68,50 +65,65 @@ fun MainNavigation(
     // iOS `MainTabView` applies `.tint(paletteManager.selectedPalette.primary)` to the TabView,
     // which colours the selected tab item and its selection indicator.
     val palette = rememberPalette()
-    
+
+    // Which of the four root destinations is currently on screen. Drives the animated indicator.
+    val selectedIndex = tabs
+        .indexOfFirst { tab -> currentDestination?.hierarchy?.any { it.route == tab.route } == true }
+        .coerceAtLeast(0)
+
+    // The bar items never change, so build them once. Icons mirror the iOS tab bar's
+    // filled-when-selected / outlined-when-idle pairing.
+    val barItems = remember {
+        tabs.map { tab ->
+            BottomBarItem(
+                icon = IconSource.Vector(tab.unselectedIcon),
+                selectedIcon = IconSource.Vector(tab.selectedIcon),
+                label = tab.label
+            )
+        }
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
+        // Every tab screen owns its own `Scaffold` + `TopAppBar`, which already consumes the
+        // status-bar inset. Zeroing the outer content insets here stops that inset being applied a
+        // second time (it used to leave an opaque band directly above the navigation bar).
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                contentColor = MaterialTheme.colorScheme.onSurface
-            ) {
-                tabs.forEach { tab ->
-                    val selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
-                    
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            navController.navigate(tab.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
+            AnimatedBottomBar(
+                items = barItems,
+                selectedIndex = selectedIndex,
+                onItemSelected = { index ->
+                    tabs.getOrNull(index)?.let { tab ->
+                        navController.navigate(tab.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
                             }
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = if (selected) tab.selectedIcon else tab.unselectedIcon,
-                                contentDescription = tab.label
-                            )
-                        },
-                        label = {
-                            Text(
-                                text = tab.label,
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = palette.primary,
-                            selectedTextColor = palette.primary,
-                            indicatorColor = palette.primary.copy(alpha = 0.2f),
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    )
-                }
-            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                },
+                modifier = Modifier
+                    // Keep the floating bar clear of the system navigation bar, then inset it from
+                    // the screen edges so it reads as a detached, rounded pill.
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                style = BottomBarDefaults.style(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    // Everything tinted from the live colour palette, exactly like the rest of the app.
+                    indicatorColor = palette.primary.copy(alpha = 0.22f),
+                    selectedIconColor = palette.primary,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    badgeColor = palette.colorAt(2),
+                    badgeContentColor = Color.White,
+                    containerShapeRadius = 24.dp,
+                    iconSize = 24.dp,
+                    barHeight = 68.dp,
+                    contentPadding = 14.dp
+                )
+            )
         }
     ) { innerPadding ->
         NavHost(

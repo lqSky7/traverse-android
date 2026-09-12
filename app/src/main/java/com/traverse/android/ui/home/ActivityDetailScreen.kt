@@ -3,6 +3,7 @@ package com.traverse.android.ui.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -97,6 +98,8 @@ fun ActivityDetailScreen(
     val totalSolves = activityByDate.values.sumOf { it.second }
 
     Scaffold(
+        // Bottom inset is owned by the root navigation Scaffold's bottom bar.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = {
