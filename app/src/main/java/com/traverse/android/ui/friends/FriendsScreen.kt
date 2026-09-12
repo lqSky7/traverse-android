@@ -76,6 +76,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.traverse.android.data.Friend
+import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.viewmodel.FriendsViewModel
@@ -348,7 +349,11 @@ private fun FriendsMainContent(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
-                        contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp)
+                        // Clears the floating bottom bar; the list still scrolls underneath it.
+                        contentPadding = PaddingValues(
+                            top = 16.dp,
+                            bottom = floatingBottomBarContentInset()
+                        )
                     ) {
                         item {
                             EmptyFriendsContent(onAddFriend = onShowSearchSheet)
@@ -362,7 +367,11 @@ private fun FriendsMainContent(
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp)
+                        // Clears the floating bottom bar; the list still scrolls underneath it.
+                        contentPadding = PaddingValues(
+                            top = 16.dp,
+                            bottom = floatingBottomBarContentInset()
+                        )
                     ) {
                         // Leaderboard Section
                         if (leaderboard.isNotEmpty()) {

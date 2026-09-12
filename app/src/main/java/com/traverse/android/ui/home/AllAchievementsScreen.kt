@@ -73,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.traverse.android.data.AchievementDetail
 import com.traverse.android.data.AchievementStatsData
+import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.ui.theme.rememberPalette
 import java.time.Duration
@@ -197,7 +198,8 @@ fun AllAchievementsScreen(
                     start = 16.dp,
                     end = 16.dp,
                     top = 146.dp,
-                    bottom = 16.dp
+                    // Clears the floating bottom bar; the list still scrolls underneath it.
+                    bottom = floatingBottomBarContentInset()
                 ),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {

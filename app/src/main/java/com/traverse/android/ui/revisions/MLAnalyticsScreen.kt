@@ -26,6 +26,7 @@ import com.traverse.android.data.RevisionRetentionItem
 import com.traverse.android.data.RevisionStabilityDistribution
 import com.traverse.android.data.RevisionTopicMetric
 import com.traverse.android.data.WeeklyCompletion
+import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import kotlin.math.roundToInt
 import com.traverse.android.ui.theme.paletteColorAt
@@ -46,7 +47,10 @@ fun MLAnalyticsScreen(
         modifier = modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(16.dp)
+            // Applied *inside* the scroll container so the cards still slide underneath the
+            // floating bottom bar while the last one can be scrolled clear of it.
+            .padding(bottom = floatingBottomBarContentInset()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // 1. Overview Card (3 column layout)

@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.currentPalette
 import com.traverse.android.ui.theme.paletteColorAt
 import com.traverse.android.ui.theme.palettePrimary
@@ -382,7 +383,13 @@ fun UserProfileScreen(
                 profile != null -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
+                        // Clears the floating bottom bar; the profile still scrolls underneath it.
+                        contentPadding = PaddingValues(
+                            start = 16.dp,
+                            top = 16.dp,
+                            end = 16.dp,
+                            bottom = floatingBottomBarContentInset()
+                        ),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         // Profile Header

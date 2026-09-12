@@ -77,6 +77,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.traverse.android.data.Solve
+import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.ui.theme.rememberPalette
 import java.time.LocalDate
@@ -172,7 +173,10 @@ fun MistakeTagsDetailScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(16.dp)
+                // Applied *inside* the scroll container so the cards still slide underneath the
+                // floating bottom bar while the last one can be scrolled clear of it.
+                .padding(bottom = floatingBottomBarContentInset()),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Summary metrics

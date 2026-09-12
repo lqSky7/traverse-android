@@ -34,6 +34,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.traverse.android.BuildConfig
 import com.traverse.android.data.*
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
+import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import com.traverse.android.ui.theme.ColorPaletteManager
 import com.traverse.android.ui.theme.RingiftFamily
@@ -165,8 +166,9 @@ fun SettingsScreen(
                 onHuePicker = { showHuePicker = true }
             )
             
-            // Bottom spacing
-            Spacer(modifier = Modifier.height(80.dp))
+            // Bottom spacing — clears the floating bottom bar, which overlays the content. This sits
+            // *inside* the scrolling `Column`, so the settings rows still pass underneath the bar.
+            Spacer(modifier = Modifier.height(floatingBottomBarContentInset()))
         }
     }
     

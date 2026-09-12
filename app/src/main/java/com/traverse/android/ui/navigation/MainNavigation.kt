@@ -1,6 +1,7 @@
 package com.traverse.android.ui.navigation
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
@@ -12,11 +13,12 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -51,6 +53,46 @@ sealed class MainRoute(
 
 val tabs = listOf(MainRoute.Home, MainRoute.Revisions, MainRoute.Friends, MainRoute.Settings)
 
+// MARK: Floating bottom bar metrics
+
+/** Height of the pill itself. Must match the `barHeight` handed to [BottomBarDefaults.style]. */
+private val BottomBarHeight = 68.dp
+
+/** Horizontal inset that detaches the pill from the screen edges. */
+private val BottomBarHorizontalPadding = 16.dp
+
+/** Vertical inset that detaches the pill from the screen edges. */
+private val BottomBarVerticalPadding = 10.dp
+
+/** Breathing room kept between the last scrollable item and the top of the pill. */
+private val FloatingBottomBarGap = 16.dp
+
+/**
+ * Total vertical space the floating bottom bar occupies, measured from the bottom edge of the app
+ * content: the pill plus the padding that detaches it from the screen edges. The system
+ * navigation-bar inset is *not* part of this — use [floatingBottomBarContentInset] when padding
+ * content, which adds it.
+ */
+val FloatingBottomBarHeight: Dp = BottomBarHeight + BottomBarVerticalPadding * 2
+
+/**
+ * Bottom padding for scrollable content that lives behind the floating bottom bar.
+ *
+ * The bar floats *over* the content rather than reserving a strip for itself, so every screen has
+ * to extend its own scroll range past the pill — otherwise the last item would remain hidden
+ * behind it no matter how far the user scrolls.
+ *
+ * Apply this *inside* the scroll container (a `contentPadding` on a `LazyColumn`, or trailing
+ * padding / a `Spacer` on a scrolling `Column`) so that the content itself still visibly slides
+ * underneath the bar. Applying it as an outer modifier on the scroll container would instead clip
+ * the content at the bar's edge and lose the floating effect.
+ */
+@Composable
+fun floatingBottomBarContentInset(): Dp =
+    FloatingBottomBarHeight +
+        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
+        FloatingBottomBarGap
+
 @Composable
 fun MainNavigation(
     homeViewModel: HomeViewModel,
@@ -83,55 +125,20 @@ fun MainNavigation(
         }
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
-        // Every tab screen owns its own `Scaffold` + `TopAppBar`, which already consumes the
-        // status-bar inset. Zeroing the outer content insets here stops that inset being applied a
-        // second time (it used to leave an opaque band directly above the navigation bar).
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        bottomBar = {
-            AnimatedBottomBar(
-                items = barItems,
-                selectedIndex = selectedIndex,
-                onItemSelected = { index ->
-                    tabs.getOrNull(index)?.let { tab ->
-                        navController.navigate(tab.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
-                },
-                modifier = Modifier
-                    // Keep the floating bar clear of the system navigation bar, then inset it from
-                    // the screen edges so it reads as a detached, rounded pill.
-                    .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                style = BottomBarDefaults.style(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    // Everything tinted from the live colour palette, exactly like the rest of the app.
-                    indicatorColor = palette.primary.copy(alpha = 0.22f),
-                    selectedIconColor = palette.primary,
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    badgeColor = palette.colorAt(2),
-                    badgeContentColor = Color.White,
-                    containerShapeRadius = 24.dp,
-                    iconSize = 24.dp,
-                    barHeight = 68.dp,
-                    contentPadding = 14.dp
-                )
-            )
-        }
-    ) { innerPadding ->
+    // The bottom bar deliberately is *not* a `Scaffold` `bottomBar` slot: a slot would reserve a
+    // strip at the bottom of the window and push every screen up above it. Instead the navigation
+    // content fills the whole window and the bar is drawn on top of it, so lists scroll underneath
+    // the pill. Screens compensate with `floatingBottomBarContentInset()` at the end of their own
+    // scroll ranges.
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         NavHost(
             navController = navController,
             startDestination = MainRoute.Home.route,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
+            modifier = Modifier.fillMaxSize(),
             enterTransition = { EnterTransition.None },
             exitTransition = { ExitTransition.None },
             popEnterTransition = { EnterTransition.None },
@@ -150,5 +157,43 @@ fun MainNavigation(
                 SettingsScreen(onLogout = onLogout)
             }
         }
+
+        AnimatedBottomBar(
+            items = barItems,
+            selectedIndex = selectedIndex,
+            onItemSelected = { index ->
+                tabs.getOrNull(index)?.let { tab ->
+                    navController.navigate(tab.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                // Keep the floating pill clear of the system navigation bar, then inset it from the
+                // screen edges so it reads as a detached, rounded pill.
+                .navigationBarsPadding()
+                .padding(
+                    horizontal = BottomBarHorizontalPadding,
+                    vertical = BottomBarVerticalPadding
+                ),
+            style = BottomBarDefaults.style(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                // Everything tinted from the live colour palette, exactly like the rest of the app.
+                indicatorColor = palette.primary.copy(alpha = 0.22f),
+                selectedIconColor = palette.primary,
+                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                badgeColor = palette.colorAt(2),
+                badgeContentColor = Color.White,
+                containerShapeRadius = 24.dp,
+                iconSize = 24.dp,
+                barHeight = BottomBarHeight,
+                contentPadding = 14.dp
+            )
+        )
     }
 }

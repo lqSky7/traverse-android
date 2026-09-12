@@ -33,6 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.viewmodel.HomeUiState
 import com.traverse.android.viewmodel.HomeViewModel
@@ -144,9 +145,9 @@ private fun HomeMainContent(
 
     Scaffold(
         containerColor = Color.Black,
-        // The root navigation Scaffold already reserves room for the bottom bar. Zeroing the insets
-        // here stops the system bottom inset being applied twice (it painted an opaque band
-        // immediately above the navigation bar).
+        // The bottom bar floats over the content, so the screen is edge-to-edge: the root
+        // navigation no longer reserves a strip for the bar, and the status-bar inset is consumed
+        // by the `TopAppBar` below rather than by this `Scaffold`.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
@@ -176,7 +177,10 @@ private fun HomeMainContent(
                 modifier = modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
+                    .padding(16.dp)
+                    // Applied *inside* the scroll container, so the cards still slide underneath the
+                    // floating bottom bar while the last one can always be scrolled clear of it.
+                    .padding(bottom = floatingBottomBarContentInset()),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 val errorMessage = uiState.errorMessage

@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.traverse.android.data.RevisionStatsResponse
+import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.viewmodel.RevisionsViewModel
@@ -421,7 +422,9 @@ private fun RevisionsListContent(
                     start = 16.dp,
                     end = 16.dp,
                     top = if (uiState.stats != null) 90.dp else 16.dp,
-                    bottom = 100.dp
+                    // Clears the floating bottom bar. Content still scrolls underneath the pill
+                    // because this is a `contentPadding` rather than an outer modifier.
+                    bottom = floatingBottomBarContentInset()
                 ),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
