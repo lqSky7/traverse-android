@@ -24,7 +24,6 @@ data class RevisionsUiState(
     val showCompletedRevisions: Boolean = false,
     val useMLMode: Boolean = true,
     val isFromCache: Boolean = false,
-    val completingRevisionId: Int? = null,
     val deletingRevisionId: Int? = null,
     val isSubscribed: Boolean = false,
     val showProUpgradeDialog: Boolean = false,
@@ -147,7 +146,7 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
 
         try {
             val statsDeferred = viewModelScope.async {
-                networkService.getRevisionStats(type = mode)
+                networkService.getRevisionStats()
             }
 
             if (mode == "ml") {
@@ -191,8 +190,7 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
             } else {
                 val groupsDeferred = viewModelScope.async {
                     networkService.getGroupedRevisions(
-                        includeCompleted = _uiState.value.showCompletedRevisions,
-                        type = mode
+                        includeCompleted = _uiState.value.showCompletedRevisions
                     )
                 }
 
@@ -231,7 +229,7 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             try {
                 val statsDeferred = async {
-                    networkService.getRevisionStats(type = mode)
+                    networkService.getRevisionStats()
                 }
 
                 if (mode == "ml") {
@@ -265,8 +263,7 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
                 } else {
                     val groupsDeferred = async {
                         networkService.getGroupedRevisions(
-                            includeCompleted = _uiState.value.showCompletedRevisions,
-                            type = mode
+                            includeCompleted = _uiState.value.showCompletedRevisions
                         )
                     }
 
@@ -359,25 +356,6 @@ class RevisionsViewModel(application: Application) : AndroidViewModel(applicatio
             cacheManager.invalidateRevisionCache()
             loadData(forceRefresh = true)
             loadAnalytics()
-        }
-    }
-
-    fun completeRevision(revisionId: Int) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(completingRevisionId = revisionId) }
-
-            when (val result = networkService.completeRevision(revisionId)) {
-                is NetworkResult.Success -> {
-                    cacheManager.invalidateRevisionCache()
-                    loadData(forceRefresh = true)
-                    loadAnalytics()
-                }
-                is NetworkResult.Error -> {
-                    _uiState.update { it.copy(errorMessage = result.message) }
-                }
-            }
-
-            _uiState.update { it.copy(completingRevisionId = null) }
         }
     }
 

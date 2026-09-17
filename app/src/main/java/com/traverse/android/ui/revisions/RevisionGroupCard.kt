@@ -33,8 +33,6 @@ private val CardBackground = Color(0xFF1A1A1A)
 @Composable
 fun RevisionGroupCard(
     group: RevisionGroup,
-    completingId: Int?,
-    onComplete: (Int) -> Unit,
     onDeleteSingle: (Int) -> Unit,
     onDeleteProblem: (Int) -> Unit,
     onRescheduleDays: (Int, Int) -> Unit,
@@ -100,8 +98,6 @@ fun RevisionGroupCard(
                 group.revisions.forEachIndexed { index, revision ->
                     RevisionItem(
                         revision = revision,
-                        isCompleting = completingId == revision.id,
-                        onComplete = { onComplete(revision.id) },
                         onDeleteSingle = { onDeleteSingle(revision.id) },
                         onDeleteProblem = { onDeleteProblem(revision.problem.id) },
                         onRescheduleDays = { days -> onRescheduleDays(revision.id, days) }
@@ -124,8 +120,6 @@ fun RevisionGroupCard(
 @Composable
 private fun RevisionItem(
     revision: Revision,
-    isCompleting: Boolean,
-    onComplete: () -> Unit,
     onDeleteSingle: () -> Unit,
     onDeleteProblem: () -> Unit,
     onRescheduleDays: (Int) -> Unit
@@ -354,7 +348,7 @@ private fun RevisionItem(
 
                     // 8. Delete Single Revision (Destructive)
                     DropdownMenuItem(
-                        text = { Text("Delete Single ML Revision", color = paletteColorAt(0)) },
+                        text = { Text("Delete Single Revision", color = paletteColorAt(0)) },
                         onClick = {
                             onDeleteSingle()
                             showContextMenu = false

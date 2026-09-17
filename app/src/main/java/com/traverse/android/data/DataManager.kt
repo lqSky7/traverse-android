@@ -98,9 +98,6 @@ class DataManager private constructor(private val context: Context) {
     private val _revisionScore = MutableStateFlow<RevisionScoreResponse?>(null)
     val revisionScore: StateFlow<RevisionScoreResponse?> = _revisionScore.asStateFlow()
 
-    private val _revisionMode = MutableStateFlow("normal")
-    val revisionMode: StateFlow<String> = _revisionMode.asStateFlow()
-
     private var hasFetchedInitialData = false
 
     val isCacheFresh: Boolean
@@ -167,7 +164,6 @@ class DataManager private constructor(private val context: Context) {
         loadFile<List<RevisionGroup>>("revisionGroups.json")?.let { _revisionGroups.value = it }
         loadFile<RevisionStatsResponse>("revisionStats.json")?.let { _revisionStats.value = it }
         loadFile<RevisionScoreResponse>("revisionScore.json")?.let { _revisionScore.value = it }
-        loadFile<String>("revisionMode.json")?.let { _revisionMode.value = it }
 
         if (_userStats.value != null || _recentSolves.value.isNotEmpty() || _friends.value.isNotEmpty()) {
             hasFetchedInitialData = true
@@ -197,7 +193,6 @@ class DataManager private constructor(private val context: Context) {
             saveFile(_revisionGroups.value, "revisionGroups.json")
             _revisionStats.value?.let { saveFile(it, "revisionStats.json") }
             _revisionScore.value?.let { saveFile(it, "revisionScore.json") }
-            saveFile(_revisionMode.value, "revisionMode.json")
         }
     }
 
@@ -225,13 +220,6 @@ class DataManager private constructor(private val context: Context) {
         return merged
     }
 
-    // MARK: - Revision Mode Management
-
-    fun setRevisionMode(mode: String) {
-        _revisionMode.value = mode
-        saveFile(mode, "revisionMode.json")
-    }
-
     // MARK: - Atomic Parallel Fetch (1:1 with iOS fetchAllData)
 
     /**
@@ -247,8 +235,6 @@ class DataManager private constructor(private val context: Context) {
     }
 
     suspend fun fetchAllData(username: String): Unit = withContext(Dispatchers.IO) {
-        val mode = _revisionMode.value
-
         // Execute all 10 network requests concurrently
         val friendsDeferred = async { networkService.getFriends() }
         val receivedRequestsDeferred = async { networkService.getReceivedFriendRequests() }
@@ -262,9 +248,9 @@ class DataManager private constructor(private val context: Context) {
         val achievementStatsDeferred = async { networkService.getAchievementStats() }
         val allAchievementsDeferred = async { networkService.getAllAchievements() }
         val recentSolvesDeferred = async { networkService.getSolves(limit = 200) }
-        val revisionsDeferred = async { networkService.getRevisions(upcoming = true, limit = 50, type = mode) }
-        val groupedRevisionsDeferred = async { networkService.getGroupedRevisions(includeCompleted = true, type = mode) }
-        val revisionStatsDeferred = async { networkService.getRevisionStats(type = mode) }
+        val revisionsDeferred = async { networkService.getRevisions(upcoming = true, limit = 50) }
+        val groupedRevisionsDeferred = async { networkService.getGroupedRevisions(includeCompleted = true) }
+        val revisionStatsDeferred = async { networkService.getRevisionStats() }
         val revisionScoreDeferred = async { networkService.getRevisionScore() }
 
         // Await results
@@ -362,7 +348,6 @@ class DataManager private constructor(private val context: Context) {
         _revisionGroups.value = emptyList()
         _revisionStats.value = null
         _revisionScore.value = null
-        _revisionMode.value = "normal"
         _lastFetchTimestamp.value = null
 
         hasFetchedInitialData = false

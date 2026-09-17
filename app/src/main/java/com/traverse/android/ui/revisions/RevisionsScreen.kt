@@ -486,8 +486,6 @@ private fun RevisionsListContent(
                     ) { group ->
                         RevisionGroupCard(
                             group = group,
-                            completingId = uiState.completingRevisionId,
-                            onComplete = { viewModel.completeRevision(it) },
                             onDeleteSingle = { viewModel.deleteRevision(it) },
                             onDeleteProblem = { viewModel.deleteProblemRevisions(it) },
                             onRescheduleDays = { id, days -> viewModel.rescheduleRevision(id, days) }

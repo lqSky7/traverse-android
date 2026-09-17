@@ -114,7 +114,11 @@ fun MLSchedulingInfoSheet(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "This is an ML-powered spaced repetition system based on FSRS-5 (Free Spaced " +
+                // NOTE: this used to say "ML-powered". It is not ML — FSRS-5 is a
+                // deterministic power-law forgetting curve. What AI contributes is one
+                // input to the quality score (the cognitive recall score) plus tier-based
+                // damping of stability growth, and only for premium accounts.
+                text = "This is a spaced repetition system based on FSRS-5 (Free Spaced " +
                     "Repetition Scheduler). Instead of static intervals (1d, 3d, 7d...), the algorithm " +
                     "tracks item-level Memory Stability (S) and Difficulty (D) to schedule reviews " +
                     "right when your retrievability reaches 90%.",
@@ -153,8 +157,13 @@ fun MLSchedulingInfoSheet(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // "6 Quality Signals We Track" Section
-            SectionHeader(icon = Icons.Default.TrendingUp, text = "6 Quality Signals We Track")
+            // "5 Quality Signals We Track" Section
+            // Weights mirror computeQualityScore() in
+            // traverse-backend/src/lib/forgettingCurveScheduler.ts. There used to be a sixth
+            // row here for "Mistake Tags (18%)" — no such factor exists in the scheduler,
+            // and mistake tags no longer affect scheduling at all. The attempt-number
+            // weight was also shown as 8% when it is 4%.
+            SectionHeader(icon = Icons.Default.TrendingUp, text = "5 Quality Signals We Track")
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -169,11 +178,6 @@ fun MLSchedulingInfoSheet(
                 detail = "Intrinsic problem baseline (Easy / Medium / Hard)"
             )
             SignalRow(
-                icon = Icons.Default.Warning,
-                text = "Mistake Tags (18%)",
-                detail = "Penalties for approach, TLE, syntax, or DS errors"
-            )
-            SignalRow(
                 icon = Icons.Default.Refresh,
                 text = "Number of Retries (15%)",
                 detail = "Softly scaled runs (typos & code runs non-punitive)"
@@ -185,15 +189,18 @@ fun MLSchedulingInfoSheet(
             )
             SignalRow(
                 icon = Icons.Default.Numbers,
-                text = "Attempt Number (8%)",
+                text = "Attempt Number (4%)",
                 detail = "Review iteration expectation adjustment"
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Signals compute a Quality Score (q ∈ [0, 1]) mapped to FSRS grades " +
-                    "(Again, Hard, Good, Easy) to scale stability.",
+                text = "Those five signals are normalised into a behavioural score. On premium " +
+                    "accounts it is blended 60/40 with an AI cognitive recall score, and a hint or " +
+                    "solution lowers the result further. The blend maps to FSRS grades " +
+                    "(Again, Hard, Good, Easy) to scale stability. Free accounts use the " +
+                    "behavioural score alone.",
                 style = MaterialTheme.typography.labelSmall.copy(
                     color = SecondaryText,
                     lineHeight = 16.sp

@@ -113,13 +113,6 @@ data class RevisionStatsResponse(
     val completionRate: Int = 0
 )
 
-// MARK: - Complete Revision Response
-@Serializable
-data class CompleteRevisionResponse(
-    val message: String,
-    val revision: Revision
-)
-
 // MARK: - Reschedule Revision
 @Serializable
 data class RescheduleRevisionRequest(
@@ -130,43 +123,6 @@ data class RescheduleRevisionRequest(
 data class RescheduleRevisionResponse(
     val message: String,
     val revision: Revision
-)
-
-// MARK: - ML Revision Attempt
-@Serializable
-data class RevisionAttemptRequest(
-    val outcome: Int, // 0 = failed, 1 = success
-    val numTries: Int,
-    val timeSpentMinutes: Double
-)
-
-@Serializable
-data class RevisionAttemptResponse(
-    val message: String,
-    val attempt: RevisionAttempt,
-    val prediction: MLPrediction,
-    val nextRevision: Revision? = null
-)
-
-@Serializable
-data class RevisionAttempt(
-    val id: Int,
-    val revisionId: Int,
-    val userId: Int,
-    val problemId: Int,
-    val attemptNumber: Int,
-    val daysSinceLastAttempt: Double = 0.0,
-    val outcome: Int,
-    val numTries: Int,
-    val timeSpentMinutes: Double,
-    val attemptedAt: String
-)
-
-@Serializable
-data class MLPrediction(
-    @SerialName("next_review_interval_days")
-    val nextReviewIntervalDays: Double,
-    val confidence: String
 )
 
 // MARK: - Pause / Resume Models

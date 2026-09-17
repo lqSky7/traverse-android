@@ -108,31 +108,27 @@ interface TraverseApi {
     @GET("users/me/updates")
     suspend fun getAppUpdates(): AppUpdatesResponse
     
+    // NOTE: no `type` query param on the revision reads. The backend has exactly
+    // one revision kind (the FSRS forgetting curve) and ignores `type` entirely,
+    // so sending it only implied a distinction that no longer exists.
     @GET("revisions/grouped")
     suspend fun getGroupedRevisions(
-        @Query("includeCompleted") includeCompleted: Boolean = false,
-        @Query("type") type: String = "normal"
+        @Query("includeCompleted") includeCompleted: Boolean = false
     ): GroupedRevisionsResponse
     
     @GET("revisions/stats")
-    suspend fun getRevisionStats(
-        @Query("type") type: String = "normal"
-    ): RevisionStatsResponse
+    suspend fun getRevisionStats(): RevisionStatsResponse
     
     @GET("revisions")
     suspend fun getRevisions(
         @Query("upcoming") upcoming: Boolean = false,
         @Query("overdue") overdue: Boolean = false,
         @Query("limit") limit: Int = 50,
-        @Query("offset") offset: Int = 0,
-        @Query("type") type: String = "normal"
+        @Query("offset") offset: Int = 0
     ): RevisionsResponse
     
     @GET("revisions/{id}")
     suspend fun getRevisionDetails(@retrofit2.http.Path("id") id: Int): RevisionDetailsResponse
-    
-    @POST("revisions/{id}/complete")
-    suspend fun completeRevision(@retrofit2.http.Path("id") id: Int): CompleteRevisionResponse
     
     @retrofit2.http.DELETE("revisions/{id}")
     suspend fun deleteRevision(@retrofit2.http.Path("id") id: Int)
@@ -145,12 +141,6 @@ interface TraverseApi {
         @retrofit2.http.Path("id") id: Int,
         @Body request: RescheduleRevisionRequest
     ): RescheduleRevisionResponse
-    
-    @POST("revisions/{id}/attempt")
-    suspend fun recordRevisionAttempt(
-        @retrofit2.http.Path("id") id: Int,
-        @Body request: RevisionAttemptRequest
-    ): RevisionAttemptResponse
     
     @GET("revisions/analytics")
     suspend fun getRevisionAnalytics(): RevisionAnalyticsResponse
@@ -590,20 +580,19 @@ class NetworkService private constructor(context: Context) {
     }
     
     suspend fun getGroupedRevisions(
-        includeCompleted: Boolean = false,
-        type: String = "normal"
+        includeCompleted: Boolean = false
     ): NetworkResult<GroupedRevisionsResponse> {
         return try {
-            val response = api.getGroupedRevisions(includeCompleted, type)
+            val response = api.getGroupedRevisions(includeCompleted)
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))
         }
     }
     
-    suspend fun getRevisionStats(type: String = "normal"): NetworkResult<RevisionStatsResponse> {
+    suspend fun getRevisionStats(): NetworkResult<RevisionStatsResponse> {
         return try {
-            val response = api.getRevisionStats(type)
+            val response = api.getRevisionStats()
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))
@@ -614,11 +603,10 @@ class NetworkService private constructor(context: Context) {
         upcoming: Boolean = false,
         overdue: Boolean = false,
         limit: Int = 50,
-        offset: Int = 0,
-        type: String = "normal"
+        offset: Int = 0
     ): NetworkResult<RevisionsResponse> {
         return try {
-            val response = api.getRevisions(upcoming, overdue, limit, offset, type)
+            val response = api.getRevisions(upcoming, overdue, limit, offset)
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))
@@ -661,15 +649,6 @@ class NetworkService private constructor(context: Context) {
         }
     }
     
-    suspend fun completeRevision(id: Int): NetworkResult<CompleteRevisionResponse> {
-        return try {
-            val response = api.completeRevision(id)
-            NetworkResult.Success(response)
-        } catch (e: Exception) {
-            NetworkResult.Error(parseError(e))
-        }
-    }
-    
     suspend fun deleteRevision(id: Int): NetworkResult<Unit> {
         return try {
             api.deleteRevision(id)
@@ -691,23 +670,6 @@ class NetworkService private constructor(context: Context) {
     suspend fun rescheduleRevision(id: Int, days: Int): NetworkResult<RescheduleRevisionResponse> {
         return try {
             val response = api.rescheduleRevision(id, RescheduleRevisionRequest(days))
-            NetworkResult.Success(response)
-        } catch (e: Exception) {
-            NetworkResult.Error(parseError(e))
-        }
-    }
-    
-    suspend fun recordRevisionAttempt(
-        id: Int,
-        outcome: Int,
-        numTries: Int,
-        timeSpentMinutes: Double
-    ): NetworkResult<RevisionAttemptResponse> {
-        return try {
-            val response = api.recordRevisionAttempt(
-                id, 
-                RevisionAttemptRequest(outcome, numTries, timeSpentMinutes)
-            )
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))

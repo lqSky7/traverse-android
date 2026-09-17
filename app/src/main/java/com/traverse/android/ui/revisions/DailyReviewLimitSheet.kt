@@ -104,7 +104,7 @@ fun DailyReviewLimitSheet(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Cap the number of ML revisions shown each day. Overflow rolls into the next days.",
+                text = "Cap the number of revisions shown each day. Overflow rolls into the next days.",
                 fontSize = 13.sp,
                 color = Color.White.copy(alpha = 0.6f),
                 modifier = Modifier.fillMaxWidth()

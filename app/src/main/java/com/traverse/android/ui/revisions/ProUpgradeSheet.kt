@@ -39,8 +39,11 @@ fun ProUpgradeSheet(
 ) {
     val context = LocalContext.current
     
+    // "ML Revision" was removed from this list: revisions are no longer a
+    // premium feature, so advertising them as one was simply false. What stays
+    // premium is the AI cognitive assessment (cognitiveTier / recallScore) that
+    // feeds the scheduler, not the scheduling itself.
     val features = listOf(
-        FeatureItem(Icons.Default.Psychology, "ML Revision"),
         FeatureItem(Icons.Default.Apps, "All Platforms"),
         FeatureItem(Icons.Default.Bolt, "Early Access"),
         FeatureItem(Icons.Default.Watch, "WatchOS"),
