@@ -352,7 +352,10 @@ class DataManager private constructor(private val context: Context) {
 
         hasFetchedInitialData = false
 
-        // Delete persisted files
+        // Delete persisted files.
+        // "revisionMode.json" is deliberately still listed even though the revisionMode
+        // state is gone: older app versions wrote it, and this is the only thing that
+        // clears it off devices that upgraded. Do not remove it as dead code.
         val filenames = listOf(
             "friends.json", "receivedRequests.json", "sentRequests.json",
             "receivedStreakRequests.json", "sentStreakRequests.json", "friendStreaks.json",
