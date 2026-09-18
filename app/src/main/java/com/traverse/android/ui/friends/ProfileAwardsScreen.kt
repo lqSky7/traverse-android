@@ -7,6 +7,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,6 +19,7 @@ import com.traverse.android.data.NetworkService
 import com.traverse.android.ui.home.AllAchievementsScreen
 import com.traverse.android.ui.home.AwardsSectionScreen
 import com.traverse.android.ui.home.fallbackSections
+import kotlinx.coroutines.launch
 
 /**
  * Someone else's award shelf, rendered with the same [AllAchievementsScreen] the
@@ -35,6 +37,8 @@ fun ProfileAwardsScreen(
 ) {
     val context = LocalContext.current
     val networkService = remember { NetworkService.getInstance(context) }
+    // `load()` is a suspend function, so a retry tap has to hand it to a coroutine.
+    val scope = rememberCoroutineScope()
 
     var response by remember { mutableStateOf<AllAchievementsResponse?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -75,7 +79,7 @@ fun ProfileAwardsScreen(
             errorMessage = errorMessage,
             emptyDescription = "$username has not earned an award yet.",
             onBack = onBack,
-            onRetry = { load() },
+            onRetry = { scope.launch { load() } },
             onOpenSection = { sectionId ->
                 val shelves = response?.sections?.ifEmpty {
                     response?.achievements?.let { fallbackSections(it) } ?: emptyList()

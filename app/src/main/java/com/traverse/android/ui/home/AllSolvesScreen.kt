@@ -25,6 +25,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Square
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,6 +34,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,16 +58,28 @@ import com.traverse.android.ui.theme.rememberPalette
  * filter, and the full list of solves rendered as expandable [SolveRow]s.
  *
  * The selected topic chip is filled with `selectedPalette.primary`, matching iOS.
+ *
+ * It is also how a profile renders someone else's history, which is why it takes a
+ * [title] and an optional [onLoadMore]: a friend's feed is cursor-paginated on the
+ * server, so the list has to be able to pull the next page rather than assume it
+ * holds everything.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AllSolvesScreen(
     solves: List<Solve>,
     onBack: () -> Unit,
+    title: String = "All Solves",
+    /**
+     * Invoked when the end of the list is reached and the server reported more rows.
+     * The caller is responsible for ignoring repeat calls.
+     */
+    onLoadMore: (suspend () -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var searchText by remember { mutableStateOf("") }
     var selectedTopic by remember { mutableStateOf<String?>(null) }
+    var isLoadingMore by remember { mutableStateOf(false) }
 
     val availableTopics = remember(solves) {
         solves.mapNotNull { it.problem.topic }
@@ -89,6 +103,10 @@ fun AllSolvesScreen(
         }
     }
 
+    // Only page while the user is looking at the unfiltered list — pulling more rows
+    // behind an active search would grow the list under a filter that cannot use them.
+    val canLoadMore = onLoadMore != null && searchText.isEmpty() && selectedTopic == null
+
     Scaffold(
         // Bottom inset is owned by the root navigation Scaffold's bottom bar.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -96,7 +114,7 @@ fun AllSolvesScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "All Solves",
+                        text = title,
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontFamily = RingiftFamily
                         )
@@ -188,6 +206,34 @@ fun AllSolvesScreen(
                 ) {
                     items(filteredSolves, key = { it.id }) { solve ->
                         SolveRow(solve = solve)
+                    }
+
+                    if (canLoadMore) {
+                        item(key = "load-more") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                            // Fires when the footer scrolls into view, which is when the
+                            // next page is actually wanted.
+                            LaunchedEffect(Unit) {
+                                if (!isLoadingMore) {
+                                    isLoadingMore = true
+                                    try {
+                                        onLoadMore?.invoke()
+                                    } finally {
+                                        isLoadingMore = false
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

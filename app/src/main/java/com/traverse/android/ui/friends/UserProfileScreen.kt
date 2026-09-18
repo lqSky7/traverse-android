@@ -78,7 +78,6 @@ import com.traverse.android.data.FriendStreak
 import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
 import com.traverse.android.data.RelationshipState
-import com.traverse.android.data.SendFriendRequestBody
 import com.traverse.android.data.SendFriendStreakRequestBody
 import com.traverse.android.data.UserProfile
 import com.traverse.android.data.UserStatisticsData
@@ -272,7 +271,7 @@ fun UserProfileScreen(
     fun sendFriendRequest() {
         scope.launch {
             isActionLoading = true
-            when (val result = networkService.sendFriendRequest(SendFriendRequestBody(username))) {
+            when (val result = networkService.sendFriendRequest(username)) {
                 // The server may have sent a request, returned an idempotent "already
                 // requested", or auto-accepted because they had already asked us.
                 is NetworkResult.Success -> refreshRelationship()

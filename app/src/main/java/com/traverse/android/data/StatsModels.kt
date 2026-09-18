@@ -234,7 +234,19 @@ data class Highlight(
     val content: String? = null,
     val note: String? = null,
     val tags: List<String> = emptyList()
-)
+) {
+    /**
+     * True when the viewer is allowed to see anything on this note.
+     *
+     * `content` and `note` arrive as `null` when the viewer is not a friend — the
+     * server redacts private notes rather than omitting the row — so the UI renders
+     * the block only when there is something to show. Without this a stranger's
+     * solve would carry an empty "Your Note" heading with nothing under it.
+     * Mirrors iOS `Highlight.hasContent`.
+     */
+    val hasContent: Boolean
+        get() = !note.isNullOrEmpty() || !content.isNullOrEmpty() || tags.isNotEmpty()
+}
 
 @Serializable
 data class Pagination(

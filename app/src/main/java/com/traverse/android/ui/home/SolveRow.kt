@@ -282,15 +282,23 @@ fun SolveRow(
                     }
                 }
 
-                solve.highlight?.let { highlight ->
+                // `note` and `content` arrive as `null` when the viewer is not a
+                // friend — the server redacts private notes rather than omitting the
+                // row — so the block is rendered only when there is actually
+                // something to show. Mirrors iOS `SolveRow`.
+                val highlight = solve.highlight
+                if (highlight != null && highlight.hasContent) {
+                    val note = highlight.note ?: ""
+                    val content = highlight.content ?: ""
+
                     Section(
                         icon = Icons.Default.Notes,
                         iconColor = noteColor,
                         title = "Your Note"
                     ) {
-                        if (highlight.note.isNotEmpty()) {
+                        if (note.isNotEmpty()) {
                             Text(
-                                text = stripMarkdown(highlight.note),
+                                text = stripMarkdown(note),
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     color = Color.White.copy(alpha = 0.6f),
                                     lineHeight = 18.sp
@@ -298,10 +306,10 @@ fun SolveRow(
                             )
                         }
 
-                        if (highlight.content.isNotEmpty() && highlight.content != highlight.note) {
+                        if (content.isNotEmpty() && content != note) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = highlight.content,
+                                text = content,
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontFamily = FontFamily.Monospace,
                                     color = Color.White.copy(alpha = 0.5f),
