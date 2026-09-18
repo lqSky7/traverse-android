@@ -7,6 +7,7 @@ import com.traverse.android.data.CacheManager
 import com.traverse.android.data.DataManager
 import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
+import com.traverse.android.data.PushRegistrationManager
 import com.traverse.android.data.User
 import com.traverse.android.ui.components.AchievementToastManager
 import kotlinx.coroutines.Dispatchers
@@ -210,6 +211,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             
+            PushRegistrationManager.getInstance(getApplication()).unregisterFromServer()
             networkService.logout()
             cacheManager.clearAllCache()
             dataManager.clearAllData()

@@ -1,6 +1,9 @@
 package com.traverse.android
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -26,6 +29,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.traverse.android.data.CacheManager
 import com.traverse.android.data.DataManager
+import com.traverse.android.data.NotificationRouter
+import com.traverse.android.data.PushRegistrationManager
+import com.traverse.android.push.TraverseMessagingService
 import com.traverse.android.ui.auth.AuthNavigation
 import com.traverse.android.ui.auth.OnboardingFlowDialog
 import com.traverse.android.ui.components.AchievementToastManager
@@ -36,6 +42,7 @@ import com.traverse.android.ui.theme.TraverseTheme
 import com.traverse.android.viewmodel.AuthViewModel
 import com.traverse.android.viewmodel.FriendsViewModel
 import com.traverse.android.viewmodel.HomeViewModel
+import com.traverse.android.viewmodel.NotificationsViewModel
 import com.traverse.android.viewmodel.ProblemsViewModel
 import com.traverse.android.viewmodel.RevisionsViewModel
 
@@ -46,6 +53,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        createNotificationChannel()
+        handleNotificationIntent(intent)
 
         // Restore the persisted colour palette before the first composition.
         ColorPaletteManager.init(applicationContext)
@@ -60,6 +70,7 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(uiState.isAuthenticated) {
                     if (uiState.isAuthenticated) {
                         toastManager.syncAppOpenUpdates()
+                        PushRegistrationManager.getInstance(applicationContext).register()
                     }
                 }
                 
@@ -71,13 +82,15 @@ class MainActivity : ComponentActivity() {
                             val problemsViewModel: ProblemsViewModel = viewModel()
                             val revisionsViewModel: RevisionsViewModel = viewModel()
                             val friendsViewModel: FriendsViewModel = viewModel()
+                            val notificationsViewModel: NotificationsViewModel = viewModel()
                             
                             MainNavigation(
                                 homeViewModel = homeViewModel,
                                 problemsViewModel = problemsViewModel,
                                 revisionsViewModel = revisionsViewModel,
                                 friendsViewModel = friendsViewModel,
-                                onLogout = { authViewModel.logout() }
+                                onLogout = { authViewModel.logout() },
+                                notificationsViewModel = notificationsViewModel
                             )
                         }
                         // Show loading screen while fetching data after login
@@ -102,6 +115,37 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleNotificationIntent(intent)
+    }
+
+    private fun handleNotificationIntent(intent: Intent?) {
+        if (intent == null) return
+        val tab = intent.getStringExtra("tab")
+        val url = intent.getStringExtra("url")
+        if (!tab.isNullOrBlank() || !url.isNullOrBlank()) {
+            NotificationRouter.routeTo(tab, url)
+        }
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                TraverseMessagingService.CHANNEL_ID,
+                TraverseMessagingService.CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Traverse notifications and reminders"
+                enableLights(true)
+                enableVibration(true)
+            }
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager?.createNotificationChannel(channel)
         }
     }
 }
