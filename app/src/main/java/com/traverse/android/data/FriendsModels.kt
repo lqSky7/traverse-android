@@ -115,7 +115,7 @@ data class RemoveFriendResponse(
     val message: String
 )
 
-// MARK: - Friend Solves
+// MARK: - Friend Solves (now returns the same shape as home solves)
 @Serializable
 data class FriendSolvesResponse(
     val username: String,
@@ -123,22 +123,8 @@ data class FriendSolvesResponse(
     val pagination: Pagination
 )
 
-// MARK: - Friend Achievements
-@Serializable
-data class FriendAchievementsResponse(
-    val username: String,
-    val achievements: List<FriendAchievement>
-)
-
-@Serializable
-data class FriendAchievement(
-    val id: Int,
-    val key: String,
-    val name: String,
-    val description: String,
-    val category: String,
-    val unlockedAt: String
-)
+// MARK: - Friend Achievements (now returns the same shape as home awards)
+typealias FriendAchievementsResponse = AllAchievementsResponse
 
 // MARK: - Friend Streak Models
 @Serializable
@@ -191,5 +177,57 @@ data class SendFriendStreakRequestResponse(
 data class AcceptFriendStreakRequestResponse(
     val message: String,
     val streak: FriendStreak
+)
+
+// MARK: - Relationship State
+//
+// The server's authoritative answer to "what is my relationship with this user".
+// The client renders the button from `status` and never infers it — the previous
+// Android implementation cross-referenced the friends list plus both request
+// lists (eight parallel calls) to render one button.
+@Serializable
+data class RelationshipState(
+    /** One of: self, none, pending_outgoing, pending_incoming, friends, blocked. */
+    val status: String,
+    val username: String,
+    /** Whether an "Add friend" action is available. False when either side has blocked the other. */
+    val canRequest: Boolean,
+    val blockedByMe: Boolean,
+    val friendship: RelationshipFriendship? = null,
+    val streak: RelationshipStreak? = null,
+    val pendingRequest: RelationshipPendingRequest? = null
+) {
+    val isFriends: Boolean get() = status == "friends"
+    val isBlocked: Boolean get() = status == "blocked"
+    val isSelf: Boolean get() = status == "self"
+}
+
+@Serializable
+data class RelationshipFriendship(
+    val createdAt: String,
+    val favorite: Boolean
+)
+
+@Serializable
+data class RelationshipStreak(
+    val currentStreak: Int,
+    val longestStreak: Int,
+    val lastIncrementDate: String? = null,
+    val brokenAt: String? = null,
+    /** True once a day has passed without the streak advancing. */
+    val atRisk: Boolean = false
+)
+
+@Serializable
+data class RelationshipPendingRequest(
+    val id: Int,
+    /** "outgoing" if this user sent it, "incoming" if it is waiting for them. */
+    val direction: String,
+    val createdAt: String
+)
+
+@Serializable
+data class SetFavoriteRequest(
+    val favorite: Boolean
 )
 

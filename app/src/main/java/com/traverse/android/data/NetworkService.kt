@@ -232,7 +232,7 @@ interface TraverseApi {
     suspend fun getFriendSolves(
         @retrofit2.http.Path("username") username: String,
         @Query("limit") limit: Int = 50,
-        @Query("offset") offset: Int = 0
+        @Query("cursor") cursor: Int? = null
     ): FriendSolvesResponse
     
     @GET("friends/{username}/stats")
@@ -240,6 +240,28 @@ interface TraverseApi {
     
     @GET("friends/{username}/achievements")
     suspend fun getFriendAchievements(@retrofit2.http.Path("username") username: String): FriendAchievementsResponse
+    
+    // MARK: - Relationship & Blocks API
+    
+    @GET("friends/relationship/{username}")
+    suspend fun getRelationship(@retrofit2.http.Path("username") username: String): RelationshipState
+    
+    @POST("friends/{username}/block")
+    suspend fun blockUser(@retrofit2.http.Path("username") username: String): MessageResponse
+    
+    @retrofit2.http.DELETE("friends/{username}/block")
+    suspend fun unblockUser(@retrofit2.http.Path("username") username: String): MessageResponse
+    
+    @POST("friends/{username}/favorite")
+    suspend fun setFriendFavorite(
+        @retrofit2.http.Path("username") username: String,
+        @Body request: SetFavoriteRequest
+    ): MessageResponse
+    
+    // MARK: - Public Awards (any non-friend profile the viewer may see)
+    
+    @GET("achievements/user/{username}")
+    suspend fun getUserAchievements(@retrofit2.http.Path("username") username: String): AllAchievementsResponse
     
     // MARK: - Freeze Shop API
     
@@ -878,9 +900,9 @@ class NetworkService private constructor(context: Context) {
         }
     }
     
-    suspend fun getFriendSolves(username: String, limit: Int = 50, offset: Int = 0): NetworkResult<FriendSolvesResponse> {
+    suspend fun getFriendSolves(username: String, limit: Int = 50, cursor: Int? = null): NetworkResult<FriendSolvesResponse> {
         return try {
-            val response = api.getFriendSolves(username, limit, offset)
+            val response = api.getFriendSolves(username, limit, cursor)
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))
@@ -899,6 +921,51 @@ class NetworkService private constructor(context: Context) {
     suspend fun getFriendAchievements(username: String): NetworkResult<FriendAchievementsResponse> {
         return try {
             val response = api.getFriendAchievements(username)
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
+    suspend fun getRelationship(username: String): NetworkResult<RelationshipState> {
+        return try {
+            val response = api.getRelationship(username)
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
+    suspend fun blockUser(username: String): NetworkResult<MessageResponse> {
+        return try {
+            val response = api.blockUser(username)
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
+    suspend fun unblockUser(username: String): NetworkResult<MessageResponse> {
+        return try {
+            val response = api.unblockUser(username)
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
+    suspend fun setFriendFavorite(username: String, favorite: Boolean): NetworkResult<MessageResponse> {
+        return try {
+            val response = api.setFriendFavorite(username, SetFavoriteRequest(favorite))
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+    
+    suspend fun getUserAchievements(username: String): NetworkResult<AllAchievementsResponse> {
+        return try {
+            val response = api.getUserAchievements(username)
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))

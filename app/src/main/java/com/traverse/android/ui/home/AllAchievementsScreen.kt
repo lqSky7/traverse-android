@@ -5,17 +5,23 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,7 +64,14 @@ fun AllAchievementsScreen(
     featured: AchievementDetail?,
     onBack: () -> Unit,
     onOpenSection: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // iOS `AllAchievementsView(source:)` renders the same view for your own shelf and a
+    // friend's; only the title, and the loading/error/empty gates, differ per source.
+    title: String = "Awards",
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
+    emptyDescription: String = "Solve problems to start earning awards.",
+    onRetry: () -> Unit = {}
 ) {
     // Servers that predate the award shelves still return a flat catalogue.
     val shelves = remember(sections, achievements) {
@@ -75,7 +88,7 @@ fun AllAchievementsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Awards",
+                        text = title,
                         style = MaterialTheme.typography.headlineSmall.copy(
                             fontFamily = RingiftFamily
                         )
@@ -89,50 +102,147 @@ fun AllAchievementsScreen(
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-                .padding(bottom = floatingBottomBarContentInset() + 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            if (stats != null && stats.total > 0) {
-                Text(
-                    text = "${stats.unlocked} of ${stats.total} earned",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.55f)
-                )
+        val showLoading = isLoading && shelves.isEmpty()
+        val showError = errorMessage != null && shelves.isEmpty()
+        val showEmpty = !showLoading && !showError && shelves.all { it.total == 0 }
+
+        when {
+            showLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Color.White)
+                }
             }
 
-            lead?.let { award ->
-                FeaturedAwardCard(
-                    award = award,
-                    onClick = { onOpenSection(award.section ?: shelves.firstOrNull()?.id ?: "workouts") }
-                )
-            }
-
-            shelfRows(shelves).forEach { row ->
-                if (row.size == 1) {
-                    ShelfCard(
-                        section = row[0],
-                        onClick = { onOpenSection(row[0].id) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        row.forEach { section ->
-                            ShelfCard(
-                                section = section,
-                                onClick = { onOpenSection(section.id) },
-                                modifier = Modifier.weight(1f)
-                            )
+            showError -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = errorMessage ?: "Unknown error",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = onRetry) {
+                            Text("Retry")
                         }
+                    }
+                }
+            }
+
+            showEmpty -> {
+                // Nothing to show at all — for another user this means they have not
+                // earned anything yet (iOS `ContentUnavailableView("No Awards Yet")`).
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(horizontal = 32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.EmojiEvents,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.3f),
+                            modifier = Modifier.size(56.dp)
+                        )
+                        Text(
+                            text = "No Awards Yet",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        )
+                        Text(
+                            text = emptyDescription,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.55f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
+            else -> {
+                AwardsContent(
+                    padding = padding,
+                    stats = stats,
+                    lead = lead,
+                    shelves = shelves,
+                    onOpenSection = onOpenSection
+                )
+            }
+        }
+    }
+}
+
+/** The shelf layout itself, extracted so the loading/error/empty gates stay readable. */
+@Composable
+private fun AwardsContent(
+    padding: PaddingValues,
+    stats: AchievementStatsData?,
+    lead: AchievementDetail?,
+    shelves: List<AwardSection>,
+    onOpenSection: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp)
+            .padding(bottom = floatingBottomBarContentInset() + 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        if (stats != null && stats.total > 0) {
+            Text(
+                text = "${stats.unlocked} of ${stats.total} earned",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.55f)
+            )
+        }
+
+        lead?.let { award ->
+            FeaturedAwardCard(
+                award = award,
+                onClick = { onOpenSection(award.section ?: shelves.firstOrNull()?.id ?: "workouts") }
+            )
+        }
+
+        shelfRows(shelves).forEach { row ->
+            if (row.size == 1) {
+                ShelfCard(
+                    section = row[0],
+                    onClick = { onOpenSection(row[0].id) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    row.forEach { section ->
+                        ShelfCard(
+                            section = section,
+                            onClick = { onOpenSection(section.id) },
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
             }

@@ -231,8 +231,8 @@ data class Submission(
 @Serializable
 data class Highlight(
     val id: Int,
-    val content: String,
-    val note: String,
+    val content: String? = null,
+    val note: String? = null,
     val tags: List<String> = emptyList()
 )
 
@@ -240,7 +240,8 @@ data class Highlight(
 data class Pagination(
     val total: Int = 0,
     val limit: Int = 50,
-    val offset: Int = 0
+    val offset: Int = 0,
+    val nextCursor: Int? = null
 )
 
 // MARK: - Achievement Statistics

@@ -95,8 +95,13 @@ private val BronzeColor = Color(0xFFCC8033)
 object FriendsDestinations {
     const val FRIENDS_MAIN = "friends_main"
     const val USER_PROFILE = "user_profile/{username}"
+    const val USER_PROFILE_SOLVES = "user_profile_solves/{username}"
+    const val USER_PROFILE_AWARDS = "user_profile_awards/{username}/{isFriend}"
 
     fun userProfile(username: String) = "user_profile/$username"
+    fun userProfileSolves(username: String) = "user_profile_solves/$username"
+    fun userProfileAwards(username: String, isFriend: Boolean) =
+        "user_profile_awards/$username/$isFriend"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -140,6 +145,41 @@ fun FriendsScreen(
             val username = backStackEntry.arguments?.getString("username") ?: return@composable
             UserProfileScreen(
                 username = username,
+                onBack = { navController.popBackStack() },
+                onShowSolves = { name ->
+                    navController.navigate(FriendsDestinations.userProfileSolves(name))
+                },
+                onShowAwards = { name, isFriend ->
+                    navController.navigate(FriendsDestinations.userProfileAwards(name, isFriend))
+                }
+            )
+        }
+
+        // iOS: profileActivityLinks > Solves row -> ProfileSolvesView(username:isFriend:)
+        composable(
+            route = FriendsDestinations.USER_PROFILE_SOLVES,
+            arguments = listOf(navArgument("username") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val username = backStackEntry.arguments?.getString("username") ?: return@composable
+            ProfileSolvesScreen(
+                username = username,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // iOS: profileActivityLinks > Awards row -> AllAchievementsView(source:)
+        composable(
+            route = FriendsDestinations.USER_PROFILE_AWARDS,
+            arguments = listOf(
+                navArgument("username") { type = NavType.StringType },
+                navArgument("isFriend") { type = NavType.BoolType }
+            )
+        ) { backStackEntry ->
+            val username = backStackEntry.arguments?.getString("username") ?: return@composable
+            val isFriend = backStackEntry.arguments?.getBoolean("isFriend") ?: false
+            ProfileAwardsScreen(
+                username = username,
+                isFriend = isFriend,
                 onBack = { navController.popBackStack() }
             )
         }
