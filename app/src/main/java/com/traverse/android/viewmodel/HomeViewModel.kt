@@ -31,6 +31,7 @@ data class HomeUiState(
      * whenever either changes rather than fetched separately.
      */
     val revisionLoad: RevisionLoadBreakdown? = null,
+    val rings: RingProgress? = null,
     val isFromCache: Boolean = false
 )
 
@@ -38,6 +39,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     
     private val dataManager by lazy { DataManager.getInstance(application) }
     private val cacheManager by lazy { CacheManager.getInstance(application) }
+    private val networkService by lazy { NetworkService.getInstance(application) }
 
     /**
      * The two inputs the load breakdown is derived from, kept here so a change to either one can
@@ -112,6 +114,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         loadData()
+        loadRings()
     }
     
     fun loadData(forceRefresh: Boolean = false) {
@@ -120,6 +123,46 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
         refresh()
+    }
+
+    fun loadRings(forceRefresh: Boolean = false) {
+        viewModelScope.launch {
+            if (!forceRefresh) {
+                val cached = cacheManager.getRings()
+                if (cached != null) {
+                    _uiState.update { it.copy(rings = cached) }
+                }
+            }
+            when (val result = networkService.getRings()) {
+                is NetworkResult.Success -> {
+                    cacheManager.cacheRings(result.data.rings)
+                    _uiState.update { it.copy(rings = result.data.rings) }
+                }
+                is NetworkResult.Error -> {
+                    // Retain existing cached rings on error to prevent UI flicker
+                }
+            }
+        }
+    }
+
+    suspend fun updateRingGoals(solveGoal: Int, revisionGoal: Int): Result<Unit> {
+        val previousRings = _uiState.value.rings
+        val optimisticRings = (previousRings ?: RingProgress.empty()).copy(
+            configuredGoals = RingGoals(solveGoal, revisionGoal)
+        )
+        _uiState.update { it.copy(rings = optimisticRings) }
+
+        return when (val result = networkService.updateRingGoals(solveGoal, revisionGoal)) {
+            is NetworkResult.Success -> {
+                cacheManager.cacheRings(result.data.rings)
+                _uiState.update { it.copy(rings = result.data.rings) }
+                Result.success(Unit)
+            }
+            is NetworkResult.Error -> {
+                _uiState.update { it.copy(rings = previousRings) }
+                Result.failure(Exception(result.message))
+            }
+        }
     }
 
     /**
@@ -137,6 +180,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refresh() {
         val username = dataManager.userStats.value?.username ?: ""
+        loadRings(forceRefresh = true)
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             // Freeze dates are always refreshed first and fail silently (1:1 with iOS loadData).
