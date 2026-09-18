@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -143,10 +144,15 @@ private data class RangePoint(val value: Double, val axisLabel: String?)
  * Attempts additionally carries the "By Difficulty" breakdown that used to be its own card on the
  * home feed.
  *
- * The range picker is a Material 3 segmented control rather than the iOS Liquid Glass one — the
- * system picker on iOS *is* Liquid Glass on iOS 26, and there is no equivalent here, so this uses
- * the native Android idiom instead of approximating a glass surface.
+ * The range picker is hand-built rather than Material 3's `SegmentedButton` row. iOS gets the system
+ * picker for free and on iOS 26 that picker *is* Liquid Glass; there is no equivalent here, and
+ * Material 3's segmented buttons are an outlined shape that reads as a form control, not as the
+ * sliding pill the rest of this screen is imitating. So this is the one control that is deliberately
+ * an approximation of the iOS one — a translucent track with a lighter selected segment.
+ *
+ * `TopAppBar` is still experimental in the pinned material3 (1.5.0-alpha04), hence the `@OptIn`.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MetricDetailScreen(
     kind: MetricKind,

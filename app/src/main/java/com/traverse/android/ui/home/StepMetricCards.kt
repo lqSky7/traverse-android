@@ -120,7 +120,7 @@ fun TimeAnalysisCard(
 ) {
     val palette = rememberPalette()
     val points = remember(solves) {
-        weeklyBarPoints(solves) { Double(it.submission.timeTaken ?: 0) / 60.0 }
+        weeklyBarPoints(solves) { (it.submission.timeTaken ?: 0).toDouble() / 60.0 }
     }
 
     StepMetricCard(
@@ -142,7 +142,7 @@ fun AttemptsAnalysisCard(
 ) {
     val palette = rememberPalette()
     val points = remember(solves) {
-        weeklyBarPoints(solves) { Double(maxOf(it.submission.numberOfTries ?: 1, 1)) }
+        weeklyBarPoints(solves) { maxOf(it.submission.numberOfTries ?: 1, 1).toDouble() }
     }
 
     StepMetricCard(
