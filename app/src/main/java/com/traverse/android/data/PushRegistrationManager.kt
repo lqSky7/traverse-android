@@ -92,7 +92,7 @@ class PushRegistrationManager private constructor(private val context: Context) 
                 Log.e(TAG, "Error deleting push token from server", e)
             }
         }
-        cacheManager.cachePushToken(null)
+        cacheManager.clearPushToken()
         _isRegistered.value = false
     }
 
