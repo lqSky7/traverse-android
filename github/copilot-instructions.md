@@ -70,7 +70,11 @@ Peach = Color(0xFFFFB6A3)         // CTAs and highlights
 ### 2. Home Tab
 - **User Stats**: Current streak, total XP, solves count
 - **Recent Solves**: Last 50 submissions with difficulty indicators
-- **Achievements**: Progress tracking with visual indicators
+- **Achievements**: An Apple Fitness style Awards shelf — the home card shows the newest badge
+  earned, the hub groups badges into shelves (Close Your Rings, Monthly Challenges, Workouts,
+  Competitions, Limited Edition), and each shelf opens a three-up badge grid. Badges tilt in 3D
+  on press-and-drag (`ui/components/MedalBadge.kt`) — deliberately **not** sensor driven. Badge
+  artwork lives in `res/drawable-nodpi/medal_*.png`, mirrored from the iOS asset catalogue.
 - **Freeze Dates**: Calendar of used streak freezes
 
 ### 3. Revisions Tab

@@ -71,6 +71,14 @@ class DataManager private constructor(private val context: Context) {
     private val _allAchievements = MutableStateFlow<List<AchievementDetail>>(emptyList())
     val allAchievements: StateFlow<List<AchievementDetail>> = _allAchievements.asStateFlow()
 
+    /** Award shelves (Close Your Rings, Monthly Challenges, …) for the Awards hub. */
+    private val _awardSections = MutableStateFlow<List<AwardSection>>(emptyList())
+    val awardSections: StateFlow<List<AwardSection>> = _awardSections.asStateFlow()
+
+    /** The challenge the Awards hub leads with — usually the running monthly challenge. */
+    private val _featuredAward = MutableStateFlow<AchievementDetail?>(null)
+    val featuredAward: StateFlow<AchievementDetail?> = _featuredAward.asStateFlow()
+
     private val _recentSolves = MutableStateFlow<List<Solve>>(emptyList())
     val recentSolves: StateFlow<List<Solve>> = _recentSolves.asStateFlow()
 
@@ -155,6 +163,8 @@ class DataManager private constructor(private val context: Context) {
         loadFile<SolveStats>("solveStats.json")?.let { _solveStats.value = it }
         loadFile<AchievementStats>("achievementStats.json")?.let { _achievementStats.value = it }
         loadFile<List<AchievementDetail>>("allAchievements.json")?.let { _allAchievements.value = it }
+        loadFile<List<AwardSection>>("awardSections.json")?.let { _awardSections.value = it }
+        loadFile<AchievementDetail>("featuredAward.json")?.let { _featuredAward.value = it }
         loadFile<List<Solve>>("recentSolves.json")?.let { _recentSolves.value = it }
         loadFile<List<Revision>>("todayRevisions.json")?.let { _todayRevisions.value = it }
         loadFile<List<Revision>>("completedRevisions.json")?.let { _completedRevisions.value = it }
@@ -184,6 +194,8 @@ class DataManager private constructor(private val context: Context) {
             _solveStats.value?.let { saveFile(it, "solveStats.json") }
             _achievementStats.value?.let { saveFile(it, "achievementStats.json") }
             saveFile(_allAchievements.value, "allAchievements.json")
+            saveFile(_awardSections.value, "awardSections.json")
+            _featuredAward.value?.let { saveFile(it, "featuredAward.json") }
             saveFile(_recentSolves.value, "recentSolves.json")
             saveFile(_todayRevisions.value, "todayRevisions.json")
             saveFile(_completedRevisions.value, "completedRevisions.json")
@@ -284,7 +296,14 @@ class DataManager private constructor(private val context: Context) {
         if (submissionStatsRes is NetworkResult.Success) _submissionStats.value = submissionStatsRes.data
         if (solveStatsRes is NetworkResult.Success) _solveStats.value = solveStatsRes.data
         if (achievementStatsRes is NetworkResult.Success) _achievementStats.value = achievementStatsRes.data
-        if (allAchievementsRes is NetworkResult.Success) _allAchievements.value = allAchievementsRes.data.achievements
+        if (allAchievementsRes is NetworkResult.Success) {
+            _allAchievements.value = allAchievementsRes.data.achievements
+            _awardSections.value = allAchievementsRes.data.sections
+            _featuredAward.value = allAchievementsRes.data.featured
+                ?: allAchievementsRes.data.achievements
+                    .filter { it.unlocked }
+                    .maxByOrNull { it.unlockedAt ?: "" }
+        }
 
         // Process Solves & merge into local cache
         if (recentSolvesRes is NetworkResult.Success) {
@@ -340,6 +359,8 @@ class DataManager private constructor(private val context: Context) {
         _solveStats.value = null
         _achievementStats.value = null
         _allAchievements.value = emptyList()
+        _awardSections.value = emptyList()
+        _featuredAward.value = null
         _recentSolves.value = emptyList()
         _frozenDates.value = emptyList()
         _todayRevisions.value = emptyList()
@@ -360,7 +381,8 @@ class DataManager private constructor(private val context: Context) {
             "friends.json", "receivedRequests.json", "sentRequests.json",
             "receivedStreakRequests.json", "sentStreakRequests.json", "friendStreaks.json",
             "userStats.json", "submissionStats.json", "solveStats.json",
-            "achievementStats.json", "allAchievements.json", "recentSolves.json",
+            "achievementStats.json", "allAchievements.json", "awardSections.json",
+            "featuredAward.json", "recentSolves.json",
             "todayRevisions.json", "completedRevisions.json", "revisionGroups.json",
             "revisionStats.json", "revisionScore.json", "revisionMode.json",
             "lastFetchTimestamp.json"

@@ -18,6 +18,10 @@ data class HomeUiState(
     val recentSolves: List<Solve> = emptyList(),
     val achievementStats: AchievementStats? = null,
     val allAchievements: List<AchievementDetail> = emptyList(),
+    /** Award shelves for the Awards hub, in display order. */
+    val awardSections: List<AwardSection> = emptyList(),
+    /** The challenge the Awards hub leads with. */
+    val featuredAward: AchievementDetail? = null,
     val frozenDates: List<String> = emptyList(),
     val revisionScore: RevisionScoreResponse? = null,
     val completedRevisions: List<Revision> = emptyList(),
@@ -62,6 +66,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             dataManager.allAchievements.collect { achievements ->
                 _uiState.update { it.copy(allAchievements = achievements) }
+            }
+        }
+        viewModelScope.launch {
+            dataManager.awardSections.collect { sections ->
+                _uiState.update { it.copy(awardSections = sections) }
+            }
+        }
+        viewModelScope.launch {
+            dataManager.featuredAward.collect { featured ->
+                _uiState.update { it.copy(featuredAward = featured) }
             }
         }
         viewModelScope.launch {

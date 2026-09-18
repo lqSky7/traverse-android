@@ -30,9 +30,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.viewmodel.HomeUiState
@@ -52,6 +54,10 @@ object HomeDestinations {
     const val ALL_ACHIEVEMENTS = "all_achievements"
     const val ACTIVITY = "activity"
     const val MISTAKE_ANALYSIS = "mistake_analysis"
+
+    /** One award shelf, e.g. `awards_section/rings`. */
+    const val AWARDS_SECTION = "awards_section/{sectionId}"
+    fun awardsSection(sectionId: String) = "awards_section/$sectionId"
 }
 
 @Composable
@@ -95,8 +101,30 @@ fun HomeScreen(
             AllAchievementsScreen(
                 achievements = uiState.allAchievements,
                 stats = uiState.achievementStats?.stats,
-                onBack = { navController.popBackStack() }
+                sections = uiState.awardSections,
+                featured = uiState.featuredAward,
+                onBack = { navController.popBackStack() },
+                onOpenSection = { sectionId ->
+                    navController.navigate(HomeDestinations.awardsSection(sectionId))
+                }
             )
+        }
+
+        // iOS: an award shelf card -> AwardsSectionView(section:)
+        composable(
+            route = HomeDestinations.AWARDS_SECTION,
+            arguments = listOf(navArgument("sectionId") { type = NavType.StringType })
+        ) { entry ->
+            val sectionId = entry.arguments?.getString("sectionId")
+            val section = uiState.awardSections.find { it.id == sectionId }
+                ?: fallbackSections(uiState.allAchievements).find { it.id == sectionId }
+
+            if (section != null) {
+                AwardsSectionScreen(
+                    section = section,
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
 
         // iOS: SolveHeatmapCard -> ActivityDetailView(solves:frozenDates:)

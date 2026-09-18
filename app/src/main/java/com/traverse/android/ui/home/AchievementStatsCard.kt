@@ -5,33 +5,39 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.traverse.android.data.AchievementStatsData
-import com.traverse.android.ui.theme.rememberPalette
+import com.traverse.android.data.MedalCatalog
+import com.traverse.android.ui.components.MedalBadge
 
 private val CardBackground = Color(0xFF1A1A1A)
 
 /**
- * 1:1 port of the iOS `AchievementStatsCard`: a hero-only card (unlocked / of N / unlocked)
- * with a radial glow anchored to the bottom edge. No header, no icon and no progress bar — the
- * whole card is a navigation target for the achievements list.
+ * The Awards card on the home feed.
+ *
+ * Apple leads with the badge you earned most recently rather than a raw count, so the card
+ * shows the newest award's medal and name. The whole card is a navigation target into the
+ * Awards shelf.
  */
 @Composable
 fun AchievementStatsCard(
@@ -39,73 +45,78 @@ fun AchievementStatsCard(
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val accentColor = rememberPalette().colorAt(3)
-    val progress = stats.unlocked.toFloat() / stats.total.coerceAtLeast(1)
+    val latest = stats.latestAward
 
-    // iOS drives the glow with `.repeatForever(autoreverses: true)` and modulates it through
-    // `sin(glowPhase)`. Here the card sits inside the scrolling home feed, where a per-frame
-    // animation would recompose the entire feed on every frame for a purely decorative effect, so
-    // the glow is pinned to the mid-point of the iOS range (its `animationFactor` averages 0.5).
-    // The resting look is identical to iOS; only the breathing motion is dropped.
-    val glowFillOpacity = 0.15f + (progress * 0.4f) * 0.5f
-
-    Box(
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 180.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(CardBackground)
-            .drawBehind {
-                drawRect(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            accentColor.copy(alpha = glowFillOpacity),
-                            Color.Transparent
-                        ),
-                        center = Offset(size.width / 2f, size.height),
-                        radius = 150.dp.toPx()
-                    )
-                )
-            }
             .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(
-                space = 8.dp,
-                alignment = Alignment.CenterVertically
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "${stats.unlocked}",
-                // iOS is `.font(.system(size: 72, weight: .bold))` with no line height of its own.
-                // Compose's `lineHeight` is the distance between baselines, so a value *below* the
-                // font's natural line height (~84sp for 72sp Roboto) makes the glyph overflow its
-                // own line box — which is what dragged the number off the card's optical centre.
-                // Leaving it unset restores the natural metrics iOS uses.
-                fontSize = 72.sp,
-                fontWeight = FontWeight.Bold,
-                color = accentColor,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
+                text = "Awards",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                color = Color.White
             )
-            Text(
-                text = "of ${stats.total}",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color.White.copy(alpha = 0.6f)
-                ),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Text(
-                text = "unlocked",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    color = Color.White.copy(alpha = 0.6f)
-                ),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
+
+            Box(modifier = Modifier.weight(1f))
+
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.65f),
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp, bottom = 6.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (latest != null) {
+                MedalBadge(
+                    medal = latest.medalAsset,
+                    unlocked = latest.unlocked,
+                    size = 92.dp,
+                    interactive = false
+                )
+            } else {
+                // Nothing earned yet — keep the card's silhouette rather than collapsing it.
+                MedalBadge(
+                    medal = MedalCatalog.fallback("first_solve"),
+                    unlocked = false,
+                    size = 92.dp,
+                    interactive = false
+                )
+            }
+        }
+
+        Text(
+            text = latest?.name ?: "Solve a problem to earn your first award",
+            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+            color = if (latest != null) Color.White else Color.White.copy(alpha = 0.6f),
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }

@@ -254,14 +254,34 @@ data class AchievementStatsData(
     val total: Int = 0,
     val unlocked: Int = 0,
     val percentage: String = "0%",
-    val byCategory: Map<String, Int> = emptyMap()
+    val byCategory: Map<String, Int> = emptyMap(),
+    /** Newest badge earned — drives the Awards card on the home feed. */
+    val latestAward: AchievementDetail? = null
 )
 
 // MARK: - All Achievements
 @Serializable
 data class AllAchievementsResponse(
-    val achievements: List<AchievementDetail>
+    val achievements: List<AchievementDetail>,
+    /** Award shelves (Close Your Rings, Monthly Challenges, …) with their badges attached. */
+    val sections: List<AwardSection> = emptyList(),
+    /** The challenge to lead with on the Awards hub — usually the running monthly challenge. */
+    val featured: AchievementDetail? = null
 )
+
+/** Numeric progress behind an award's ring. Absent for one-shot awards. */
+@Serializable
+data class AwardProgress(
+    val current: Int = 0,
+    val target: Int = 0,
+    val unit: String = ""
+) {
+    /** "11 of 14 days" */
+    val caption: String get() = "$current of $target $unit"
+
+    val fraction: Float
+        get() = if (target <= 0) 0f else (current.toFloat() / target).coerceIn(0f, 1f)
+}
 
 @Serializable
 data class AchievementDetail(
@@ -272,8 +292,48 @@ data class AchievementDetail(
     val icon: String? = null,
     val category: String,
     val unlocked: Boolean = false,
-    val unlockedAt: String? = null
-)
+    val unlockedAt: String? = null,
+    /** Award shelf id: rings | monthly | workouts | competitions | limited. */
+    val section: String? = null,
+    /** Artwork slug of the badge render in the Medals drawable catalogue. */
+    val medal: String? = null,
+    val sortOrder: Int? = null,
+    val progress: AwardProgress? = null
+) {
+    /**
+     * Resolved drawable name, falling back to a stable pick so a badge always renders even
+     * if the server predates the medal catalogue.
+     */
+    val medalAsset: String
+        get() = medal?.takeIf { it.isNotEmpty() } ?: MedalCatalog.fallback(key)
+}
+
+/** One shelf of the Awards hub. */
+@Serializable
+data class AwardSection(
+    val id: String,
+    val title: String,
+    val subtitle: String = "",
+    val emptyCopy: String = "",
+    val unlocked: Int = 0,
+    val total: Int = 0,
+    val achievements: List<AchievementDetail> = emptyList()
+) {
+    /**
+     * The badge the shelf card leads with: the newest unlocked one, else whatever is
+     * closest to completion, else simply the first badge on the shelf.
+     */
+    val hero: AchievementDetail?
+        get() = achievements.filter { it.unlocked }
+            .maxByOrNull { it.unlockedAt ?: "" }
+            ?: achievements.filter { it.progress != null }
+                .maxByOrNull { it.progress?.fraction ?: 0f }
+            ?: achievements.firstOrNull()
+
+    /** Small overlapping badges under the hero badge on the shelf card. */
+    val stack: List<AchievementDetail>
+        get() = achievements.filter { it.id != hero?.id }.take(3)
+}
 
 @Serializable
 data class MarkNotifiedRequest(
