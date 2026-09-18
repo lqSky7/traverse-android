@@ -1,0 +1,100 @@
+# GitLab CI/CD for traverse-android.
+#
+# This mirrors .github/workflows/android-build.yml, which stays in the repo for when
+# the GitHub Actions minutes come back. Both files are meant to stay equivalent: if
+# you change one, change the other.
+#
+# Required CI/CD variables (Settings -> CI/CD -> Variables):
+#
+#   ANDROID_KEYSTORE_BASE64   File/base64   optional but strongly recommended.
+#                                           `base64 -i release.keystore` of the real
+#                                           release keystore. Mark it Protected.
+#
+# Without ANDROID_KEYSTORE_BASE64 the job generates a throwaway keystore, exactly as
+# the GitHub workflow does. That builds a valid APK, but every run signs with a
+# different key, so the output cannot upgrade an already-installed build. Supply the
+# variable before this APK is handed to anyone.
+
+stages:
+  - build
+
+variables:
+  ANDROID_SDK_ROOT: "$CI_PROJECT_DIR/.android-sdk"
+  ANDROID_HOME: "$CI_PROJECT_DIR/.android-sdk"
+  GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle-home"
+  DEBIAN_FRONTEND: noninteractive
+  # Pinned so the SDK is downloaded once and then reused from the cache.
+  SDK_CACHE_KEY: "android-sdk-36"
+
+default:
+  # JDK 17 to match the GitHub workflow and `compileOptions` in app/build.gradle.kts.
+  image: eclipse-temurin:17-jdk
+
+.build-base:
+  stage: build
+  cache:
+    key: "$SDK_CACHE_KEY"
+    paths:
+      - .android-sdk/
+      - .gradle-home/
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq unzip curl > /dev/null
+    - |
+      if [ ! -d "$ANDROID_SDK_ROOT/platforms/android-36" ]; then
+        echo "Installing Android SDK (platform 36, build-tools 36.0.0)..."
+        mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+        curl -sSL -o /tmp/cmdline-tools.zip \
+          https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+        unzip -q /tmp/cmdline-tools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
+        mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+        yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+        "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
+          "platforms;android-36" "build-tools;36.0.0" "platform-tools" > /dev/null
+      else
+        echo "Android SDK restored from cache."
+      fi
+    - echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+    - chmod +x gradlew
+
+build-release:
+  extends: .build-base
+  script:
+    - |
+      if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+        echo "Using the keystore from ANDROID_KEYSTORE_BASE64."
+        if base64 --decode "$ANDROID_KEYSTORE_BASE64" > release.keystore 2>/dev/null; then
+          :
+        else
+          base64 -d "$ANDROID_KEYSTORE_BASE64" > release.keystore
+        fi
+      else
+        echo "ANDROID_KEYSTORE_BASE64 is not set - generating a throwaway keystore."
+        echo "The resulting APK is signed with a one-off key and cannot upgrade an installed build."
+        keytool -genkey -v -keystore release.keystore -alias traverse -keyalg RSA \
+          -keysize 2048 -validity 10000 -storepass traverse -keypass traverse \
+          -dname "CN=Traverse, OU=Mobile, O=Traverse, L=SF, S=CA, C=US"
+      fi
+    - ./gradlew assembleRelease --stacktrace --no-daemon
+  artifacts:
+    name: "traverse-android-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - app/build/outputs/apk/release/*.apk
+    expire_in: 30 days
+
+release:
+  stage: build
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs: ["build-release"]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  script:
+    - |
+      VERSION_NAME=$(grep -oE 'versionName = "[^"]+"' app/build.gradle.kts | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+      TAG_NAME="v${VERSION_NAME}-build.${CI_PIPELINE_IID}"
+      echo "Creating release ${TAG_NAME}"
+      release-cli create \
+        --name "Traverse Android ${TAG_NAME}" \
+        --tag-name "${TAG_NAME}" \
+        --ref "$CI_COMMIT_SHA" \
+        --description "Automated build from pipeline ${CI_PIPELINE_IID} (${CI_COMMIT_SHORT_SHA})." \
+        --assets-link "{\"name\":\"traverse-android.apk\",\"url\":\"${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_REF_NAME}/raw/app/build/outputs/apk/release/app-release.apk?job=build-release\"}"
