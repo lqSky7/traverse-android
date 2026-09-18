@@ -29,6 +29,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import coil.compose.AsyncImage
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.traverse.android.BuildConfig
 import com.traverse.android.data.*
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
