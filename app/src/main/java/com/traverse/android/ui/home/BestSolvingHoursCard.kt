@@ -3,7 +3,6 @@ package com.traverse.android.ui.home
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -36,17 +35,39 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.traverse.android.data.Solve
+import com.traverse.android.data.activityInstant
+import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.theme.rememberPalette
-import java.time.LocalDateTime
+import java.time.ZoneId
 
 private val CardBackground = Color(0xFF1A1A1A)
+
+/** One solve in an hour is not evidence of anything. Mirrors the iOS constant. */
+private const val MIN_SAMPLES_FOR_FASTEST_HOUR = 3
 
 /**
  * 1:1 port of the iOS `BestSolvingHoursCard`: peak / fastest hour summary plus a 24-bar
  * hourly activity histogram with labels at 12am, 6am, 12pm and 6pm.
  *
- * Palette mapping from iOS: header icon, peak hour and bars use `color(at: 6)`;
- * the fastest-hour value uses `color(at: 0)`.
+ * Rewritten because the card was reporting the wrong hours. Three separate causes, all
+ * fixed here — the same three that were fixed on iOS:
+ *
+ *  1. It bucketed on `solvedAt`. The backend stamps that once, when a problem is first
+ *     accepted, and never moves it: re-solving or revising only bumps `lastActivityAt`.
+ *     For an account that mostly revises, the histogram was therefore describing the day
+ *     each problem was first met, which can be months away from when the work actually
+ *     happened. It now buckets on [activityInstant].
+ *
+ *  2. It parsed timestamps with `LocalDateTime.parse(raw.take(19))`, which silently drops a
+ *     numeric UTC offset. Rows the backend stamped with `+05:30` landed in the wrong hour.
+ *     Parsing now goes through `ActivityTimestamp`.
+ *
+ *  3. With no activity at all, `maxByOrNull` returned index 0 and the card cheerfully
+ *     announced "12am" as your peak hour. Empty is now empty, and "fastest hour" needs a
+ *     minimum sample before it is allowed on screen.
+ *
+ * Palette mapping from iOS: header icon, peak hour and bars use `color(at: 6)`; the
+ * fastest-hour value uses `color(at: 0)`.
  */
 @Composable
 fun BestSolvingHoursCard(
@@ -60,7 +81,7 @@ fun BestSolvingHoursCard(
     val hourCounts = remember(solves) {
         val counts = IntArray(24)
         solves.forEach { solve ->
-            parseHour(solve.solvedAt)?.let { hour -> counts[hour]++ }
+            hourOf(solve)?.let { hour -> counts[hour]++ }
         }
         counts
     }
@@ -70,11 +91,10 @@ fun BestSolvingHoursCard(
         val counts = IntArray(24)
         solves.forEach { solve ->
             val time = solve.submission.timeTaken
-            if (time != null && time > 0) {
-                parseHour(solve.solvedAt)?.let { hour ->
-                    totals[hour] += time.toDouble()
-                    counts[hour]++
-                }
+            val hour = hourOf(solve)
+            if (time != null && time > 0 && hour != null) {
+                totals[hour] += time.toDouble()
+                counts[hour]++
             }
         }
         (0 until 24).map { hour ->
@@ -82,10 +102,15 @@ fun BestSolvingHoursCard(
         }
     }
 
-    val maxCount = hourCounts.maxOrNull()?.coerceAtLeast(1) ?: 1
-    val peakHour = hourCounts.indices.maxByOrNull { hourCounts[it] } ?: 0
-    val fastestHourIndex = hourAverages.indices
-        .filter { hourAverages[it] > 0.0 }
+    val maxCount = (hourCounts.maxOrNull() ?: 0).coerceAtLeast(1)
+
+    /** Earliest hour with the most solves, or `null` when nothing is recorded. */
+    val peakHour = hourCounts.indices
+        .filter { hourCounts[it] > 0 }
+        .maxByOrNull { hourCounts[it] }
+
+    val fastestHour = hourAverages.indices
+        .filter { hourCounts[it] >= MIN_SAMPLES_FOR_FASTEST_HOUR && hourAverages[it] > 0.0 }
         .minByOrNull { hourAverages[it] }
 
     val textMeasurer = rememberTextMeasurer()
@@ -118,94 +143,102 @@ fun BestSolvingHoursCard(
 
         HorizontalDivider(color = Color.Gray.copy(alpha = 0.3f))
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column {
-                Text(
-                    text = formatHour(peakHour),
-                    fontSize = 32.sp,
-                    lineHeight = 36.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = hoursColor
-                )
-                Text(
-                    text = "Peak Hour",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        color = Color.White.copy(alpha = 0.6f)
-                    )
-                )
-            }
-
-            if (fastestHourIndex != null) {
-                Spacer(modifier = Modifier.width(20.dp))
-                VerticalDivider(
-                    modifier = Modifier.height(50.dp),
-                    color = Color.White.copy(alpha = 0.15f)
-                )
-                Spacer(modifier = Modifier.width(20.dp))
+        val peak = peakHour
+        if (peak == null) {
+            EmptyStateView(
+                icon = Icons.Default.Schedule,
+                title = "No solving activity recorded yet",
+                message = "Once Traverse has seen you work, your peak and fastest hours show up here.",
+                compact = true
+            )
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Column {
                     Text(
-                        text = formatHour(fastestHourIndex),
-                        fontSize = 24.sp,
-                        lineHeight = 28.sp,
+                        text = formatHour(peak),
+                        fontSize = 32.sp,
+                        lineHeight = 36.sp,
                         fontWeight = FontWeight.Bold,
-                        color = fastestColor
+                        color = hoursColor
                     )
                     Text(
-                        text = "Fastest (${formatDuration(hourAverages[fastestHourIndex])})",
+                        text = "Peak Hour",
                         style = MaterialTheme.typography.labelSmall.copy(
                             color = Color.White.copy(alpha = 0.6f)
                         )
                     )
                 }
-            }
 
-            Spacer(modifier = Modifier.weight(1f))
-        }
-
-        Canvas(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(80.dp)
-        ) {
-            val xAxisHeight = 16.dp.toPx()
-            val plotHeight = (size.height - xAxisHeight).coerceAtLeast(1f)
-            val slot = size.width / 24f
-            val barWidth = (slot - 2.dp.toPx()).coerceAtLeast(1f)
-
-            for (hour in 0 until 24) {
-                val count = hourCounts[hour]
-                if (count <= 0) continue
-                val barHeight = (count.toFloat() / maxCount) * plotHeight
-                val left = slot * hour + (slot - barWidth) / 2f
-                drawRoundRect(
-                    color = if (hour == peakHour) hoursColor else hoursColor.copy(alpha = 0.4f),
-                    topLeft = Offset(left, plotHeight - barHeight),
-                    size = Size(barWidth, barHeight),
-                    cornerRadius = CornerRadius(2.dp.toPx())
-                )
-            }
-
-            // X axis labels at 0, 6, 12 and 18 — matching the iOS AxisMarks values.
-            listOf(0, 6, 12, 18).forEach { hour ->
-                val layout = textMeasurer.measure(formatHour(hour), axisStyle)
-                val centerX = slot * (hour + 0.5f)
-                drawText(
-                    textLayoutResult = layout,
-                    topLeft = Offset(
-                        x = centerX - layout.size.width / 2f,
-                        y = plotHeight + 4.dp.toPx()
+                if (fastestHour != null) {
+                    Spacer(modifier = Modifier.width(20.dp))
+                    VerticalDivider(
+                        modifier = Modifier.height(50.dp),
+                        color = Color.White.copy(alpha = 0.15f)
                     )
-                )
+                    Spacer(modifier = Modifier.width(20.dp))
+                    Column {
+                        Text(
+                            text = formatHour(fastestHour),
+                            fontSize = 24.sp,
+                            lineHeight = 28.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = fastestColor
+                        )
+                        Text(
+                            text = "Fastest (${formatDuration(hourAverages[fastestHour])})",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = Color.White.copy(alpha = 0.6f)
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+            }
+
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+            ) {
+                val xAxisHeight = 16.dp.toPx()
+                val plotHeight = (size.height - xAxisHeight).coerceAtLeast(1f)
+                val slot = size.width / 24f
+                val barWidth = (slot - 2.dp.toPx()).coerceAtLeast(1f)
+
+                for (hour in 0 until 24) {
+                    val count = hourCounts[hour]
+                    if (count <= 0) continue
+                    val barHeight = (count.toFloat() / maxCount) * plotHeight
+                    val left = slot * hour + (slot - barWidth) / 2f
+                    drawRoundRect(
+                        color = if (hour == peak) hoursColor else hoursColor.copy(alpha = 0.4f),
+                        topLeft = Offset(left, plotHeight - barHeight),
+                        size = Size(barWidth, barHeight),
+                        cornerRadius = CornerRadius(2.dp.toPx())
+                    )
+                }
+
+                // X axis labels at 0, 6, 12 and 18 — matching the iOS AxisMarks values.
+                listOf(0, 6, 12, 18).forEach { hour ->
+                    val layout = textMeasurer.measure(formatHour(hour), axisStyle)
+                    val centerX = slot * (hour + 0.5f)
+                    drawText(
+                        textLayoutResult = layout,
+                        topLeft = Offset(
+                            x = centerX - layout.size.width / 2f,
+                            y = plotHeight + 4.dp.toPx()
+                        )
+                    )
+                }
             }
         }
     }
 }
 
-private fun parseHour(raw: String): Int? = try {
-    LocalDateTime.parse(raw.take(19)).hour
-} catch (_: Exception) {
-    null
-}
+/** Local hour of a solve, read from the *activity* timestamp rather than the original solve. */
+private fun hourOf(solve: Solve): Int? =
+    solve.activityInstant?.atZone(ZoneId.systemDefault())?.hour
 
 private fun formatHour(hour: Int): String = when {
     hour == 0 -> "12am"

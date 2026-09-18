@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.traverse.android.data.RevisionStatsResponse
+import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import com.traverse.android.ui.theme.RingiftFamily
@@ -567,29 +568,11 @@ private fun EmptyRevisionsState(modifier: Modifier = Modifier) {
         modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.CalendarMonth,
-                contentDescription = null,
-                tint = Color.White.copy(alpha = 0.6f),
-                modifier = Modifier.size(60.dp)
-            )
-            Text(
-                text = "No Revisions Scheduled",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White
-                )
-            )
-            Text(
-                text = "Complete problems to schedule revisions",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color.White.copy(alpha = 0.6f)
-                )
-            )
-        }
+        EmptyStateView(
+            icon = Icons.Default.CalendarMonth,
+            title = "No Revisions Scheduled",
+            message = "Revisions are scheduled for you once you start solving problems. " +
+                "Install the browser extension and your first solve sets the schedule up."
+        )
     }
 }

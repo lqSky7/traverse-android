@@ -35,6 +35,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.traverse.android.ui.components.GettingStartedEmptyState
 import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.viewmodel.HomeUiState
@@ -149,10 +150,13 @@ fun HomeScreen(
 /**
  * 1:1 port of the iOS `HomeView` body.
  *
- * Layout order (outer `VStack(spacing: 20)` + `.padding()`):
- *  1. `HStack(spacing: 12)` — StreakCard + RevisionScoreCard
- *  2. MainStatsCard
- *  3. `VStack(spacing: 16)` — achievements/insights row, difficulty/heatmap row,
+ * Layout order (outer `Column(spacedBy(20.dp))` + `.padding(16.dp)`):
+ *  1. A brand-new account (no solves at all) gets `GettingStartedEmptyState` instead of the
+ *     feed — every card below is built from solve history, so there would be nothing to draw.
+ *  2. `StreakCard` full width
+ *  3. Revision card
+ *  4. MainStatsCard
+ *  5. `Column(spacedBy(16.dp))` — achievements/insights row, difficulty/heatmap row,
  *     mistake tags, solving hours, recent solves, performance metrics, tries distribution.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -212,31 +216,43 @@ private fun HomeMainContent(
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 val errorMessage = uiState.errorMessage
+                val userStats = uiState.userStats
                 if (errorMessage != null) {
                     ErrorView(message = errorMessage, onRetry = onRefresh)
+                } else if (userStats != null && userStats.stats.totalSolves == 0) {
+                    // A brand-new account. Every card below is built from solve history, so
+                    // without this branch the feed is a blank black screen with a date on it
+                    // — which reads as a broken app rather than an empty one.
+                    GettingStartedEmptyState(
+                        title = "Your feed fills in from your first solve",
+                        message = "Traverse reads your practice from the browser and reports it " +
+                            "back here. There is nothing to show until then."
+                    )
                 } else {
                     val solves = uiState.recentSolves
-                    val userStats = uiState.userStats
                     val solveStats = uiState.solveStats
                     val achievementStats = uiState.achievementStats
 
-                    // MARK: Top row — Streak Card & Revision Score Card side by side
+                    // MARK: Streak — full width.
+                    //
+                    // It used to share a row with the revision score card. On iOS that card
+                    // became a full-width training-load tile, so the streak takes the whole
+                    // row instead of being squeezed into half of it, and its contents are
+                    // centred to suit.
                     if (userStats != null) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            StreakCard(
-                                streak = userStats.stats.currentStreak,
-                                maxStreak = userStats.stats.totalStreakDays,
-                                modifier = Modifier.weight(1f)
-                            )
+                        StreakCard(
+                            streak = userStats.stats.currentStreak,
+                            // `longestStreak` is the real "best" figure. The fallback only
+                            // applies to a cached payload written before the server started
+                            // sending it — `totalStreakDays` is a running total, so it is
+                            // wrong here, just not wrong-by-a-lot.
+                            maxStreak = userStats.stats.longestStreak
+                                ?: userStats.stats.totalStreakDays
+                        )
 
-                            RevisionScoreCard(
-                                score = uiState.revisionScore?.score ?: 100,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
+                        // Still the old thinking-orb score card. iOS replaced this with the
+                        // full-width revision-load tile; porting that is the next piece.
+                        RevisionScoreCard(score = uiState.revisionScore?.score ?: 100)
                     }
 
                     // MARK: Main Stats Card

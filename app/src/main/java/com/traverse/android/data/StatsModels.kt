@@ -17,6 +17,16 @@ data class UserStatsData(
     val totalSolves: Int = 0,
     val totalSubmissions: Int = 0,
     val totalStreakDays: Int = 0,
+    /**
+     * Longest unbroken run of active days — the figure the streak card labels "BEST".
+     *
+     * [totalStreakDays] is a running total that keeps climbing across breaks, so it can
+     * never answer "what is my best streak"; the streak card used to show it under that
+     * label. Nullable because a cached payload written before the server started sending
+     * it will not have the key, and this is decoded with `ignoreUnknownKeys` rather than
+     * defaulting on missing fields.
+     */
+    val longestStreak: Int? = null,
     val problemsByDifficulty: ProblemsByDifficulty = ProblemsByDifficulty(),
     val availableFreezes: Int? = null
 )
@@ -60,6 +70,8 @@ data class SolveStatsData(
     val totalSolves: Int = 0,
     val totalXp: Int = 0,
     val totalStreakDays: Int = 0,
+    /** See [UserStatsData.longestStreak]. */
+    val longestStreak: Int? = null,
     val byDifficulty: ProblemsByDifficulty = ProblemsByDifficulty(),
     val byPlatform: Map<String, Int> = emptyMap()
 )
@@ -87,6 +99,12 @@ data class Solve(
     val id: Int,
     val xpAwarded: Int = 0,
     val solvedAt: String,
+    /**
+     * Bumped by the backend on every later accepted submission for the same problem.
+     * `solvedAt` is stamped once and never moves. Optional because caches persisted by
+     * older builds of the app predate this field.
+     */
+    val lastActivityAt: String? = null,
     val aiAnalysis: String? = null,
     val mistakeTags: List<String>? = null,
     val cognitiveTier: Int? = null,
