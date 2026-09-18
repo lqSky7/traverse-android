@@ -279,14 +279,49 @@ interface TraverseApi {
     
     // MARK: - Subscription API
     
-    @GET("subscription/status")
+    @GET("users/me/subscription")
     suspend fun getSubscriptionStatus(): SubscriptionStatusResponse
     
-    @POST("subscription/create-order")
+    @POST("users/me/subscription/create-order")
     suspend fun createSubscriptionOrder(@Body request: CreateSubscriptionOrderRequest): CreateSubscriptionOrderResponse
     
-    @POST("subscription/verify")
+    @POST("users/me/subscription/verify")
     suspend fun verifySubscription(@Body request: VerifySubscriptionRequest): VerifySubscriptionResponse
+
+    // MARK: - Notifications API
+    @GET("notifications")
+    suspend fun getNotifications(
+        @Query("limit") limit: Int? = null,
+        @Query("cursor") cursor: Int? = null
+    ): NotificationsResponse
+
+    @GET("notifications/unread-count")
+    suspend fun getUnreadNotificationCount(): UnreadCountResponse
+
+    @POST("notifications/{id}/read")
+    suspend fun markNotificationRead(@retrofit2.http.Path("id") id: Int): SimpleSuccessResponse
+
+    @POST("notifications/read-all")
+    suspend fun markAllNotificationsRead(): SimpleSuccessResponse
+
+    @GET("notifications/preferences")
+    suspend fun getNotificationPreferences(): NotificationPreferencesResponse
+
+    @retrofit2.http.PATCH("notifications/preferences")
+    suspend fun updateNotificationPreferences(@Body body: UpdateNotificationPreferencesRequest): NotificationPreferencesResponse
+
+    @POST("notifications/push-token")
+    suspend fun registerPushToken(@Body body: RegisterPushTokenRequest): RegisterPushTokenResponse
+
+    @retrofit2.http.HTTP(method = "DELETE", path = "notifications/push-token", hasBody = true)
+    suspend fun unregisterPushToken(@Body body: UnregisterPushTokenRequest): SimpleSuccessResponse
+
+    // MARK: - Rings API
+    @GET("rings")
+    suspend fun getRings(): RingsResponse
+
+    @retrofit2.http.PATCH("rings/goals")
+    suspend fun updateRingGoals(@Body body: UpdateRingGoalsRequest): UpdateRingGoalsResponse
 }
 
 sealed class NetworkResult<out T> {
@@ -1032,6 +1067,112 @@ class NetworkService private constructor(context: Context) {
                     razorpaySignature = signature
                 )
             )
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+
+    // MARK: - Notifications API
+    suspend fun getNotifications(limit: Int? = null, cursor: Int? = null): NetworkResult<NotificationsResponse> {
+        return try {
+            val response = api.getNotifications(limit, cursor)
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+
+    suspend fun getUnreadNotificationCount(): NetworkResult<UnreadCountResponse> {
+        return try {
+            val response = api.getUnreadNotificationCount()
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+
+    suspend fun markNotificationRead(id: Int): NetworkResult<SimpleSuccessResponse> {
+        return try {
+            val response = api.markNotificationRead(id)
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+
+    suspend fun markAllNotificationsRead(): NetworkResult<SimpleSuccessResponse> {
+        return try {
+            val response = api.markAllNotificationsRead()
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+
+    suspend fun getNotificationPreferences(): NetworkResult<NotificationPreferencesResponse> {
+        return try {
+            val response = api.getNotificationPreferences()
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+
+    suspend fun updateNotificationPreferences(
+        types: List<UpdateTypePreference>? = null,
+        quietHours: QuietHours? = null
+    ): NetworkResult<NotificationPreferencesResponse> {
+        return try {
+            val response = api.updateNotificationPreferences(
+                UpdateNotificationPreferencesRequest(types = types, quietHours = quietHours)
+            )
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+
+    suspend fun registerPushToken(
+        token: String,
+        platform: String = "android",
+        deviceId: String? = null
+    ): NetworkResult<RegisterPushTokenResponse> {
+        return try {
+            val response = api.registerPushToken(
+                RegisterPushTokenRequest(token = token, platform = platform, deviceId = deviceId)
+            )
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+
+    suspend fun unregisterPushToken(token: String): NetworkResult<SimpleSuccessResponse> {
+        return try {
+            val response = api.unregisterPushToken(UnregisterPushTokenRequest(token))
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+
+    suspend fun deletePushToken(token: String, platform: String = "android"): NetworkResult<SimpleSuccessResponse> =
+        unregisterPushToken(token)
+
+    // MARK: - Rings API
+    suspend fun getRings(): NetworkResult<RingsResponse> {
+        return try {
+            val response = api.getRings()
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+
+    suspend fun updateRingGoals(solveGoal: Int, revisionGoal: Int): NetworkResult<UpdateRingGoalsResponse> {
+        return try {
+            val response = api.updateRingGoals(UpdateRingGoalsRequest(solveGoal, revisionGoal))
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))

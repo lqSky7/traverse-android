@@ -30,9 +30,15 @@ class CacheManager private constructor(context: Context) {
         const val KEY_ACHIEVEMENT_STATS = "achievement_stats"
         const val KEY_ALL_ACHIEVEMENTS = "all_achievements"
         const val KEY_FREEZE_DATES = "freeze_dates"
+        const val KEY_RINGS = "rings"
         const val KEY_REVISION_GROUPS = "revision_groups"
         const val KEY_REVISION_STATS = "revision_stats"
         const val KEY_REVISION_MODE = "revision_mode"
+        
+        // Notifications cache keys
+        const val KEY_NOTIFICATIONS = "notifications"
+        const val KEY_NOTIFICATION_PREFS = "notification_prefs"
+        const val KEY_PUSH_TOKEN = "push_token"
         
         // Friends cache keys
         const val KEY_FRIENDS = "friends"
@@ -111,6 +117,13 @@ class CacheManager private constructor(context: Context) {
     
     fun cacheFreezeDates(data: FreezeDatesResponse) = saveToCache(KEY_FREEZE_DATES, data)
     fun getFreezeDates(): FreezeDatesResponse? = getFromCache(KEY_FREEZE_DATES, TTL_LONG)
+
+    fun cacheRings(data: RingProgress) = saveToCache(KEY_RINGS, data)
+    fun getRings(): RingProgress? {
+        val cached = getFromCache<RingProgress>(KEY_RINGS, TTL_SHORT) ?: return null
+        val today = java.time.LocalDate.now().toString()
+        return if (cached.date == today) cached else null
+    }
     
     // MARK: - Revisions Tab Cache
     
@@ -237,6 +250,20 @@ class CacheManager private constructor(context: Context) {
             .apply()
     }
     
+    // MARK: - Notifications Cache
+    
+    fun cacheNotifications(data: NotificationsResponse) = saveToCache(KEY_NOTIFICATIONS, data)
+    fun getNotifications(): NotificationsResponse? = getFromCache(KEY_NOTIFICATIONS, TTL_SHORT)
+    
+    fun cacheNotificationPrefs(data: NotificationPreferences) = saveToCache(KEY_NOTIFICATION_PREFS, data)
+    fun getNotificationPrefs(): NotificationPreferences? = getFromCache(KEY_NOTIFICATION_PREFS, TTL_LONG)
+    
+    fun cachePushToken(token: String) {
+        prefs.edit().putString(getKey(KEY_PUSH_TOKEN), token).apply()
+    }
+    fun getPushToken(): String? = prefs.getString(getKey(KEY_PUSH_TOKEN), null)
+    fun clearPushToken() = clearCache(KEY_PUSH_TOKEN)
+
     // MARK: - Utility
     
     fun clearCache(key: String) {
@@ -260,8 +287,14 @@ class CacheManager private constructor(context: Context) {
     }
     
     fun invalidateHomeCache() {
-        listOf(KEY_USER_STATS, KEY_SOLVE_STATS, KEY_RECENT_SOLVES, KEY_ACHIEVEMENT_STATS, KEY_FREEZE_DATES)
-            .forEach { clearCache(it) }
+        listOf(
+            KEY_USER_STATS,
+            KEY_SOLVE_STATS,
+            KEY_RECENT_SOLVES,
+            KEY_ACHIEVEMENT_STATS,
+            KEY_FREEZE_DATES,
+            KEY_RINGS
+        ).forEach { clearCache(it) }
     }
     
     fun invalidateRevisionCache() {
