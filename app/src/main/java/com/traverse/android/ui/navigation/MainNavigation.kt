@@ -138,18 +138,19 @@ fun MainNavigation(
     // iOS `MainTabView` applies `.tint(paletteManager.selectedPalette.primary)` to the TabView,
     // which colours the selected tab item and its selection indicator.
     val palette = rememberPalette()
-    val unreadCount by notificationsViewModel.unreadCount.collectAsStateWithLifecycle()
+    val notifUiState by notificationsViewModel.uiState.collectAsStateWithLifecycle()
+    val unreadCount = notifUiState.unreadCount
 
     // Handle deep link routing from notifications
     val pendingTab by NotificationRouter.pendingTab.collectAsStateWithLifecycle()
     LaunchedEffect(pendingTab) {
-        pendingTab?.let { tabStr ->
-            val targetRoute = when (tabStr.lowercase()) {
-                "home" -> MainRoute.Home.route
-                "problems" -> MainRoute.Problems.route
-                "revisions" -> MainRoute.Revisions.route
-                "friends" -> MainRoute.Friends.route
-                "settings" -> MainRoute.Settings.route
+        pendingTab?.let { tabIndex ->
+            val targetRoute = when (tabIndex) {
+                0 -> MainRoute.Home.route
+                1 -> MainRoute.Problems.route
+                2 -> MainRoute.Revisions.route
+                3 -> MainRoute.Friends.route
+                4 -> MainRoute.Settings.route
                 else -> null
             }
             if (targetRoute != null) {

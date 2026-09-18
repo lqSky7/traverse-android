@@ -37,6 +37,9 @@ import com.traverse.android.ui.components.GettingStartedEmptyState
 import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.viewmodel.HomeUiState
+import com.traverse.android.viewmodel.HomeViewModel
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Badge
