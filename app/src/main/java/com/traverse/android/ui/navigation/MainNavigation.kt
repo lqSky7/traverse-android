@@ -38,8 +38,13 @@ import com.traverse.android.ui.problems.ProblemsScreen
 import com.traverse.android.ui.revisions.RevisionsScreen
 import com.traverse.android.ui.settings.SettingsScreen
 import com.traverse.android.ui.theme.rememberPalette
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.traverse.android.data.NotificationRouter
+import com.traverse.android.ui.components.bottombar.Badge
 import com.traverse.android.viewmodel.FriendsViewModel
 import com.traverse.android.viewmodel.HomeViewModel
+import com.traverse.android.viewmodel.NotificationsViewModel
 import com.traverse.android.viewmodel.ProblemsViewModel
 import com.traverse.android.viewmodel.RevisionsViewModel
 
@@ -124,6 +129,7 @@ fun MainNavigation(
     revisionsViewModel: RevisionsViewModel,
     friendsViewModel: FriendsViewModel,
     onLogout: () -> Unit,
+    notificationsViewModel: NotificationsViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
@@ -132,20 +138,47 @@ fun MainNavigation(
     // iOS `MainTabView` applies `.tint(paletteManager.selectedPalette.primary)` to the TabView,
     // which colours the selected tab item and its selection indicator.
     val palette = rememberPalette()
+    val unreadCount by notificationsViewModel.unreadCount.collectAsStateWithLifecycle()
+
+    // Handle deep link routing from notifications
+    val pendingTab by NotificationRouter.pendingTab.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingTab) {
+        pendingTab?.let { tabStr ->
+            val targetRoute = when (tabStr.lowercase()) {
+                "home" -> MainRoute.Home.route
+                "problems" -> MainRoute.Problems.route
+                "revisions" -> MainRoute.Revisions.route
+                "friends" -> MainRoute.Friends.route
+                "settings" -> MainRoute.Settings.route
+                else -> null
+            }
+            if (targetRoute != null) {
+                navController.navigate(targetRoute) {
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            }
+            NotificationRouter.pendingTab.value = null
+        }
+    }
 
     // Which of the five root destinations is currently on screen. Drives the animated indicator.
     val selectedIndex = tabs
         .indexOfFirst { tab -> currentDestination?.hierarchy?.any { it.route == tab.route } == true }
         .coerceAtLeast(0)
 
-    // The bar items never change, so build them once. Icons mirror the iOS tab bar's
+    // The bar items with dynamic unread badge on the Home tab. Icons mirror the iOS tab bar's
     // filled-when-selected / outlined-when-idle pairing.
-    val barItems = remember {
-        tabs.map { tab ->
+    val barItems = remember(unreadCount) {
+        tabs.mapIndexed { index, tab ->
             BottomBarItem(
                 icon = IconSource.Vector(tab.unselectedIcon),
                 selectedIcon = IconSource.Vector(tab.selectedIcon),
-                label = tab.label
+                label = tab.label,
+                badge = if (index == 0 && unreadCount > 0) Badge.Count(unreadCount) else null
             )
         }
     }
@@ -170,7 +203,11 @@ fun MainNavigation(
             popExitTransition = { ExitTransition.None }
         ) {
             composable(MainRoute.Home.route) {
-                HomeScreen(viewModel = homeViewModel)
+                HomeScreen(
+                    viewModel = homeViewModel,
+                    notificationsViewModel = notificationsViewModel,
+                    unreadCount = unreadCount
+                )
             }
             composable(MainRoute.Problems.route) {
                 ProblemsScreen(viewModel = problemsViewModel)
@@ -182,7 +219,10 @@ fun MainNavigation(
                 FriendsScreen(viewModel = friendsViewModel)
             }
             composable(MainRoute.Settings.route) {
-                SettingsScreen(onLogout = onLogout)
+                SettingsScreen(
+                    onLogout = onLogout,
+                    notificationsViewModel = notificationsViewModel
+                )
             }
         }
 

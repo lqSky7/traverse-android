@@ -27,8 +27,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.traverse.android.BuildConfig
@@ -39,6 +37,8 @@ import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import com.traverse.android.ui.theme.ColorPaletteManager
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.ui.theme.rememberPalette
+import com.traverse.android.viewmodel.NotificationsViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 
 // SwiftUI system colours, used wherever iOS reaches for a literal rather than the palette
@@ -52,6 +52,7 @@ private val CardBackground = Color(0xFF1A1A1A)
 @Composable
 fun SettingsScreen(
     onLogout: () -> Unit,
+    notificationsViewModel: NotificationsViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -72,6 +73,7 @@ fun SettingsScreen(
     var showDeleteAccountDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showFreezeShopSheet by remember { mutableStateOf(false) }
+    var showNotificationSettingsSheet by remember { mutableStateOf(false) }
     var showCheckUpdatesDialog by remember { mutableStateOf(false) }
     var showGeminiKeyDialog by remember { mutableStateOf(false) }
     var updateCheckMessage by remember { mutableStateOf<String?>(null) }
@@ -151,6 +153,7 @@ fun SettingsScreen(
                 onCheckUpdates = { showCheckUpdatesDialog = true },
                 onDeleteAccount = { showDeleteAccountDialog = true },
                 onFreezeShop = { showFreezeShopSheet = true },
+                onNotificationSettings = { showNotificationSettingsSheet = true },
                 onCalendarSubscription = {
                     user?.let { u ->
                         val url = networkService.calendarFeedURL(u.username, u.calendarToken ?: "")
@@ -442,6 +445,14 @@ fun SettingsScreen(
     if (showHuePicker) {
         HuePickerSheet(onDismiss = { showHuePicker = false })
     }
+
+    // Notification Settings Sheet
+    if (showNotificationSettingsSheet) {
+        NotificationSettingsSheet(
+            viewModel = notificationsViewModel,
+            onDismiss = { showNotificationSettingsSheet = false }
+        )
+    }
     
     // Error Snackbar
     errorMessage?.let { error ->
@@ -595,6 +606,7 @@ private fun BentoSettingsGrid(
     onCheckUpdates: () -> Unit,
     onDeleteAccount: () -> Unit,
     onFreezeShop: () -> Unit,
+    onNotificationSettings: () -> Unit,
     onCalendarSubscription: () -> Unit,
     onGeminiApiKey: () -> Unit,
     onImportPalette: () -> Unit,
@@ -689,7 +701,18 @@ private fun BentoSettingsGrid(
 
             HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
 
-            // Row 5: Calendar Subscription (full width)
+            // Row 5: Notifications (full width)
+            BentoCellWide(
+                icon = Icons.Default.Notifications,
+                iconColor = palette.colorAt(2),
+                title = "Notifications",
+                subtitle = "Inbox, alerts and quiet hours",
+                onClick = onNotificationSettings
+            )
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+
+            // Row 6: Calendar Subscription (full width)
             BentoCellWide(
                 icon = Icons.Default.CalendarMonth,
                 iconColor = palette.colorAt(1),

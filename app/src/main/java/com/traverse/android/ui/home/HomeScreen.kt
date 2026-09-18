@@ -37,15 +37,18 @@ import com.traverse.android.ui.components.GettingStartedEmptyState
 import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.viewmodel.HomeUiState
-import com.traverse.android.viewmodel.HomeViewModel
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.traverse.android.viewmodel.NotificationsViewModel
 
 /**
  * Home navigation graph. Mirrors the iOS `HomeView` `NavigationStack` destinations.
- *
- * Note: iOS has **no** streak destination — tapping the streak card does nothing, so there is
- * deliberately no `STREAK` route here.
  */
 object HomeDestinations {
     const val HOME = "home_main"
@@ -65,10 +68,14 @@ object HomeDestinations {
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
+    notificationsViewModel: NotificationsViewModel? = null,
+    unreadCount: Int = 0,
+    onOpenNotifications: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val navController = rememberNavController()
+    var showNotificationsSheet by remember { mutableStateOf(false) }
 
     NavHost(
         navController = navController,
@@ -81,6 +88,15 @@ fun HomeScreen(
         composable(HomeDestinations.HOME) {
             HomeMainContent(
                 uiState = uiState,
+                viewModel = viewModel,
+                unreadCount = unreadCount,
+                onOpenNotifications = {
+                    if (onOpenNotifications != null) {
+                        onOpenNotifications()
+                    } else {
+                        showNotificationsSheet = true
+                    }
+                },
                 onRefresh = { viewModel.refresh() },
                 onNavigateToAchievements = { navController.navigate(HomeDestinations.ALL_ACHIEVEMENTS) },
                 onNavigateToActivity = { navController.navigate(HomeDestinations.ACTIVITY) },
@@ -156,6 +172,13 @@ fun HomeScreen(
             )
         }
     }
+
+    if (showNotificationsSheet && notificationsViewModel != null) {
+        NotificationsSheet(
+            viewModel = notificationsViewModel,
+            onDismiss = { showNotificationsSheet = false }
+        )
+    }
 }
 
 /**
@@ -180,6 +203,9 @@ fun HomeScreen(
 @Composable
 private fun HomeMainContent(
     uiState: HomeUiState,
+    viewModel: HomeViewModel,
+    unreadCount: Int,
+    onOpenNotifications: () -> Unit,
     onRefresh: () -> Unit,
     onNavigateToAchievements: () -> Unit,
     onNavigateToActivity: () -> Unit,
@@ -191,6 +217,7 @@ private fun HomeMainContent(
         // iOS uses `formatter.dateFormat = "EEEE, M"` -> e.g. "Saturday, 9"
         LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, M"))
     }
+    var showRingGoalsSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = Color.Black,
@@ -207,6 +234,25 @@ private fun HomeMainContent(
                             fontFamily = RingiftFamily
                         )
                     )
+                },
+                actions = {
+                    BadgedBox(
+                        badge = {
+                            if (unreadCount > 0) {
+                                Badge {
+                                    Text(if (unreadCount > 9) "9+" else "$unreadCount")
+                                }
+                            }
+                        }
+                    ) {
+                        IconButton(onClick = onOpenNotifications) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Notifications",
+                                tint = Color.White
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Black,
@@ -252,9 +298,8 @@ private fun HomeMainContent(
 
                     // MARK: Streak — full width.
                     //
-                    // It used to share a row with the revision score card. That card is a
-                    // full-width training-load tile now, so the streak takes the whole row instead
-                    // of being squeezed into half of it, and its contents are centred to suit.
+                    // Left-aligned layout with streak count on the left, ring legend and activity
+                    // rings on the right. Tapping the card opens the ring goals customisation sheet.
                     if (userStats != null) {
                         StreakCard(
                             streak = userStats.stats.currentStreak,
@@ -263,7 +308,9 @@ private fun HomeMainContent(
                             // `totalStreakDays` is a running total, so it is wrong here, just not
                             // wrong-by-a-lot.
                             maxStreak = userStats.stats.longestStreak
-                                ?: userStats.stats.totalStreakDays
+                                ?: userStats.stats.totalStreakDays,
+                            rings = uiState.rings,
+                            onRingsClick = { showRingGoalsSheet = true }
                         )
 
                         // MARK: Revision Load — full-width tile, taps through to the trend screen.
@@ -345,5 +392,15 @@ private fun HomeMainContent(
                 }
             }
         }
+    }
+
+    if (showRingGoalsSheet) {
+        RingGoalsSheet(
+            rings = uiState.rings,
+            onDismiss = { showRingGoalsSheet = false },
+            onSaveGoals = { solveGoal, revisionGoal ->
+                viewModel.updateRingGoals(solveGoal, revisionGoal)
+            }
+        )
     }
 }
