@@ -61,6 +61,19 @@ object NotificationRouter {
             pendingTab.value = dest
         }
     }
+
+    /**
+     * Routes from a push tap. The backend sends `notificationId` and `type` in the
+     * FCM `data` payload (not `tab` or `url`), so we resolve from `type` first,
+     * then fall back to `url` if present.
+     */
+    fun routeTo(tab: String? = null, url: String? = null, type: String? = null) {
+        val dest = destinationForLink(url)
+            ?: destinationForType(type ?: tab ?: "")
+        if (dest != null) {
+            pendingTab.value = dest
+        }
+    }
 }
 
 /**

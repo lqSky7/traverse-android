@@ -128,8 +128,9 @@ class MainActivity : ComponentActivity() {
         if (intent == null) return
         val tab = intent.getStringExtra("tab")
         val url = intent.getStringExtra("url")
-        if (!tab.isNullOrBlank() || !url.isNullOrBlank()) {
-            NotificationRouter.routeTo(tab, url)
+        val type = intent.getStringExtra("type")
+        if (!tab.isNullOrBlank() || !url.isNullOrBlank() || !type.isNullOrBlank()) {
+            NotificationRouter.routeTo(tab = tab, url = url, type = type)
         }
     }
 

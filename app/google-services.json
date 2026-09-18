@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "719711394249",
+    "project_id": "traverse-e82ec",
+    "storage_bucket": "traverse-e82ec.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:719711394249:android:85d83e7c879cf3c046f018",
+        "android_client_info": {
+          "package_name": "com.traverse.android"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBxnTglBgmC1NriVy4JgawhtylLI1y8tmg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -74,6 +74,18 @@ build-release:
           -keysize 2048 -validity 10000 -storepass traverse -keypass traverse \
           -dname "CN=Traverse, OU=Mobile, O=Traverse, L=SF, S=CA, C=US"
       fi
+    - |
+      if [ -n "${GOOGLE_SERVICES_BASE64:-}" ]; then
+        echo "Using google-services.json from GOOGLE_SERVICES_BASE64."
+        if base64 --decode "$GOOGLE_SERVICES_BASE64" > app/google-services.json 2>/dev/null; then
+          :
+        else
+          base64 -d "$GOOGLE_SERVICES_BASE64" > app/google-services.json
+        fi
+      elif [ -n "${GOOGLE_SERVICES_JSON:-}" ]; then
+        echo "Using google-services.json from GOOGLE_SERVICES_JSON."
+        echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
+      fi
     - ./gradlew assembleRelease --stacktrace --no-daemon
   artifacts:
     name: "traverse-android-$CI_COMMIT_SHORT_SHA"
