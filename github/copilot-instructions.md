@@ -108,9 +108,13 @@ Peach = Color(0xFFFFB6A3)         // CTAs and highlights
 
 ### Cache Keys
 ```kotlin
-// Home
+// Home & Rings
 KEY_USER_STATS, KEY_SOLVE_STATS, KEY_RECENT_SOLVES
 KEY_ACHIEVEMENT_STATS, KEY_ALL_ACHIEVEMENTS, KEY_FREEZE_DATES
+KEY_RINGS
+
+// Notifications
+KEY_NOTIFICATIONS, KEY_NOTIFICATION_PREFS, KEY_PUSH_TOKEN
 
 // Revisions
 KEY_REVISION_GROUPS_normal, KEY_REVISION_GROUPS_ml
@@ -131,8 +135,8 @@ KEY_PROFILE_IMAGE, KEY_PROFILE_IMAGE_file
 
 ### Cache Invalidation
 - **Logout**: `clearAllCache()` - deletes everything including local image files
-- **Submission**: Invalidates home stats and solves
-- **Revision Complete**: Invalidates revision cache for current mode
+- **Submission**: Invalidates home stats, solves, and rings
+- **Revision Complete**: Invalidates revision cache for current mode and rings
 - **Friend Action**: Invalidates friends cache
 
 ## API Integration
@@ -160,6 +164,18 @@ GET  /auth/me/stats
 GET  /solves/stats/summary
 GET  /solves
 GET  /achievements
+
+GET  /rings
+PATCH /rings/goals
+
+GET  /notifications
+GET  /notifications/unread-count
+PATCH /notifications/{id}/read
+POST /notifications/read-all
+GET  /notifications/preferences
+PATCH /notifications/preferences
+POST /notifications/push-token
+DELETE /notifications/push-token
 
 GET  /revisions/grouped?type=normal|ml
 GET  /revisions/stats?type=normal|ml
@@ -376,19 +392,30 @@ NavHost(
 - [ ] Spinning refresh icon in top bar, not overlay
 
 ## Environment
-- **Min SDK**: 24
-- **Target SDK**: 34
-- **Kotlin**: 1.9+
-- **Compose**: 1.5+
+- **Min SDK**: 26
+- **Target SDK**: 35
+- **Compile SDK**: 36
+- **Kotlin**: 2.0+
+- **Compose**: 1.5+ (Material 3 alpha04)
 - **Coil**: 2.6.0
+- **Firebase BOM**: 33.7.0
+
+## Push Notifications (FCM)
+- `google-services.json` placed in `/app` directory for Firebase initialization.
+- Background messages and token refreshes handled by `TraverseMessagingService`.
+- Push token registration and cleanup managed by `PushRegistrationManager`.
+- Deep linking routed via `NotificationRouter`.
 
 ## Dependencies
 ```gradle
-implementation("io.coil-kt:coil-compose:2.6.0")
-implementation("androidx.navigation:navigation-compose:2.7.+")
-implementation("com.squareup.retrofit2:retrofit:2.9.0")
-implementation("com.squareup.okhttp3:okhttp:4.11.0")
-implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.+")
+implementation(libs.coil.compose)
+implementation(libs.androidx.navigation.compose)
+implementation(libs.retrofit)
+implementation(libs.retrofit.kotlinx.serialization)
+implementation(libs.okhttp)
+implementation(libs.kotlinx.serialization.json)
+implementation(platform(libs.firebase.bom))
+implementation(libs.firebase.messaging.ktx)
 ```
 
 ---
