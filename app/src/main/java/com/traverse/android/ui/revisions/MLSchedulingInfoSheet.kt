@@ -157,55 +157,40 @@ fun MLSchedulingInfoSheet(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // "5 Quality Signals We Track" Section
-            // Weights mirror computeQualityScore() in
-            // traverse-backend/src/lib/forgettingCurveScheduler.ts. There used to be a sixth
-            // row here for "Mistake Tags (18%)" — no such factor exists in the scheduler,
-            // and mistake tags no longer affect scheduling at all. The attempt-number
-            // weight was also shown as 8% when it is 4%.
-            SectionHeader(icon = Icons.Default.TrendingUp, text = "5 Quality Signals We Track")
+            // "What Shapes Your Schedule" Section
+            // Deliberately qualitative — the factor weights are internal and are not shown to
+            // users. They have drifted before (a sixth "Mistake Tags (18%)" row that was never a
+            // real factor; the attempt weight listed as 8% when it is 4%), and a percentage
+            // invites users to reconstruct the scoring function. Keep this list descriptive,
+            // with no numbers.
+            SectionHeader(icon = Icons.Default.TrendingUp, text = "What Shapes Your Schedule")
 
             Spacer(modifier = Modifier.height(8.dp))
 
             SignalRow(
                 icon = Icons.Default.Schedule,
-                text = "Time Spent Ratio (28%)",
-                detail = "Ratio vs your personal median time per difficulty"
+                text = "Time Spent Ratio",
+                detail = "How your solve time compares with your personal median for that difficulty"
             )
             SignalRow(
                 icon = Icons.Default.Speed,
-                text = "Problem Difficulty (18%)",
+                text = "Problem Difficulty",
                 detail = "Intrinsic problem baseline (Easy / Medium / Hard)"
             )
             SignalRow(
                 icon = Icons.Default.Refresh,
-                text = "Number of Retries (15%)",
+                text = "Number of Retries",
                 detail = "Softly scaled runs (typos & code runs non-punitive)"
             )
             SignalRow(
                 icon = Icons.Default.CalendarMonth,
-                text = "Spacing Bonus (13%)",
-                detail = "Logarithmic reward for long-gap successful recall"
+                text = "Spacing",
+                detail = "Rewards a successful recall after a longer gap"
             )
             SignalRow(
                 icon = Icons.Default.Numbers,
-                text = "Attempt Number (4%)",
-                detail = "Review iteration expectation adjustment"
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Those five signals are normalised into a behavioural score. On premium " +
-                    "accounts it is blended 60/40 with an AI cognitive recall score, and a hint or " +
-                    "solution lowers the result further. The blend maps to FSRS grades " +
-                    "(Again, Hard, Good, Easy) to scale stability. Free accounts use the " +
-                    "behavioural score alone.",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    color = SecondaryText,
-                    lineHeight = 16.sp
-                ),
-                modifier = Modifier.fillMaxWidth()
+                text = "Attempt Number",
+                detail = "How many times you have revised this problem"
             )
 
             Spacer(modifier = Modifier.height(24.dp))
