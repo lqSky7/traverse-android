@@ -1,8 +1,6 @@
 package com.traverse.android.ui.revisions
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -29,7 +26,6 @@ import com.traverse.android.ui.theme.palettePrimary
 private val CardBackground = Color(0xFF1A1A1A)
 private val SwiftGreen = Color(0xFF34C759)
 private val SecondaryText = Color(0x99EBEBF5)
-private val FormulaBackground = Color(0xFF0D0D0D)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,7 +33,6 @@ fun MLSchedulingInfoSheet(
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var showTechDetails by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -90,7 +85,7 @@ fun MLSchedulingInfoSheet(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "FSRS-5 Spaced Repetition",
+                text = "Spaced Repetition",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -101,7 +96,7 @@ fun MLSchedulingInfoSheet(
             Spacer(modifier = Modifier.height(2.dp))
 
             Text(
-                text = "Power-Law Forgetting Curve Scheduling",
+                text = "Reviews timed for when you're about to forget",
                 style = MaterialTheme.typography.bodyMedium.copy(color = SecondaryText),
                 textAlign = TextAlign.Center
             )
@@ -114,14 +109,13 @@ fun MLSchedulingInfoSheet(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                // NOTE: this used to say "ML-powered". It is not ML — FSRS-5 is a
-                // deterministic power-law forgetting curve. What AI contributes is one
-                // input to the quality score (the cognitive recall score) plus tier-based
-                // damping of stability growth, and only for premium accounts.
-                text = "This is a spaced repetition system based on FSRS-5 (Free Spaced " +
-                    "Repetition Scheduler). Instead of static intervals (1d, 3d, 7d...), the algorithm " +
-                    "tracks item-level Memory Stability (S) and Difficulty (D) to schedule reviews " +
-                    "right when your retrievability reaches 85%.",
+                // NOTE: this used to say "ML-powered", and later explained the algorithm
+                // (FSRS-5, stability/difficulty, the 85% retrievability target). Scheduling
+                // internals are deliberately not surfaced to users — see the
+                // traverse-revision-scheduling skill. Keep this plain-language.
+                text = "Traverse follows how each problem goes for you and schedules the next " +
+                    "revision for when you're about to forget it. Recall a problem well and the " +
+                    "next review moves further out; struggle with it and it comes back sooner.",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = SecondaryText,
                     lineHeight = 20.sp
@@ -143,14 +137,14 @@ fun MLSchedulingInfoSheet(
                     modifier = Modifier.size(16.dp)
                 )
                 Text(
-                    text = "Target Recall: 85% (R = 0.85)",
+                    text = "Adapts to you",
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.SemiBold,
                         color = SwiftGreen
                     )
                 )
                 Text(
-                    text = "— optimal spacing window",
+                    text = "— no fixed 1d / 3d / 7d ladder",
                     style = MaterialTheme.typography.labelMedium.copy(color = SecondaryText)
                 )
             }
@@ -192,98 +186,6 @@ fun MLSchedulingInfoSheet(
                 text = "Attempt Number",
                 detail = "How many times you have revised this problem"
             )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // "Under the hood" Section
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showTechDetails = !showTechDetails },
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Memory,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Text(
-                                text = "Under the hood",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                            )
-                        }
-                        Icon(
-                            imageVector = if (showTechDetails) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.6f)
-                        )
-                    }
-
-                    AnimatedVisibility(visible = showTechDetails) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 12.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            TechRow("Algorithm", "FSRS-5 (Free Spaced Repetition)")
-                            TechRow("Curve Model", "Power-Law Forgetting")
-                            TechRow("Key States", "Stability (S) & Difficulty (D)")
-                            TechRow("Target Recall", "85% Retrievability (R = 0.85)")
-                            TechRow("Clustering Prevention", "±10% Dynamic Interval Fuzzing")
-
-                            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-
-                            FormulaBlock(
-                                title = "Power-Law Forgetting Curve",
-                                formula = "R(t, S) = (1 + 19/81 * (t / S))^(-0.5)",
-                                explanation = "Retrievability R(t, S) represents recall probability after " +
-                                    "t days. At t = S, recall probability is exactly 90%."
-                            )
-
-                            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-
-                            FormulaBlock(
-                                title = "Stability Recall Growth",
-                                formula = "S' = S * e^(w8) * (11 - D) * S^(-w9) * (e^(w10*(1-R)) - 1)",
-                                explanation = "Successful recall expands stability S according to the " +
-                                    "spacing effect, while lapse/failure resets stability."
-                            )
-
-                            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-
-                            // The interval is not ≈ S: it equals S only at R = 0.9, the FSRS
-                            // fixed point. At the scheduler's actual target of R = 0.85 the
-                            // multiplier is (0.85^-2 - 1) / (19/81) ≈ 1.64.
-                            FormulaBlock(
-                                title = "Next Review Interval",
-                                formula = "I = (S / (19/81)) * (0.85^(-2) - 1) ≈ 1.64 S",
-                                explanation = "Reviews are scheduled right before memory retrievability " +
-                                    "drops below 85%, preventing item decay."
-                            )
-                        }
-                    }
-                }
-            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -359,62 +261,5 @@ private fun SignalRow(
                 style = MaterialTheme.typography.labelSmall.copy(color = SecondaryText)
             )
         }
-    }
-}
-
-@Composable
-private fun TechRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall.copy(color = SecondaryText)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontWeight = FontWeight.Medium,
-                color = Color.White
-            )
-        )
-    }
-}
-
-@Composable
-private fun FormulaBlock(title: String, formula: String, explanation: String) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White
-            )
-        )
-        Surface(
-            shape = RoundedCornerShape(6.dp),
-            color = FormulaBackground,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = formula,
-                fontFamily = FontFamily.Monospace,
-                fontSize = 12.sp,
-                color = palettePrimary,
-                modifier = Modifier.padding(8.dp)
-            )
-        }
-        Text(
-            text = explanation,
-            style = MaterialTheme.typography.labelSmall.copy(
-                color = SecondaryText,
-                lineHeight = 16.sp
-            )
-        )
     }
 }
