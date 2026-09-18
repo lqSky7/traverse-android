@@ -121,7 +121,7 @@ fun MLSchedulingInfoSheet(
                 text = "This is a spaced repetition system based on FSRS-5 (Free Spaced " +
                     "Repetition Scheduler). Instead of static intervals (1d, 3d, 7d...), the algorithm " +
                     "tracks item-level Memory Stability (S) and Difficulty (D) to schedule reviews " +
-                    "right when your retrievability reaches 90%.",
+                    "right when your retrievability reaches 85%.",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = SecondaryText,
                     lineHeight = 20.sp
@@ -143,7 +143,7 @@ fun MLSchedulingInfoSheet(
                     modifier = Modifier.size(16.dp)
                 )
                 Text(
-                    text = "Target Recall: 90% (R = 0.9)",
+                    text = "Target Recall: 85% (R = 0.85)",
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.SemiBold,
                         color = SwiftGreen
@@ -263,7 +263,7 @@ fun MLSchedulingInfoSheet(
                             TechRow("Algorithm", "FSRS-5 (Free Spaced Repetition)")
                             TechRow("Curve Model", "Power-Law Forgetting")
                             TechRow("Key States", "Stability (S) & Difficulty (D)")
-                            TechRow("Target Recall", "90% Retrievability (R = 0.9)")
+                            TechRow("Target Recall", "85% Retrievability (R = 0.85)")
                             TechRow("Clustering Prevention", "±10% Dynamic Interval Fuzzing")
 
                             HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
@@ -286,11 +286,14 @@ fun MLSchedulingInfoSheet(
 
                             HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
 
+                            // The interval is not ≈ S: it equals S only at R = 0.9, the FSRS
+                            // fixed point. At the scheduler's actual target of R = 0.85 the
+                            // multiplier is (0.85^-2 - 1) / (19/81) ≈ 1.64.
                             FormulaBlock(
                                 title = "Next Review Interval",
-                                formula = "I = (S / (19/81)) * (0.9^(-2) - 1) ≈ S",
+                                formula = "I = (S / (19/81)) * (0.85^(-2) - 1) ≈ 1.64 S",
                                 explanation = "Reviews are scheduled right before memory retrievability " +
-                                    "drops below 90%, preventing item decay."
+                                    "drops below 85%, preventing item decay."
                             )
                         }
                     }
