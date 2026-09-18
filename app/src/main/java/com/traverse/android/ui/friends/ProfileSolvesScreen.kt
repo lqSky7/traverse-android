@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
 import com.traverse.android.data.Solve
+import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.home.AllSolvesScreen
 import com.traverse.android.ui.home.ErrorView
 import kotlinx.coroutines.launch
@@ -173,30 +174,14 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
 
 @Composable
 private fun EmptyState(username: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = Icons.Default.Square,
-            contentDescription = null,
-            tint = Color.White.copy(alpha = 0.6f),
-            modifier = Modifier.size(40.dp)
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = "No Solves Yet",
-            style = MaterialTheme.typography.titleMedium.copy(color = Color.White)
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "@$username has not logged a solve yet.",
-            style = MaterialTheme.typography.bodyMedium.copy(
-                color = Color.White.copy(alpha = 0.6f)
-            )
+        EmptyStateView(
+            icon = Icons.Default.Square,
+            title = "No Solves Yet",
+            message = "@$username has not logged a solve yet."
         )
     }
 }

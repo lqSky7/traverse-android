@@ -36,6 +36,7 @@ import com.traverse.android.ui.theme.TraverseTheme
 import com.traverse.android.viewmodel.AuthViewModel
 import com.traverse.android.viewmodel.FriendsViewModel
 import com.traverse.android.viewmodel.HomeViewModel
+import com.traverse.android.viewmodel.ProblemsViewModel
 import com.traverse.android.viewmodel.RevisionsViewModel
 
 class MainActivity : ComponentActivity() {
@@ -67,11 +68,13 @@ class MainActivity : ComponentActivity() {
                         // Show main app only when authenticated AND data is loaded
                         uiState.isAuthenticated && uiState.isDataLoaded -> {
                             val homeViewModel: HomeViewModel = viewModel()
+                            val problemsViewModel: ProblemsViewModel = viewModel()
                             val revisionsViewModel: RevisionsViewModel = viewModel()
                             val friendsViewModel: FriendsViewModel = viewModel()
                             
                             MainNavigation(
                                 homeViewModel = homeViewModel,
+                                problemsViewModel = problemsViewModel,
                                 revisionsViewModel = revisionsViewModel,
                                 friendsViewModel = friendsViewModel,
                                 onLogout = { authViewModel.logout() }

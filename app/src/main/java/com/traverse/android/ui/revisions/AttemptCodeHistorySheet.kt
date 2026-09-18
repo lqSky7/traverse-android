@@ -64,6 +64,7 @@ import com.traverse.android.data.CodeAttempt
 import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
 import com.traverse.android.data.Revision
+import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import kotlinx.coroutines.launch
 import com.traverse.android.ui.theme.paletteColorAt
@@ -165,27 +166,14 @@ fun AttemptCodeHistorySheet(
                     CircularProgressIndicator(color = palettePrimary, modifier = Modifier.size(32.dp))
                 }
             } else if (todayAttempts.isEmpty() && previousAttempts.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.Inbox,
-                            contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.3f),
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "No code submissions recorded for this problem.",
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 13.sp
-                        )
-                    }
-                }
+                EmptyStateView(
+                    icon = Icons.Default.Code,
+                    title = "No code recorded",
+                    message = "Traverse saves the code you submit while the extension is " +
+                        "installed. This problem has none yet.",
+                    compact = true,
+                    modifier = Modifier.height(180.dp)
+                )
             } else {
                 if (todayAttempts.isNotEmpty()) {
                     Text(

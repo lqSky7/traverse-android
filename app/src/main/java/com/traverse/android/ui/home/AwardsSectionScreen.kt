@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,6 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.traverse.android.data.AchievementDetail
 import com.traverse.android.data.AwardSection
+import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.components.MedalBadge
 import com.traverse.android.ui.components.MedalProgressBar
 import com.traverse.android.ui.theme.RingiftFamily
@@ -90,25 +92,21 @@ fun AwardsSectionScreen(
         }
     ) { padding ->
         if (section.achievements.isEmpty()) {
-            Column(
+            // A shelf with no badges on it yet. The section supplies its own `emptyCopy`; the icon
+            // used to be a bare "\u25C7" glyph, which read as a rendering artefact rather than an
+            // intentional empty state.
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
-                    .padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                    .padding(padding),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "\u25C7",
-                    style = MaterialTheme.typography.displayMedium,
-                    color = Color.White.copy(alpha = 0.18f)
-                )
-                Text(
-                    text = section.emptyCopy,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.6f),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 12.dp)
+                EmptyStateView(
+                    icon = Icons.Default.EmojiEvents,
+                    title = section.title,
+                    message = section.emptyCopy.ifBlank {
+                        "No awards on this shelf yet. They unlock as you keep solving."
+                    }
                 )
             }
             return@Scaffold

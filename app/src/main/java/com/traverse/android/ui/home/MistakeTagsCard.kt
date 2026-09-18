@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.traverse.android.data.Solve
+import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.theme.rememberPalette
 
 private val CardBackground = Color(0xFF1A1A1A)
@@ -169,36 +170,13 @@ fun MistakeTagsAnalysisCard(
                     }
                 }
             } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp)
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(
-                        space = 8.dp,
-                        alignment = Alignment.CenterVertically
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = palette.colorAt(0),
-                        modifier = Modifier.size(40.dp)
-                    )
-                    Text(
-                        text = "No mistakes detected",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = Color.White.copy(alpha = 0.6f)
-                        )
-                    )
-                    Text(
-                        text = "Keep solving problems!",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = Color.White.copy(alpha = 0.4f)
-                        )
-                    )
-                }
+                // A *good* zero state, so it deliberately reads as praise rather than as an error.
+                EmptyStateView(
+                    icon = Icons.Default.CheckCircle,
+                    title = "No mistakes detected",
+                    message = "Nothing in your recent submissions was flagged. Keep going.",
+                    compact = true
+                )
             }
         }
     }

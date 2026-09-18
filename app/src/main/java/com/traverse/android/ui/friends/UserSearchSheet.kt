@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
 import com.traverse.android.data.UserBasic
+import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -202,23 +203,12 @@ fun UserSearchSheet(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.SearchOff,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(48.dp),
-                                    tint = Color.White.copy(alpha = 0.5f)
-                                )
-                                Text(
-                                    text = "No users found",
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        color = Color.White.copy(alpha = 0.5f)
-                                    )
-                                )
-                            }
+                            EmptyStateView(
+                                icon = Icons.Default.SearchOff,
+                                title = "No users found",
+                                message = "Nobody matches \"$searchQuery\". Usernames have to " +
+                                    "match exactly — try the full handle from their profile."
+                            )
                         }
                     }
                     
@@ -351,28 +341,11 @@ private fun SearchEmptyState() {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.PersonSearch,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = Color.White.copy(alpha = 0.3f)
-            )
-            Text(
-                text = "Search for users",
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    color = Color.White.copy(alpha = 0.5f)
-                )
-            )
-            Text(
-                text = "Find friends by their username",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color.White.copy(alpha = 0.3f)
-                )
-            )
-        }
+        EmptyStateView(
+            icon = Icons.Default.PersonSearch,
+            title = "Find friends by username",
+            message = "Type a username above to search. It is the same handle you sign in with " +
+                "on the website."
+        )
     }
 }

@@ -77,6 +77,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.traverse.android.data.Solve
+import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.ui.theme.rememberPalette
@@ -280,30 +281,26 @@ fun MistakeTagsDetailScreen(
 
             // Tag list
             if (analysisData.displayedItems.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 40.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.6f),
-                        modifier = Modifier.size(40.dp)
-                    )
-                    Text(
-                        text = if (searchText.isEmpty()) {
-                            "No mistake tags found"
-                        } else {
-                            "No results for \"$searchText\""
-                        },
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = Color.White.copy(alpha = 0.6f)
-                        )
-                    )
-                }
+                // Two different causes again: no tags at all (the extension has not seen a failed
+                // attempt yet) versus a search that matched nothing. The old copy said "No mistake
+                // tags found" for both, which is actively misleading while a search box above it
+                // holds text the user typed.
+                EmptyStateView(
+                    icon = Icons.Default.Search,
+                    title = if (searchText.isEmpty()) {
+                        "No mistakes logged yet"
+                    } else {
+                        "No results for \"$searchText\""
+                    },
+                    message = if (searchText.isEmpty()) {
+                        "Traverse tags the mistakes it sees in your failed submissions. " +
+                            "They show up here after your next few attempts."
+                    } else {
+                        "No mistake tag in this list matches that search."
+                    },
+                    actionTitle = if (searchText.isEmpty()) null else "Clear Search",
+                    onAction = if (searchText.isEmpty()) null else ({ searchText = "" })
+                )
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     analysisData.displayedItems.forEachIndexed { index, item ->

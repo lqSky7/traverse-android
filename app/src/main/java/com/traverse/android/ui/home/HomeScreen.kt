@@ -5,13 +5,10 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -35,6 +32,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.traverse.android.data.RevisionLoadBreakdown
 import com.traverse.android.ui.components.GettingStartedEmptyState
 import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.RingiftFamily
@@ -46,15 +44,18 @@ import java.time.format.DateTimeFormatter
 /**
  * Home navigation graph. Mirrors the iOS `HomeView` `NavigationStack` destinations.
  *
- * Note: iOS has **no** streak destination — tapping the streak card does nothing,
- * so there is deliberately no `STREAK` route here.
+ * Note: iOS has **no** streak destination — tapping the streak card does nothing, so there is
+ * deliberately no `STREAK` route here.
  */
 object HomeDestinations {
     const val HOME = "home_main"
-    const val ALL_SOLVES = "all_solves"
     const val ALL_ACHIEVEMENTS = "all_achievements"
     const val ACTIVITY = "activity"
-    const val MISTAKE_ANALYSIS = "mistake_analysis"
+    const val REVISION_LOAD = "revision_load"
+
+    /** `metric_detail/time` or `metric_detail/attempts`. */
+    const val METRIC_DETAIL = "metric_detail/{kind}"
+    fun metricDetail(kind: MetricKind) = "metric_detail/${kind.name.lowercase()}"
 
     /** One award shelf, e.g. `awards_section/rings`. */
     const val AWARDS_SECTION = "awards_section/{sectionId}"
@@ -81,20 +82,38 @@ fun HomeScreen(
             HomeMainContent(
                 uiState = uiState,
                 onRefresh = { viewModel.refresh() },
-                onNavigateToSolves = { navController.navigate(HomeDestinations.ALL_SOLVES) },
                 onNavigateToAchievements = { navController.navigate(HomeDestinations.ALL_ACHIEVEMENTS) },
                 onNavigateToActivity = { navController.navigate(HomeDestinations.ACTIVITY) },
-                onNavigateToMistakes = { navController.navigate(HomeDestinations.MISTAKE_ANALYSIS) },
+                onNavigateToRevisionLoad = { navController.navigate(HomeDestinations.REVISION_LOAD) },
+                onNavigateToMetric = { kind -> navController.navigate(HomeDestinations.metricDetail(kind)) },
                 modifier = modifier
             )
         }
 
-        // iOS: RecentSolvesCard > "View All" -> AllSolvesView(solves:)
-        composable(HomeDestinations.ALL_SOLVES) {
-            AllSolvesScreen(
-                solves = uiState.recentSolves,
+        // iOS: RevisionLoadCard -> RevisionLoadDetailView(breakdown:revisionScore:)
+        composable(HomeDestinations.REVISION_LOAD) {
+            RevisionLoadDetailScreen(
+                breakdown = uiState.revisionLoad ?: RevisionLoadBreakdown.EMPTY,
+                revisionScore = uiState.revisionScore?.score,
                 onBack = { navController.popBackStack() }
             )
+        }
+
+        // iOS: TimeAnalysisCard / AttemptsAnalysisCard -> MetricDetailView(kind:solves:)
+        composable(
+            route = HomeDestinations.METRIC_DETAIL,
+            arguments = listOf(navArgument("kind") { type = NavType.StringType })
+        ) { entry ->
+            val kind = entry.arguments?.getString("kind")
+                ?.let { raw -> MetricKind.entries.firstOrNull { it.name.equals(raw, true) } }
+
+            if (kind != null) {
+                MetricDetailScreen(
+                    kind = kind,
+                    solves = uiState.recentSolves,
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
 
         // iOS: AchievementStatsCard -> AllAchievementsView()
@@ -136,14 +155,6 @@ fun HomeScreen(
                 onBack = { navController.popBackStack() }
             )
         }
-
-        // iOS: MistakeTagsAnalysisCard -> MistakeTagsDetailView(solves:)
-        composable(HomeDestinations.MISTAKE_ANALYSIS) {
-            MistakeTagsDetailScreen(
-                solves = uiState.recentSolves,
-                onBack = { navController.popBackStack() }
-            )
-        }
     }
 }
 
@@ -151,23 +162,29 @@ fun HomeScreen(
  * 1:1 port of the iOS `HomeView` body.
  *
  * Layout order (outer `Column(spacedBy(20.dp))` + `.padding(16.dp)`):
- *  1. A brand-new account (no solves at all) gets `GettingStartedEmptyState` instead of the
- *     feed — every card below is built from solve history, so there would be nothing to draw.
+ *  1. A brand-new account (no solves at all) gets `GettingStartedEmptyState` instead of the feed —
+ *     every card below is built from solve history, so there would be nothing to draw.
  *  2. `StreakCard` full width
- *  3. Revision card
- *  4. MainStatsCard
- *  5. `Column(spacedBy(16.dp))` — achievements/insights row, difficulty/heatmap row,
- *     mistake tags, solving hours, recent solves, performance metrics, tries distribution.
+ *  3. `RevisionLoadCard` full width, tapping through to its trend screen
+ *  4. `MainStatsCard`
+ *  5. `Column(spacedBy(16.dp))` — achievements/insights row, activity heatmap, solving hours, and
+ *     the time/attempts step-count pair.
+ *
+ * Three cards that used to be here are deliberately gone, matching iOS: the easy/mid/hard
+ * difficulty card (folded into the attempts breakdown on its detail screen), and Recent Solves and
+ * Mistake Analysis (moved to the Problems tab, which fetches the deep payload they need).
+ * `PerformanceMetricsCard` and `TriesDistributionCard` were removed outright — they restated the
+ * same attempts and timing data the step-count pair now covers.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeMainContent(
     uiState: HomeUiState,
     onRefresh: () -> Unit,
-    onNavigateToSolves: () -> Unit,
     onNavigateToAchievements: () -> Unit,
     onNavigateToActivity: () -> Unit,
-    onNavigateToMistakes: () -> Unit,
+    onNavigateToRevisionLoad: () -> Unit,
+    onNavigateToMetric: (MetricKind) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val currentDate = remember {
@@ -220,9 +237,9 @@ private fun HomeMainContent(
                 if (errorMessage != null) {
                     ErrorView(message = errorMessage, onRetry = onRefresh)
                 } else if (userStats != null && userStats.stats.totalSolves == 0) {
-                    // A brand-new account. Every card below is built from solve history, so
-                    // without this branch the feed is a blank black screen with a date on it
-                    // — which reads as a broken app rather than an empty one.
+                    // A brand-new account. Every card below is built from solve history, so without
+                    // this branch the feed is a blank black screen with a date on it — which reads as
+                    // a broken app rather than an empty one.
                     GettingStartedEmptyState(
                         title = "Your feed fills in from your first solve",
                         message = "Traverse reads your practice from the browser and reports it " +
@@ -235,24 +252,26 @@ private fun HomeMainContent(
 
                     // MARK: Streak — full width.
                     //
-                    // It used to share a row with the revision score card. On iOS that card
-                    // became a full-width training-load tile, so the streak takes the whole
-                    // row instead of being squeezed into half of it, and its contents are
-                    // centred to suit.
+                    // It used to share a row with the revision score card. That card is a
+                    // full-width training-load tile now, so the streak takes the whole row instead
+                    // of being squeezed into half of it, and its contents are centred to suit.
                     if (userStats != null) {
                         StreakCard(
                             streak = userStats.stats.currentStreak,
-                            // `longestStreak` is the real "best" figure. The fallback only
-                            // applies to a cached payload written before the server started
-                            // sending it — `totalStreakDays` is a running total, so it is
-                            // wrong here, just not wrong-by-a-lot.
+                            // `longestStreak` is the real "best" figure. The fallback only applies to
+                            // a cached payload written before the server started sending it —
+                            // `totalStreakDays` is a running total, so it is wrong here, just not
+                            // wrong-by-a-lot.
                             maxStreak = userStats.stats.longestStreak
                                 ?: userStats.stats.totalStreakDays
                         )
 
-                        // Still the old thinking-orb score card. iOS replaced this with the
-                        // full-width revision-load tile; porting that is the next piece.
-                        RevisionScoreCard(score = uiState.revisionScore?.score ?: 100)
+                        // MARK: Revision Load — full-width tile, taps through to the trend screen.
+                        RevisionLoadCard(
+                            breakdown = uiState.revisionLoad,
+                            revisionScore = uiState.revisionScore?.score,
+                            onClick = onNavigateToRevisionLoad
+                        )
                     }
 
                     // MARK: Main Stats Card
@@ -292,54 +311,35 @@ private fun HomeMainContent(
                             )
                         }
 
-                        if (solveStats != null) {
-                            // Difficulty and Activity side by side
-                            // `IntrinsicSize.Min` + `fillMaxHeight()` keeps the Difficulty card exactly
-                            // as tall as the taller Activity heatmap card sitting next to it.
+                        if (solves.isNotEmpty()) {
+                            // Activity heatmap, full width now that the difficulty card that shared
+                            // its row is gone.
+                            SolveHeatmapCard(
+                                solves = solves,
+                                frozenDates = uiState.frozenDates,
+                                onClick = onNavigateToActivity
+                            )
+
+                            BestSolvingHoursCard(solves = solves)
+
+                            // Time and attempts, as Step Count style tiles.
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(IntrinsicSize.Min),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.Top
                             ) {
-                                DifficultyChartCard(
-                                    difficulty = solveStats.stats.byDifficulty,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight()
+                                TimeAnalysisCard(
+                                    solves = solves,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { onNavigateToMetric(MetricKind.TIME) }
                                 )
 
-                                SolveHeatmapCard(
+                                AttemptsAnalysisCard(
                                     solves = solves,
-                                    frozenDates = uiState.frozenDates,
-                                    onClick = onNavigateToActivity,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight()
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { onNavigateToMetric(MetricKind.ATTEMPTS) }
                                 )
                             }
-
-                            // Mistake Tags Analysis full width
-                            MistakeTagsAnalysisCard(
-                                solves = solves,
-                                onViewAll = onNavigateToMistakes
-                            )
-
-                            // Best Solving Hours
-                            BestSolvingHoursCard(solves = solves)
-                        }
-
-                        if (solves.isNotEmpty()) {
-                            RecentSolvesCard(
-                                solves = solves,
-                                onViewAll = onNavigateToSolves
-                            )
-
-                            // New Performance Charts
-                            PerformanceMetricsCard(solves = solves)
-
-                            TriesDistributionCard(solves = solves)
                         }
                     }
                 }

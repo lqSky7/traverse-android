@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.traverse.android.data.RevisionTopicMetric
+import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import kotlin.math.roundToInt
@@ -144,13 +145,27 @@ fun AllTopicsSheet(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Topic Items List
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 32.dp)
-            ) {
-                items(filteredTopics, key = { it.topic }) { topic ->
-                    TopicDetailCard(topic = topic)
+            if (filteredTopics.isEmpty()) {
+                // The list is rendered unconditionally, so a search with no matches used to show a
+                // blank sheet with a search box on it — indistinguishable from a loading failure.
+                EmptyStateView(
+                    icon = Icons.Default.SearchOff,
+                    title = "No topics match \"$searchText\"",
+                    message = "Try a shorter search, or clear it to see every topic you have " +
+                        "revisions in.",
+                    actionTitle = "Clear Search",
+                    onAction = { searchText = "" },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(bottom = 32.dp)
+                ) {
+                    items(filteredTopics, key = { it.topic }) { topic ->
+                        TopicDetailCard(topic = topic)
+                    }
                 }
             }
         }

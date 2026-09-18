@@ -342,11 +342,21 @@ fun RevisionsScreen(
                             )
                         }
                         else -> {
+                            // `analytics` is null and the load is not in flight, so there is
+                            // genuinely nothing to chart — a first-run account that has not
+                            // completed a revision yet. A bare "No analytics data available" read
+                            // as a broken screen; this names the cause and the way out of it.
                             Box(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("No analytics data available")
+                                EmptyStateView(
+                                    icon = Icons.Default.BarChart,
+                                    title = "No analytics yet",
+                                    message = "These charts are built from your completed " +
+                                        "revisions. Finish a few in the Revisions tab and the " +
+                                        "trends appear here."
+                                )
                             }
                         }
                     }

@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.traverse.android.data.AchievementDetail
 import com.traverse.android.data.AchievementStatsData
 import com.traverse.android.data.AwardSection
+import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.components.MedalBadge
 import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.RingiftFamily
@@ -147,34 +148,14 @@ fun AllAchievementsScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(padding)
-                        .padding(horizontal = 32.dp),
+                        .padding(padding),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.EmojiEvents,
-                            contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.3f),
-                            modifier = Modifier.size(56.dp)
-                        )
-                        Text(
-                            text = "No Awards Yet",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        )
-                        Text(
-                            text = emptyDescription,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.55f),
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                    EmptyStateView(
+                        icon = Icons.Default.EmojiEvents,
+                        title = "No Awards Yet",
+                        message = emptyDescription
+                    )
                 }
             }
 

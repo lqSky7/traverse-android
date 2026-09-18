@@ -25,6 +25,12 @@ data class HomeUiState(
     val frozenDates: List<String> = emptyList(),
     val revisionScore: RevisionScoreResponse? = null,
     val completedRevisions: List<Revision> = emptyList(),
+    /**
+     * Overall load plus a per-difficulty breakdown for the Revision Load card and its detail
+     * screen. Derived from the unfiltered revision list and [recentSolves], so it is recomputed
+     * whenever either changes rather than fetched separately.
+     */
+    val revisionLoad: RevisionLoadBreakdown? = null,
     val isFromCache: Boolean = false
 )
 
@@ -32,6 +38,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     
     private val dataManager by lazy { DataManager.getInstance(application) }
     private val cacheManager by lazy { CacheManager.getInstance(application) }
+
+    /**
+     * The two inputs the load breakdown is derived from, kept here so a change to either one can
+     * recompute it. `RevisionLoadBreakdown.build` walks both lists, so recomputing it on every
+     * recomposition would be wasteful; it only needs to run when the data actually moves.
+     */
+    private var latestSolves: List<Solve> = emptyList()
+    private var latestRevisions: List<Revision> = emptyList()
     
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -50,7 +64,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
         viewModelScope.launch {
             dataManager.recentSolves.collect { solves ->
+                latestSolves = solves
                 _uiState.update { it.copy(recentSolves = solves) }
+                rebuildLoadBreakdown()
+            }
+        }
+        viewModelScope.launch {
+            dataManager.allRevisions.collect { revisions ->
+                latestRevisions = revisions
+                rebuildLoadBreakdown()
             }
         }
         viewModelScope.launch {
@@ -99,7 +121,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
         refresh()
     }
-    
+
+    /**
+     * Rebuilds the load breakdown from the current inputs. Cheap enough to run on every data
+     * emission, but not on every recomposition, which is why the inputs are cached rather than the
+     * breakdown being computed inside the composable.
+     */
+    private fun rebuildLoadBreakdown() {
+        val breakdown = RevisionLoadBreakdown.build(
+            revisions = latestRevisions,
+            solves = latestSolves
+        )
+        _uiState.update { it.copy(revisionLoad = breakdown) }
+    }
+
     fun refresh() {
         val username = dataManager.userStats.value?.username ?: ""
         viewModelScope.launch {
@@ -111,7 +146,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 // Non-critical for display
             }
             try {
-                dataManager.fetchAllData(username)
+                // Deliberately the *home* limit, not the deep one. Every card on this feed reads
+                // solve history, but none of them needs more than enough to fill a chart axis —
+                // the deep payload with its AI blobs and attempt histories belongs to the Problems
+                // tab, which fetches it on demand. See `DataManager.HOME_SOLVE_LIMIT`.
+                dataManager.fetchAllData(username, solveLimit = DataManager.HOME_SOLVE_LIMIT)
                 _uiState.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }

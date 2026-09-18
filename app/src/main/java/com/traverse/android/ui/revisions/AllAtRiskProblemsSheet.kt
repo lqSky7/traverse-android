@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.sp
 import com.traverse.android.data.RevisionRetentionItem
+import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import kotlin.math.roundToInt
@@ -147,13 +148,26 @@ fun AllAtRiskProblemsSheet(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Items List
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 32.dp)
-            ) {
-                items(filteredItems, key = { it.problemId }) { item ->
-                    RiskProblemDetailCard(item = item)
+            if (filteredItems.isEmpty()) {
+                // Same reason as AllTopicsSheet: the list renders unconditionally, so an empty
+                // search result used to look like a failed load.
+                EmptyStateView(
+                    icon = Icons.Default.SearchOff,
+                    title = "No problems match \"$searchText\"",
+                    message = "Try a shorter search, or clear it to see every problem at risk.",
+                    actionTitle = "Clear Search",
+                    onAction = { searchText = "" },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(bottom = 32.dp)
+                ) {
+                    items(filteredItems, key = { it.problemId }) { item ->
+                        RiskProblemDetailCard(item = item)
+                    }
                 }
             }
         }

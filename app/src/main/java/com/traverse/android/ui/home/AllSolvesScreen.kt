@@ -24,7 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Square
+import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -49,6 +49,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.traverse.android.data.Solve
+import com.traverse.android.ui.components.EmptyStateView
+import com.traverse.android.ui.components.GettingStartedEmptyState
 import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.ui.theme.rememberPalette
@@ -172,25 +174,32 @@ fun AllSolvesScreen(
             }
 
             if (filteredSolves.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 40.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Square,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.6f),
-                        modifier = Modifier.size(40.dp)
+                // Two genuinely different situations, and the old copy conflated them: a brand-new
+                // account with no solves at all (installing the extension is the answer), and a
+                // filter that excluded everything (clearing the filter is). "No solves match your
+                // criteria" told a first-run user to adjust a filter they had never touched.
+                if (solves.isEmpty()) {
+                    GettingStartedEmptyState(
+                        title = "No solves yet",
+                        message = "Your solves appear here once Traverse has seen you solve a " +
+                            "problem in the browser."
                     )
-                    Text(
-                        text = "No solves match your criteria",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = Color.White.copy(alpha = 0.6f)
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        EmptyStateView(
+                            icon = Icons.Default.SearchOff,
+                            title = "Nothing matches those filters",
+                            message = "No solve in this list matches the current search and topic.",
+                            actionTitle = "Clear Filters",
+                            onAction = {
+                                searchText = ""
+                                selectedTopic = null
+                            }
                         )
-                    )
+                    }
                 }
             } else {
                 LazyColumn(

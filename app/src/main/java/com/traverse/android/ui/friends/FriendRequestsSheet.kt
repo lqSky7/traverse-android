@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.traverse.android.data.FriendRequest
 import com.traverse.android.data.FriendStreakRequest
+import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import java.time.Instant
 import java.time.ZoneId
@@ -150,7 +151,9 @@ private fun ReceivedRequestsList(
     if (requests.isEmpty()) {
         EmptyRequestsContent(
             icon = Icons.Default.Inbox,
-            message = "No received requests"
+            title = "No friend requests",
+            description = "When someone adds you by username, their request lands here for you " +
+                "to accept."
         )
     } else {
         LazyColumn(
@@ -323,7 +326,9 @@ private fun SentRequestsList(
     if (requests.isEmpty()) {
         EmptyRequestsContent(
             icon = Icons.Default.Send,
-            message = "No sent requests"
+            title = "No pending requests",
+            description = "Requests you send stay here until the other person accepts or " +
+                "declines them."
         )
     } else {
         LazyColumn(
@@ -501,32 +506,15 @@ private fun SentRequestCard(
 @Composable
 private fun EmptyRequestsContent(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    message: String
+    title: String,
+    description: String
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(64.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = Color.White.copy(alpha = 0.3f)
-            )
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    color = Color.White.copy(alpha = 0.5f)
-                )
-            )
-        }
-    }
+    EmptyStateView(
+        icon = icon,
+        title = title,
+        message = description,
+        modifier = Modifier.padding(vertical = 24.dp)
+    )
 }
 
 private fun formatRelativeTime(isoString: String): String {
@@ -566,7 +554,9 @@ private fun ReceivedStreakRequestsList(
     if (requests.isEmpty()) {
         EmptyRequestsContent(
             icon = Icons.Default.LocalFireDepartment,
-            message = "No streak requests received"
+            title = "No streak requests",
+            description = "A friend can ask you to keep a shared streak alive. Requests to " +
+                "start one show up here."
         )
     } else {
         LazyColumn(
@@ -724,7 +714,8 @@ private fun SentStreakRequestsList(
     if (requests.isEmpty()) {
         EmptyRequestsContent(
             icon = Icons.Default.Send,
-            message = "No streak requests sent"
+            title = "No pending streak requests",
+            description = "Streak requests you send stay here until your friend accepts them."
         )
     } else {
         LazyColumn(

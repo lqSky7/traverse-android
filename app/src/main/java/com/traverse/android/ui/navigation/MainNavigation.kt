@@ -4,10 +4,12 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.People
@@ -32,11 +34,13 @@ import com.traverse.android.ui.components.bottombar.BottomBarItem
 import com.traverse.android.ui.components.bottombar.IconSource
 import com.traverse.android.ui.friends.FriendsScreen
 import com.traverse.android.ui.home.HomeScreen
+import com.traverse.android.ui.problems.ProblemsScreen
 import com.traverse.android.ui.revisions.RevisionsScreen
 import com.traverse.android.ui.settings.SettingsScreen
 import com.traverse.android.ui.theme.rememberPalette
 import com.traverse.android.viewmodel.FriendsViewModel
 import com.traverse.android.viewmodel.HomeViewModel
+import com.traverse.android.viewmodel.ProblemsViewModel
 import com.traverse.android.viewmodel.RevisionsViewModel
 
 sealed class MainRoute(
@@ -46,12 +50,32 @@ sealed class MainRoute(
     val unselectedIcon: ImageVector
 ) {
     data object Home : MainRoute("home", "Home", Icons.Filled.Home, Icons.Outlined.Home)
+
+    /**
+     * Recent Solves and Mistake Analysis. Mirrors the iOS `MainTabView`'s `Problems` tab
+     * (`list.bullet.rectangle`), which exists so the home feed can stop paying for the deep solve
+     * payload on every pull-to-refresh.
+     */
+    data object Problems : MainRoute(
+        route = "problems",
+        label = "Problems",
+        selectedIcon = Icons.Filled.FormatListBulleted,
+        unselectedIcon = Icons.Outlined.FormatListBulleted
+    )
+
     data object Revisions : MainRoute("revisions", "Revisions", Icons.Filled.History, Icons.Outlined.History)
     data object Friends : MainRoute("friends", "Friends", Icons.Filled.People, Icons.Outlined.People)
     data object Settings : MainRoute("settings", "Settings", Icons.Filled.Settings, Icons.Outlined.Settings)
 }
 
-val tabs = listOf(MainRoute.Home, MainRoute.Revisions, MainRoute.Friends, MainRoute.Settings)
+/** Tab order matches the iOS `MainTabView`: Home, Problems, Revisions, Friends, Settings. */
+val tabs = listOf(
+    MainRoute.Home,
+    MainRoute.Problems,
+    MainRoute.Revisions,
+    MainRoute.Friends,
+    MainRoute.Settings
+)
 
 // MARK: Floating bottom bar metrics
 
@@ -96,6 +120,7 @@ fun floatingBottomBarContentInset(): Dp =
 @Composable
 fun MainNavigation(
     homeViewModel: HomeViewModel,
+    problemsViewModel: ProblemsViewModel,
     revisionsViewModel: RevisionsViewModel,
     friendsViewModel: FriendsViewModel,
     onLogout: () -> Unit,
@@ -108,7 +133,7 @@ fun MainNavigation(
     // which colours the selected tab item and its selection indicator.
     val palette = rememberPalette()
 
-    // Which of the four root destinations is currently on screen. Drives the animated indicator.
+    // Which of the five root destinations is currently on screen. Drives the animated indicator.
     val selectedIndex = tabs
         .indexOfFirst { tab -> currentDestination?.hierarchy?.any { it.route == tab.route } == true }
         .coerceAtLeast(0)
@@ -146,6 +171,9 @@ fun MainNavigation(
         ) {
             composable(MainRoute.Home.route) {
                 HomeScreen(viewModel = homeViewModel)
+            }
+            composable(MainRoute.Problems.route) {
+                ProblemsScreen(viewModel = problemsViewModel)
             }
             composable(MainRoute.Revisions.route) {
                 RevisionsScreen(viewModel = revisionsViewModel)

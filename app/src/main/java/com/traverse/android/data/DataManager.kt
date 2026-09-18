@@ -92,6 +92,18 @@ class DataManager private constructor(private val context: Context) {
     private val _completedRevisions = MutableStateFlow<List<Revision>>(emptyList())
     val completedRevisions: StateFlow<List<Revision>> = _completedRevisions.asStateFlow()
 
+    /**
+     * Every revision the server returned, unfiltered.
+     *
+     * [completedRevisions] is narrowed to the last seven days, which is all the weekly-activity
+     * card needs. The revision-load card compares a 7-day average against a **28-day** baseline
+     * (15 days for a young account), so reading that narrowed list would silently compute a
+     * baseline from a week of data and grade every user as "Optimal". The two views filter this
+     * one list differently instead of each keeping their own copy.
+     */
+    private val _allRevisions = MutableStateFlow<List<Revision>>(emptyList())
+    val allRevisions: StateFlow<List<Revision>> = _allRevisions.asStateFlow()
+
     private val _lastFetchTimestamp = MutableStateFlow<Long?>(null)
     val lastFetchTimestamp: StateFlow<Long?> = _lastFetchTimestamp.asStateFlow()
 
@@ -168,6 +180,7 @@ class DataManager private constructor(private val context: Context) {
         loadFile<List<Solve>>("recentSolves.json")?.let { _recentSolves.value = it }
         loadFile<List<Revision>>("todayRevisions.json")?.let { _todayRevisions.value = it }
         loadFile<List<Revision>>("completedRevisions.json")?.let { _completedRevisions.value = it }
+        loadFile<List<Revision>>("allRevisions.json")?.let { _allRevisions.value = it }
 
         loadFile<Long>("lastFetchTimestamp.json")?.let { _lastFetchTimestamp.value = it }
 
@@ -199,6 +212,7 @@ class DataManager private constructor(private val context: Context) {
             saveFile(_recentSolves.value, "recentSolves.json")
             saveFile(_todayRevisions.value, "todayRevisions.json")
             saveFile(_completedRevisions.value, "completedRevisions.json")
+            saveFile(_allRevisions.value, "allRevisions.json")
 
             _lastFetchTimestamp.value?.let { saveFile(it, "lastFetchTimestamp.json") }
 
@@ -246,7 +260,21 @@ class DataManager private constructor(private val context: Context) {
         }
     }
 
-    suspend fun fetchAllData(username: String): Unit = withContext(Dispatchers.IO) {
+    /**
+     * Refresh everything the app caches, in one concurrent wave.
+     *
+     * [solveLimit] exists because the solve payload is by far the heaviest thing the API returns —
+     * each row carries an AI analysis blob, a mistake-tag array and the full attempt history. The
+     * home feed only needs enough history to fill its chart x-axes and asks for
+     * [HOME_SOLVE_LIMIT]; the Problems tab is the one screen that genuinely wants a long list and
+     * asks for [DEEP_SOLVE_LIMIT]. Because every fetch merges into the shared persisted cache
+     * (see [mergeAndPersistSolves]) rather than replacing it, opening Problems once tops the home
+     * charts up for good.
+     */
+    suspend fun fetchAllData(
+        username: String,
+        solveLimit: Int = DEEP_SOLVE_LIMIT
+    ): Unit = withContext(Dispatchers.IO) {
         // Execute all 10 network requests concurrently
         val friendsDeferred = async { networkService.getFriends() }
         val receivedRequestsDeferred = async { networkService.getReceivedFriendRequests() }
@@ -259,7 +287,7 @@ class DataManager private constructor(private val context: Context) {
         val solveStatsDeferred = async { networkService.getSolveStats() }
         val achievementStatsDeferred = async { networkService.getAchievementStats() }
         val allAchievementsDeferred = async { networkService.getAllAchievements() }
-        val recentSolvesDeferred = async { networkService.getSolves(limit = 200) }
+        val recentSolvesDeferred = async { networkService.getSolves(limit = solveLimit) }
         val revisionsDeferred = async { networkService.getRevisions(upcoming = true, limit = 50) }
         val groupedRevisionsDeferred = async { networkService.getGroupedRevisions(includeCompleted = true) }
         val revisionStatsDeferred = async { networkService.getRevisionStats() }
@@ -323,11 +351,13 @@ class DataManager private constructor(private val context: Context) {
         val sevenDaysAgo = today.minusDays(7)
         if (groupedRevisionsRes is NetworkResult.Success) {
             _revisionGroups.value = groupedRevisionsRes.data.groups
-            val recentCompleted = groupedRevisionsRes.data.groups.flatMap { it.revisions }
-                .filter { revision ->
-                    revision.isCompleted && revision.completedDate?.toLocalDate()?.let { !it.isBefore(sevenDaysAgo) } ?: false
-                }
-            _completedRevisions.value = recentCompleted
+            val allFetched = groupedRevisionsRes.data.groups.flatMap { it.revisions }
+            // Unfiltered copy first: the revision-load card needs a 28-day window and reads this
+            // one. Narrowing it here would make a 28-day baseline out of a week of data.
+            _allRevisions.value = allFetched
+            _completedRevisions.value = allFetched.filter { revision ->
+                revision.isCompleted && revision.completedDate?.toLocalDate()?.let { !it.isBefore(sevenDaysAgo) } ?: false
+            }
         }
 
         if (revisionStatsRes is NetworkResult.Success) {
@@ -365,6 +395,7 @@ class DataManager private constructor(private val context: Context) {
         _frozenDates.value = emptyList()
         _todayRevisions.value = emptyList()
         _completedRevisions.value = emptyList()
+        _allRevisions.value = emptyList()
 
         _revisionGroups.value = emptyList()
         _revisionStats.value = null
@@ -383,7 +414,8 @@ class DataManager private constructor(private val context: Context) {
             "userStats.json", "submissionStats.json", "solveStats.json",
             "achievementStats.json", "allAchievements.json", "awardSections.json",
             "featuredAward.json", "recentSolves.json",
-            "todayRevisions.json", "completedRevisions.json", "revisionGroups.json",
+            "todayRevisions.json", "completedRevisions.json", "allRevisions.json",
+            "revisionGroups.json",
             "revisionStats.json", "revisionScore.json", "revisionMode.json",
             "lastFetchTimestamp.json"
         )
@@ -393,6 +425,18 @@ class DataManager private constructor(private val context: Context) {
     }
 
     companion object {
+        /**
+         * How many solves the *home feed* pulls on refresh. Mirrors iOS
+         * `HomeViewModel.homeSolveLimit`.
+         */
+        const val HOME_SOLVE_LIMIT = 60
+
+        /**
+         * How many solves the Problems tab pulls. It is the one screen whose content — the full
+         * solve list, its topic filter and the mistake-tag rollup — reads the deep payload.
+         */
+        const val DEEP_SOLVE_LIMIT = 200
+
         @Volatile
         private var instance: DataManager? = null
 
