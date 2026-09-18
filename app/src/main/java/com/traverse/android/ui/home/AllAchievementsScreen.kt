@@ -101,7 +101,7 @@ fun AllAchievementsScreen(
             if (stats != null && stats.total > 0) {
                 Text(
                     text = "${stats.unlocked} of ${stats.total} earned",
-                    style = MaterialTheme.typography.subheadline,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = Color.White.copy(alpha = 0.55f)
                 )
             }
