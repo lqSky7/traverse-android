@@ -4,7 +4,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -24,6 +26,16 @@ fun AuthNavigation(
     navController: NavHostController = rememberNavController()
 ) {
     val uiState by authViewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    // GitHub sign-in leaves the app entirely. The ViewModel hands us a URL once
+    // it has one; opening it and immediately clearing it keeps a recomposition
+    // from launching a second tab.
+    LaunchedEffect(uiState.githubAuthUrl) {
+        val url = uiState.githubAuthUrl ?: return@LaunchedEffect
+        openGitHubAuthPage(context, url)
+        authViewModel.consumeGitHubAuthUrl()
+    }
     
     NavHost(
         navController = navController,
@@ -70,7 +82,9 @@ fun AuthNavigation(
                         launchSingleTop = true
                     }
                 },
-                onClearError = authViewModel::clearError
+                onClearError = authViewModel::clearError,
+                isGitHubSignInInProgress = uiState.isGitHubSignInInProgress,
+                onGitHubSignIn = authViewModel::startGitHubSignIn
             )
         }
         

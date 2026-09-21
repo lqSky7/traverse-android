@@ -40,10 +40,32 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:launchMode="singleTask"
             android:theme="@style/Theme.TraverseAndroid">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+                GitHub sign-in return path. GitHub only accepts an http(s)
+                callback, so the backend redirects to the website with this
+                scheme in the OAuth `state`, and the website bounces the code
+                back here. Must stay in step with GITHUB_REDIRECT_URI in
+                data/AuthModels.kt.
+
+                `singleTask` is what makes this an onNewIntent rather than a
+                second MainActivity: the app is in the background while the
+                browser is in front, and a `standard` launch would stack a
+                duplicate activity behind the login screen.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="traverse-android"
+                    android:host="auth" />
             </intent-filter>
         </activity>
     </application>

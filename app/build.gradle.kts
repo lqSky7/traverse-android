@@ -90,6 +90,10 @@ dependencies {
     // Security (for encrypted token storage)
     implementation(libs.androidx.security.crypto)
 
+    // Custom Tabs — GitHub sign-in opens in the reader's own browser so an
+    // existing GitHub session is reused, and the deep link can't be hijacked.
+    implementation(libs.androidx.browser)
+
     // Image Loading
     implementation(libs.coil.compose)
 

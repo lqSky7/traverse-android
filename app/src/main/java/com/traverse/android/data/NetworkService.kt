@@ -74,6 +74,25 @@ interface TraverseApi {
     
     @POST("auth/recover")
     suspend fun recoverAccount(@Body request: RecoverAccountRequest): RecoveryResponse
+
+    /**
+     * Ask the backend for the provider's authorization URL. The backend decides
+     * what to do with [redirectUri] — for anything that is not http(s) it
+     * substitutes the web callback and threads the value through `state`, so
+     * the app is never asked to speak OAuth itself.
+     */
+    @GET("auth/social/{provider}")
+    suspend fun getSocialAuthUrl(
+        @retrofit2.http.Path("provider") provider: String,
+        @Query("redirect_uri") redirectUri: String
+    ): SocialAuthUrlResponse
+
+    /**
+     * Trade the one-time code from the deep link for an application JWT.
+     * Returns the same shape as `/auth/login`, so it decodes as [LoginResponse].
+     */
+    @POST("auth/social/callback")
+    suspend fun exchangeSocialCode(@Body request: SocialCallbackRequest): LoginResponse
     
     @GET("auth/me/stats")
     suspend fun getUserStats(): UserStats
@@ -446,6 +465,36 @@ class NetworkService private constructor(context: Context) {
         }
     }
     
+    /**
+     * Start GitHub sign-in: returns the URL the app should open in a browser.
+     *
+     * Nothing is persisted here — the token only arrives once the browser has
+     * round-tripped through GitHub and handed a code back to the deep link.
+     */
+    suspend fun getGitHubAuthUrl(): NetworkResult<String> {
+        return try {
+            val response = api.getSocialAuthUrl("github", GITHUB_REDIRECT_URI)
+            NetworkResult.Success(response.url)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+
+    /**
+     * Finish GitHub sign-in by exchanging the deep-link code for a JWT, and
+     * persist it exactly the way [login] does so the rest of the app cannot
+     * tell the two flows apart.
+     */
+    suspend fun loginWithGitHubCode(code: String): NetworkResult<LoginResponse> {
+        return try {
+            val response = api.exchangeSocialCode(SocialCallbackRequest(code))
+            response.token?.let { tokenManager.saveToken(it) }
+            NetworkResult.Success(response)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+
     suspend fun logout(): NetworkResult<Unit> {
         return try {
             api.logout()

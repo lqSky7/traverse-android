@@ -25,7 +25,19 @@ data class AuthUiState(
     val isAuthenticated: Boolean = false,
     val isDataLoaded: Boolean = false,
     val currentUser: User? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    /**
+     * One-shot: the URL the UI should hand to a browser, then clear with
+     * [AuthViewModel.consumeGitHubAuthUrl]. Null the rest of the time.
+     */
+    val githubAuthUrl: String? = null,
+    /**
+     * True from the moment GitHub sign-in is requested until the deep link
+     * comes back — or until the app resumes without one, which means the
+     * reader abandoned it. Without this the sign-in button would stay disabled
+     * for the rest of the session after a cancelled attempt.
+     */
+    val isGitHubSignInInProgress: Boolean = false
 )
 
 @Serializable
@@ -207,6 +219,100 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     
+    /**
+     * GitHub sign-in, part one: fetch the authorization URL and hand it to the
+     * UI to open in a browser. Deliberately not a suspend function the screen
+     * awaits — the browser leaves the app, and the answer comes back minutes
+     * later on a completely different code path ([handleGitHubCallback]).
+     */
+    fun startGitHubSignIn() {
+        if (_uiState.value.isGitHubSignInInProgress) return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isGitHubSignInInProgress = true,
+                errorMessage = null
+            )
+
+            when (val result = networkService.getGitHubAuthUrl()) {
+                is NetworkResult.Success -> {
+                    _uiState.value = _uiState.value.copy(githubAuthUrl = result.data)
+                }
+                is NetworkResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isGitHubSignInInProgress = false,
+                        errorMessage = result.message
+                    )
+                }
+            }
+        }
+    }
+
+    /** The URL has reached the browser; clear it so it is not opened twice. */
+    fun consumeGitHubAuthUrl() {
+        _uiState.value = _uiState.value.copy(githubAuthUrl = null)
+    }
+
+    /**
+     * GitHub sign-in, part two: the deep link came back carrying a code.
+     *
+     * The guard matters on configuration change — Android redelivers the
+     * launching intent on recreate, and an OAuth code is single-use, so a
+     * second exchange would fail with a 401 and overwrite a good session with
+     * an error.
+     */
+    fun handleGitHubCallback(code: String) {
+        val state = _uiState.value
+        if (state.isLoading || state.isAuthenticated) return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isLoading = true,
+                isGitHubSignInInProgress = false,
+                githubAuthUrl = null,
+                errorMessage = null
+            )
+
+            when (val result = networkService.loginWithGitHubCode(code)) {
+                is NetworkResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        currentUser = result.data.user
+                    )
+                    preloadAllData(result.data.user.username)
+                }
+                is NetworkResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = result.message
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * The browser came back without a code — the reader pressed back, or GitHub
+     * refused before redirecting. Drops the pending flag so sign-in is usable
+     * again; a deep link that *did* arrive clears it first, and this then
+     * no-ops.
+     */
+    fun onReturnedToForeground() {
+        val state = _uiState.value
+        if (state.isGitHubSignInInProgress && state.githubAuthUrl == null) {
+            _uiState.value = state.copy(isGitHubSignInInProgress = false)
+        }
+    }
+
+    /** GitHub itself refused the request, or the reader declined at its prompt. */
+    fun handleGitHubError(message: String) {
+        _uiState.value = _uiState.value.copy(
+            isLoading = false,
+            isGitHubSignInInProgress = false,
+            githubAuthUrl = null,
+            errorMessage = message
+        )
+    }
+
     fun logout() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)

@@ -55,6 +55,34 @@ data class RecoverAccountRequest(
     val password: String? = null
 )
 
+// MARK: - Social (GitHub) Auth Models
+
+/**
+ * The custom scheme this app is registered to receive after a GitHub sign-in.
+ *
+ * The backend cannot redirect straight back to an app — GitHub only accepts an
+ * http(s) callback — so `GET /auth/social/github` detects a non-http
+ * `redirect_uri`, swaps it for the web callback, and carries *this* string
+ * through the OAuth `state` parameter instead. The website's `/auth/callback`
+ * sees a `state` that is not a URL it owns and bounces the code back here. See
+ * `traverse-backend/src/routes/social.routes.ts` and the `isMobileRedirect`
+ * branch in `website/src/pages/AuthCallbackPage.tsx`.
+ *
+ * Must stay in lockstep with the `android:scheme` / `android:host` pair on
+ * `MainActivity` in AndroidManifest.xml.
+ */
+const val GITHUB_REDIRECT_URI = "traverse-android://auth"
+
+@Serializable
+data class SocialAuthUrlResponse(
+    val url: String
+)
+
+@Serializable
+data class SocialCallbackRequest(
+    val code: String
+)
+
 // MARK: - Response Models
 
 @Serializable
