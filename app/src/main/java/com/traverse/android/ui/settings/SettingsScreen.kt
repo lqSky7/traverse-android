@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import com.traverse.android.BuildConfig
 import com.traverse.android.data.*
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
+import com.traverse.android.ui.revisions.CalendarExportSheet
 import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import com.traverse.android.ui.theme.ColorPaletteManager
@@ -76,6 +77,7 @@ fun SettingsScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showFreezeShopSheet by remember { mutableStateOf(false) }
     var showNotificationSettingsSheet by remember { mutableStateOf(false) }
+    var showCalendarSheet by remember { mutableStateOf(false) }
     var showCheckUpdatesDialog by remember { mutableStateOf(false) }
     var showGeminiKeyDialog by remember { mutableStateOf(false) }
     var updateCheckMessage by remember { mutableStateOf<String?>(null) }
@@ -156,13 +158,7 @@ fun SettingsScreen(
                 onDeleteAccount = { showDeleteAccountDialog = true },
                 onFreezeShop = { showFreezeShopSheet = true },
                 onNotificationSettings = { showNotificationSettingsSheet = true },
-                onCalendarSubscription = {
-                    user?.let { u ->
-                        val url = networkService.calendarFeedURL(u.username, u.calendarToken ?: "")
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                        context.startActivity(intent)
-                    }
-                },
+                onCalendarSubscription = { showCalendarSheet = true },
                 onGeminiApiKey = {
                     geminiKeyInput = cacheManager.getGeminiApiKey() ?: ""
                     showGeminiKeyDialog = true
@@ -341,6 +337,21 @@ fun SettingsScreen(
         }
     }
     
+    // Calendar Subscription Sheet
+    //
+    // This row used to fire an ACTION_VIEW intent at the feed URL directly. The
+    // feed is a `webcal://` URL, and Android registers no handler for that scheme
+    // — iOS does, which is why the iOS build gets away with the same gesture —
+    // so `startActivity` threw ActivityNotFoundException and took the app down
+    // with it. There is nothing to hand the link to on Android, so the sheet is
+    // the answer: it shows the URL, copies it, and says what to do with it.
+    if (showCalendarSheet) {
+        CalendarExportSheet(
+            username = user?.username ?: "",
+            onDismiss = { showCalendarSheet = false }
+        )
+    }
+
     // Freeze Shop Sheet
     if (showFreezeShopSheet) {
         FreezeShopSheet(
