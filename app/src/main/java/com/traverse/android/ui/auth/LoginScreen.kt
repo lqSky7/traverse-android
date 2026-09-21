@@ -58,7 +58,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.traverse.android.R
-import com.traverse.android.ui.theme.Peach
 import com.traverse.android.ui.theme.palettePrimary
 
 private val RoundedShape = RoundedCornerShape(24.dp)
@@ -68,7 +67,6 @@ fun LoginScreen(
     isLoading: Boolean,
     errorMessage: String?,
     onLogin: (username: String, password: String) -> Unit,
-    onNavigateToRegister: () -> Unit,
     onNavigateToPasswordReset: () -> Unit,
     onClearError: () -> Unit,
     isGitHubSignInInProgress: Boolean,
@@ -316,20 +314,6 @@ fun LoginScreen(
                             )
                         )
                     }
-                }
-                
-                // Sign up link
-                TextButton(
-                    onClick = onNavigateToRegister,
-                    enabled = !isLoading
-                ) {
-                    Text(
-                        text = "Don't have an account? Sign Up",
-                        color = Peach,
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.Medium
-                        )
-                    )
                 }
                 
                 Spacer(modifier = Modifier.weight(1f))

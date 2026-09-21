@@ -72,11 +72,6 @@ fun AuthNavigation(
                 onLogin = { username, password ->
                     authViewModel.login(username, password)
                 },
-                onNavigateToRegister = {
-                    navController.navigate(AuthRoute.Register.route) {
-                        launchSingleTop = true
-                    }
-                },
                 onNavigateToPasswordReset = {
                     navController.navigate(AuthRoute.PasswordReset.route) {
                         launchSingleTop = true
