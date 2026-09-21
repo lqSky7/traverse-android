@@ -276,7 +276,7 @@ private fun StepScreenshot(@DrawableRes imageRes: Int) {
             .padding(10.dp)
     ) {
         val naturalWidth = painter.intrinsicSize.width.dp
-        val width = if (naturalWidth.isFinite() && naturalWidth < maxWidth) naturalWidth else maxWidth
+        val width = if (naturalWidth.value.isFinite() && naturalWidth < maxWidth) naturalWidth else maxWidth
 
         Image(
             painter = painter,
