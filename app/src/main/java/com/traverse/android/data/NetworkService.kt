@@ -48,9 +48,6 @@ interface TraverseApi {
     @POST("auth/login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
     
-    @POST("auth/register")
-    suspend fun register(@Body request: RegisterRequest): AuthResponse
-    
     @POST("auth/logout")
     suspend fun logout()
     
@@ -443,21 +440,6 @@ class NetworkService private constructor(context: Context) {
     suspend fun login(username: String, password: String): NetworkResult<LoginResponse> {
         return try {
             val response = api.login(LoginRequest(username, password))
-            response.token?.let { tokenManager.saveToken(it) }
-            NetworkResult.Success(response)
-        } catch (e: Exception) {
-            NetworkResult.Error(parseError(e))
-        }
-    }
-    
-    suspend fun register(
-        username: String,
-        email: String,
-        password: String,
-        timezone: String
-    ): NetworkResult<AuthResponse> {
-        return try {
-            val response = api.register(RegisterRequest(username, email, password, timezone))
             response.token?.let { tokenManager.saveToken(it) }
             NetworkResult.Success(response)
         } catch (e: Exception) {

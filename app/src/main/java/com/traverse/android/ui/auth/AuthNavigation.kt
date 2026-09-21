@@ -14,9 +14,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.traverse.android.viewmodel.AuthViewModel
 
+/**
+ * Signed-out destinations. There is no `Register` route: username/email sign-up was dropped from the
+ * app on 2026-09-21 and new accounts are created through the GitHub flow instead, which the backend
+ * turns into a local user on first sign-in.
+ */
 sealed class AuthRoute(val route: String) {
     data object Login : AuthRoute("login")
-    data object Register : AuthRoute("register")
     data object PasswordReset : AuthRoute("password_reset")
 }
 
@@ -80,20 +84,6 @@ fun AuthNavigation(
                 onClearError = authViewModel::clearError,
                 isGitHubSignInInProgress = uiState.isGitHubSignInInProgress,
                 onGitHubSignIn = authViewModel::startGitHubSignIn
-            )
-        }
-        
-        composable(route = AuthRoute.Register.route) {
-            RegisterScreen(
-                isLoading = uiState.isLoading,
-                errorMessage = uiState.errorMessage,
-                onRegister = { username, email, password ->
-                    authViewModel.register(username, email, password)
-                },
-                onNavigateToLogin = {
-                    navController.popBackStack()
-                },
-                onClearError = authViewModel::clearError
             )
         }
         

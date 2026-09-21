@@ -18,7 +18,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.util.TimeZone
 
 data class AuthUiState(
     val isLoading: Boolean = false,
@@ -175,34 +174,6 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             
             when (val result = networkService.login(username, password)) {
-                is NetworkResult.Success -> {
-                    _uiState.value = _uiState.value.copy(
-                        currentUser = result.data.user
-                    )
-                    preloadAllData(result.data.user.username)
-                }
-                is NetworkResult.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = result.message
-                    )
-                }
-            }
-        }
-    }
-    
-    fun register(username: String, email: String, password: String) {
-        if (username.isBlank() || email.isBlank() || password.isBlank()) {
-            _uiState.value = _uiState.value.copy(errorMessage = "Please fill in all fields")
-            return
-        }
-        
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-            
-            val timezone = TimeZone.getDefault().id
-            
-            when (val result = networkService.register(username, email, password, timezone)) {
                 is NetworkResult.Success -> {
                     _uiState.value = _uiState.value.copy(
                         currentUser = result.data.user

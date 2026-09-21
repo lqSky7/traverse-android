@@ -11,14 +11,6 @@ data class LoginRequest(
 )
 
 @Serializable
-data class RegisterRequest(
-    val username: String,
-    val email: String,
-    val password: String,
-    val timezone: String
-)
-
-@Serializable
 data class UpdateProfileRequest(
     val email: String? = null,
     val timezone: String? = null,
@@ -101,14 +93,6 @@ data class User(
     // Local-only field for cached avatar
     @kotlinx.serialization.Transient
     val localProfileImageUrl: String? = null
-)
-
-@Serializable
-data class AuthResponse(
-    val message: String,
-    val user: User,
-    val token: String? = null,
-    val refreshToken: String? = null
 )
 
 @Serializable
