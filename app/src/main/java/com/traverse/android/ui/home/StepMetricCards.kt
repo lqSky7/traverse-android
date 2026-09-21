@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,6 +29,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -158,6 +160,14 @@ fun AttemptsAnalysisCard(
 
 // MARK: - Shared shell
 
+/**
+ * Title size and line height for the metric tiles. The row of two tiles reserves two title lines in
+ * every card, because "Attempts Analysis" wraps to two lines while "Time Analysis" fits on one: the
+ * wrapping card is otherwise a full line taller than its neighbour, and every element below the
+ * title — caption, hero number, bar strip — sits lower with it.
+ */
+private val metricTitleLineHeight = 23.sp
+
 @Composable
 fun StepMetricCard(
     title: String,
@@ -179,6 +189,9 @@ fun StepMetricCard(
     val textMeasurer = rememberTextMeasurer()
     val axisStyle = TextStyle(fontSize = 9.sp, color = Color.White.copy(alpha = 0.45f))
 
+    // Reserved in sp, not dp, so the two tiles stay level at any font scale.
+    val titleBlockHeight = with(LocalDensity.current) { (metricTitleLineHeight.toPx() * 2).toDp() }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -188,11 +201,14 @@ fun StepMetricCard(
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Row(verticalAlignment = Alignment.Top) {
+        Row(
+            modifier = Modifier.heightIn(min = titleBlockHeight),
+            verticalAlignment = Alignment.Top
+        ) {
             Text(
                 text = title,
                 fontSize = 19.sp,
-                lineHeight = 23.sp,
+                lineHeight = metricTitleLineHeight,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
                 maxLines = 2,
