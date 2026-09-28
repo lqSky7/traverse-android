@@ -354,12 +354,13 @@ sealed class NetworkResult<out T> {
 
 class NetworkService internal constructor(
     context: Context,
-    baseUrl: String = TRAVERSE_API_URL
+    baseUrl: String = TRAVERSE_API_URL,
+    tokenStore: AuthTokenStore? = null
 ) {
     
     // Initialize lazily so Keystore and legacy-secret migration run only when
     // the network service is actually used.
-    private val tokenManager by lazy { TokenManager.getInstance(context) }
+    private val tokenManager by lazy { tokenStore ?: TokenManager.getInstance(context) }
     
     private val json = Json {
         ignoreUnknownKeys = true

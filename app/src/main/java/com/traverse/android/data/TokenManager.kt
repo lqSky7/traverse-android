@@ -16,7 +16,14 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 
 /** Device-bound secret storage backed by Android Keystore AES-GCM. */
-class TokenManager private constructor(context: Context) {
+internal interface AuthTokenStore {
+    fun saveToken(token: String): Boolean
+    fun getToken(): String?
+    fun deleteToken()
+    fun isAuthenticated(): Boolean
+}
+
+internal class TokenManager private constructor(context: Context) : AuthTokenStore {
     private val appContext = context.applicationContext
     private val ciphertextPreferences: SharedPreferences = appContext.getSharedPreferences(
         CIPHERTEXT_PREFERENCES,
@@ -25,15 +32,15 @@ class TokenManager private constructor(context: Context) {
     private val legacyPreferences: SharedPreferences? = openLegacyPreferences(appContext)
 
     @Synchronized
-    fun saveToken(token: String): Boolean = saveSecret(KEY_AUTH_TOKEN, token)
+    override fun saveToken(token: String): Boolean = saveSecret(KEY_AUTH_TOKEN, token)
 
     @Synchronized
-    fun getToken(): String? = getSecret(KEY_AUTH_TOKEN)
+    override fun getToken(): String? = getSecret(KEY_AUTH_TOKEN)
 
     @Synchronized
-    fun deleteToken() = deleteSecret(KEY_AUTH_TOKEN)
+    override fun deleteToken() = deleteSecret(KEY_AUTH_TOKEN)
 
-    fun isAuthenticated(): Boolean = !getToken().isNullOrBlank()
+    override fun isAuthenticated(): Boolean = !getToken().isNullOrBlank()
 
     @Synchronized
     fun saveSecret(key: String, value: String): Boolean {

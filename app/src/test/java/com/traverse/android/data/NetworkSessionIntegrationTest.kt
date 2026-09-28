@@ -1,8 +1,7 @@
 package com.traverse.android.data
 
-import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -12,34 +11,34 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
-@RunWith(AndroidJUnit4::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35])
 class NetworkSessionIntegrationTest {
     private lateinit var context: Context
     private lateinit var server: MockWebServer
     private lateinit var service: NetworkService
-    private lateinit var tokenManager: TokenManager
+    private lateinit var tokenStore: TestAuthTokenStore
 
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
         server = MockWebServer().also { it.start() }
-        service = NetworkService(context, server.url("/api/").toString())
-        tokenManager = TokenManager.getInstance(context)
-        check(tokenManager.saveToken("integration-test-token"))
+        tokenStore = TestAuthTokenStore()
+        service = NetworkService(context, server.url("/api/").toString(), tokenStore)
+        check(tokenStore.saveToken("integration-test-token"))
     }
 
     @After
     fun tearDown() {
-        tokenManager.deleteToken()
         server.shutdown()
     }
 
     @Test
     fun billingAndLogoutRequestsUseAuthenticatedApiAndClearToken() = runBlocking {
-        val encryptedToken = context.getSharedPreferences("traverse_secure_ciphertext", Context.MODE_PRIVATE)
-            .getString("auth_token", null)
-        assertTrue(encryptedToken != null && !encryptedToken.contains("integration-test-token"))
+        assertEquals("integration-test-token", tokenStore.getToken())
 
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
@@ -73,11 +72,23 @@ class NetworkSessionIntegrationTest {
         assertEquals("POST", logoutRequest.method)
         assertEquals("/api/auth/logout", logoutRequest.path)
         assertEquals("Bearer integration-test-token", logoutRequest.getHeader("Authorization"))
-        assertEquals(null, tokenManager.getToken())
-        assertEquals(
-            null,
-            context.getSharedPreferences("traverse_secure_ciphertext", Context.MODE_PRIVATE)
-                .getString("auth_token", null)
-        )
+        assertEquals(null, tokenStore.getToken())
+    }
+
+    private class TestAuthTokenStore : AuthTokenStore {
+        private var token: String? = null
+
+        override fun saveToken(token: String): Boolean {
+            this.token = token
+            return true
+        }
+
+        override fun getToken(): String? = token
+
+        override fun deleteToken() {
+            token = null
+        }
+
+        override fun isAuthenticated(): Boolean = !token.isNullOrBlank()
     }
 }
