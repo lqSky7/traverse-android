@@ -39,7 +39,8 @@ import com.traverse.android.ui.theme.palettePrimary
 import com.traverse.android.ui.theme.currentPalette
 
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalGetImage::class)
+@OptIn(ExperimentalMaterial3Api::class)
+@androidx.annotation.OptIn(markerClass = [ExperimentalGetImage::class])
 @Composable
 fun QRScannerScreen(
     currentUsername: String,

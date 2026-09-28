@@ -32,7 +32,8 @@ import androidx.media3.ui.PlayerView
 import com.traverse.android.R
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 
-@OptIn(ExperimentalMaterial3Api::class, UnstableApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
+@androidx.annotation.OptIn(markerClass = [UnstableApi::class])
 @Composable
 fun ProUpgradeSheet(
     onDismiss: () -> Unit,
