@@ -109,6 +109,30 @@ data class UserResponse(
 )
 
 @Serializable
+data class AuthSessionsResponse(
+    val sessions: List<AuthSession>,
+    val maxSessions: Int = 5
+)
+
+@Serializable
+data class AuthSession(
+    val id: String,
+    val deviceName: String,
+    val userAgent: String? = null,
+    val ipAddress: String? = null,
+    val createdAt: String,
+    val lastSeenAt: String,
+    val expiresAt: String,
+    val isCurrent: Boolean = false
+)
+
+@Serializable
+data class AuthSessionActionResponse(
+    val success: Boolean,
+    val revokedCount: Int? = null
+)
+
+@Serializable
 data class UpdateProfileResponse(
     val message: String,
     val user: User

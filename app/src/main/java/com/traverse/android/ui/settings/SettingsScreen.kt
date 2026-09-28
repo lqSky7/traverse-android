@@ -78,6 +78,7 @@ fun SettingsScreen(
     var showFreezeShopSheet by remember { mutableStateOf(false) }
     var showNotificationSettingsSheet by remember { mutableStateOf(false) }
     var showBillingSheet by remember { mutableStateOf(false) }
+    var showSessionsSheet by remember { mutableStateOf(false) }
     var showCalendarSheet by remember { mutableStateOf(false) }
     var showCheckUpdatesDialog by remember { mutableStateOf(false) }
     var showGeminiKeyDialog by remember { mutableStateOf(false) }
@@ -161,6 +162,7 @@ fun SettingsScreen(
                 onFreezeShop = { showFreezeShopSheet = true },
                 onNotificationSettings = { showNotificationSettingsSheet = true },
                 onBilling = { showBillingSheet = true },
+                onSessions = { showSessionsSheet = true },
                 onCalendarSubscription = { showCalendarSheet = true },
                 onGeminiApiKey = {
                     geminiKeyInput = cacheManager.getGeminiApiKey() ?: ""
@@ -474,6 +476,13 @@ fun SettingsScreen(
     if (showBillingSheet) {
         BillingSheet(onDismiss = { showBillingSheet = false })
     }
+
+    if (showSessionsSheet) {
+        ActiveSessionsSheet(
+            networkService = networkService,
+            onDismiss = { showSessionsSheet = false }
+        )
+    }
     
     // Error Snackbar
     errorMessage?.let { error ->
@@ -629,6 +638,7 @@ private fun BentoSettingsGrid(
     onFreezeShop: () -> Unit,
     onNotificationSettings: () -> Unit,
     onBilling: () -> Unit,
+    onSessions: () -> Unit,
     onCalendarSubscription: () -> Unit,
     onGeminiApiKey: () -> Unit,
     onImportPalette: () -> Unit,
@@ -687,7 +697,7 @@ private fun BentoSettingsGrid(
 
             HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
 
-            // Row 3: Security | Logout
+            // Row 3: Security | Active sessions
             Row(modifier = Modifier.height(140.dp)) {
                 BentoCell(
                     icon = Icons.Default.Lock,
@@ -701,86 +711,54 @@ private fun BentoSettingsGrid(
                 VerticalDivider()
 
                 BentoCell(
-                    icon = Icons.AutoMirrored.Filled.Logout,
-                    iconColor = Color.Red,
-                    title = "Logout",
-                    subtitle = "Sign out",
-                    onClick = onLogout,
+                    icon = Icons.Default.Devices,
+                    iconColor = palette.colorAt(1),
+                    title = "Sessions",
+                    subtitle = "Manage signed-in devices",
+                    onClick = onSessions,
                     modifier = Modifier.weight(1f)
                 )
             }
 
             HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
 
-            // Row 4: Freeze Shop (full width)
-            BentoCellWide(
-                icon = Icons.Default.AcUnit,
-                iconColor = palette.colorAt(0),
-                title = "Freeze Shop",
-                subtitle = "Protect your streak with freezes",
-                onClick = onFreezeShop
-            )
+            // Compact two-column rows keep settings actions in the same bento rhythm.
+            SettingsGridRow {
+                BentoCell(Icons.AutoMirrored.Filled.Logout, Color.Red, "Logout", "Sign out", onLogout, Modifier.weight(1f))
+                VerticalDivider()
+                BentoCell(Icons.Default.CreditCard, palette.colorAt(1), "Billing", "Plan and renewal", onBilling, Modifier.weight(1f))
+            }
 
             HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
 
-            // Row 5: Notifications (full width)
-            BentoCellWide(
-                icon = Icons.Default.Notifications,
-                iconColor = palette.colorAt(2),
-                title = "Notifications",
-                subtitle = "Inbox, alerts and quiet hours",
-                onClick = onNotificationSettings
-            )
+            SettingsGridRow {
+                BentoCell(Icons.Default.Notifications, palette.colorAt(2), "Notifications", "Alerts and quiet hours", onNotificationSettings, Modifier.weight(1f))
+                VerticalDivider()
+                BentoCell(Icons.Default.AcUnit, palette.colorAt(0), "Freeze Shop", "Protect your streak", onFreezeShop, Modifier.weight(1f))
+            }
 
             HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
 
-            BentoCellWide(
-                icon = Icons.Default.CreditCard,
-                iconColor = palette.colorAt(1),
-                title = "Billing",
-                subtitle = "View plan and manage renewal",
-                onClick = onBilling
-            )
+            SettingsGridRow {
+                BentoCell(Icons.Default.CalendarMonth, palette.colorAt(1), "Calendar", "Sync revisions", onCalendarSubscription, Modifier.weight(1f))
+                VerticalDivider()
+                BentoCell(Icons.Default.AutoAwesome, palette.colorAt(3), "AI Coach", "Configure Gemini", onGeminiApiKey, Modifier.weight(1f))
+            }
 
             HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
 
-            // Row 6: Calendar Subscription (full width)
-            BentoCellWide(
-                icon = Icons.Default.CalendarMonth,
-                iconColor = palette.colorAt(1),
-                title = "Calendar Subscription",
-                subtitle = "Sync revisions to your Calendar app",
-                onClick = onCalendarSubscription
-            )
-
-            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-
-            // Row 6: AI Revision Coach (Android-only, full width)
-            BentoCellWide(
-                icon = Icons.Default.AutoAwesome,
-                iconColor = palette.colorAt(3),
-                title = "AI Revision Coach",
-                subtitle = "Configure Gemini API key for hints",
-                onClick = onGeminiApiKey
-            )
-
-            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-
-            // Row 7: Check for Updates (Android-only, full width)
-            BentoCellWide(
-                icon = Icons.Default.Download,
-                iconColor = palette.colorAt(1),
-                title = "Check for Updates",
-                subtitle = "Update to the latest version",
-                onClick = onCheckUpdates
-            )
-
-            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-
-            // Row 8: Delete Account (full width, danger)
-            BentoDeleteCell(onClick = onDeleteAccount)
+            SettingsGridRow {
+                BentoCell(Icons.Default.Download, palette.colorAt(1), "Updates", "Check for a new version", onCheckUpdates, Modifier.weight(1f))
+                VerticalDivider()
+                BentoCell(Icons.Default.DeleteForever, SwiftRed, "Delete Account", "Permanently delete", onDeleteAccount, Modifier.weight(1f))
+            }
         }
     }
+}
+
+@Composable
+private fun SettingsGridRow(content: @Composable RowScope.() -> Unit) {
+    Row(modifier = Modifier.height(140.dp), content = content)
 }
 
 @Composable
@@ -839,54 +817,6 @@ private fun BentoCell(
 }
 
 @Composable
-private fun BentoCellWide(
-    icon: ImageVector,
-    iconColor: Color,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = iconColor,
-            modifier = Modifier.size(28.dp)
-        )
-        
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White
-                )
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    color = Color.White.copy(alpha = 0.5f)
-                )
-            )
-        }
-        
-        Icon(
-            imageVector = Icons.Default.ChevronRight,
-            contentDescription = null,
-            tint = iconColor.copy(alpha = 0.6f),
-            modifier = Modifier.size(20.dp)
-        )
-    }
-}
-
 /**
  * Palette tile, mirroring the iOS bento grid's "Palette" cell exactly: the icon slot holds a
  * preview of the selected palette's first four colours (22dp circles, 1dp white-20% stroke,

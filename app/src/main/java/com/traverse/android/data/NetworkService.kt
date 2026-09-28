@@ -10,7 +10,9 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Path
 import retrofit2.http.POST
 import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
@@ -54,6 +56,15 @@ interface TraverseApi {
     
     @GET("auth/me")
     suspend fun getCurrentUser(): UserResponse
+
+    @GET("auth/sessions")
+    suspend fun getAuthSessions(): AuthSessionsResponse
+
+    @DELETE("auth/sessions/others")
+    suspend fun revokeOtherAuthSessions(): AuthSessionActionResponse
+
+    @DELETE("auth/sessions/{sessionId}")
+    suspend fun revokeAuthSession(@Path("sessionId") sessionId: String): AuthSessionActionResponse
     
     @retrofit2.http.PATCH("auth/profile")
     suspend fun updateProfile(@Body request: UpdateProfileRequest): UpdateProfileResponse
@@ -516,6 +527,30 @@ class NetworkService internal constructor(
         return try {
             val response = api.getCurrentUser()
             NetworkResult.Success(response.user)
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+
+    suspend fun getAuthSessions(): NetworkResult<AuthSessionsResponse> {
+        return try {
+            NetworkResult.Success(api.getAuthSessions())
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+
+    suspend fun revokeOtherAuthSessions(): NetworkResult<AuthSessionActionResponse> {
+        return try {
+            NetworkResult.Success(api.revokeOtherAuthSessions())
+        } catch (e: Exception) {
+            NetworkResult.Error(parseError(e))
+        }
+    }
+
+    suspend fun revokeAuthSession(sessionId: String): NetworkResult<AuthSessionActionResponse> {
+        return try {
+            NetworkResult.Success(api.revokeAuthSession(sessionId))
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))
         }
