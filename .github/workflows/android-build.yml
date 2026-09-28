@@ -35,7 +35,14 @@ jobs:
             printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
           fi
       - run: chmod +x gradlew
-      - run: ./gradlew testDebugUnitTest lintDebug --stacktrace --no-daemon
+      - name: Run unit tests and lint
+        run: |
+          ./gradlew testDebugUnitTest --stacktrace --no-daemon
+          if ! ./gradlew lintDebug --stacktrace --no-daemon; then
+            find app/build -type f \( -name 'lint-results*.txt' -o -name 'lint-results*.sarif' \) \
+              -print -exec sh -c 'echo "--- $1"; cat "$1"' _ {} \;
+            exit 1
+          fi
 
   integration-tests:
     name: Android emulator integration tests

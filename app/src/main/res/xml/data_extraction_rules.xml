@@ -2,7 +2,6 @@
 <data-extraction-rules>
     <cloud-backup>
         <include domain="sharedpref" path="."/>
-        <exclude domain="file" path="."/>
         <exclude domain="sharedpref" path="device.xml"/>
         <exclude domain="sharedpref" path="traverse_cache.xml"/>
         <exclude domain="sharedpref" path="traverse_secure_prefs.xml"/>
@@ -10,7 +9,6 @@
     </cloud-backup>
     <device-transfer>
         <include domain="sharedpref" path="."/>
-        <exclude domain="file" path="."/>
         <exclude domain="sharedpref" path="device.xml"/>
         <exclude domain="sharedpref" path="traverse_cache.xml"/>
         <exclude domain="sharedpref" path="traverse_secure_prefs.xml"/>

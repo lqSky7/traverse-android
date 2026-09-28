@@ -54,7 +54,13 @@ unit-tests:
         {"project_info":{"project_number":"0","project_id":"traverse-ci","storage_bucket":"traverse-ci.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:0:android:com.traverse.android","android_client_info":{"package_name":"com.traverse.android"}},"api_key":[{"current_key":"ci-placeholder"}],"services":{}}],"configuration_version":"1"}
       EOF_JSON
       fi
-    - ./gradlew testDebugUnitTest lintDebug --stacktrace --no-daemon
+    - |
+      ./gradlew testDebugUnitTest --stacktrace --no-daemon
+      if ! ./gradlew lintDebug --stacktrace --no-daemon; then
+        find app/build -type f \( -name 'lint-results*.txt' -o -name 'lint-results*.sarif' \) \
+          -print -exec sh -c 'echo "--- $1"; cat "$1"' _ {} \;
+        exit 1
+      fi
 
 build-release:
   extends: .build-base
