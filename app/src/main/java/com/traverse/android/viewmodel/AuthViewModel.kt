@@ -53,6 +53,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val cacheManager = CacheManager.getInstance(application)
     private val dataManager = DataManager.getInstance(application)
     private val toastManager = AchievementToastManager.getInstance(application)
+    private val sessionCleaner = AccountSessionCleaner(application)
     private val json = Json { ignoreUnknownKeys = true }
     
     private val _uiState = MutableStateFlow(AuthUiState())
@@ -290,9 +291,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             
             PushRegistrationManager.getInstance(getApplication()).unregisterFromServer()
             networkService.logout()
-            cacheManager.clearAllCache()
-            dataManager.clearAllData()
-            toastManager.resetState()
+            sessionCleaner.clear()
             
             _uiState.value = AuthUiState(isAuthenticated = false)
         }

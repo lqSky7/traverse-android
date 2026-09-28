@@ -10,7 +10,7 @@ import kotlinx.serialization.json.Json
  * Uses SharedPreferences with JSON serialization for persistence.
  * Cache entries have TTL (time-to-live) to auto-expire stale data.
  */
-class CacheManager private constructor(context: Context) {
+class CacheManager private constructor(private val context: Context) {
     
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val tokenManager = TokenManager.getInstance(context.applicationContext)
@@ -294,6 +294,10 @@ class CacheManager private constructor(context: Context) {
                 // Ignore if file deletion fails
             }
         }
+
+        // A previous failed image refresh can leave an unreferenced image behind.
+        context.filesDir.listFiles { file -> file.name.startsWith("profile_image_") }
+            ?.forEach { file -> runCatching { file.delete() } }
         
         prefs.edit().clear().apply()
         tokenManager.deleteSecret(KEY_GEMINI_API_KEY)

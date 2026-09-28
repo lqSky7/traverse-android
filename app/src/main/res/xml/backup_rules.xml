@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
     <include domain="sharedpref" path="."/>
+    <exclude domain="file" path="."/>
     <exclude domain="sharedpref" path="device.xml"/>
     <exclude domain="sharedpref" path="traverse_cache.xml"/>
     <exclude domain="sharedpref" path="traverse_secure_prefs.xml"/>
+    <exclude domain="sharedpref" path="traverse_secure_ciphertext.xml"/>
 </full-backup-content>

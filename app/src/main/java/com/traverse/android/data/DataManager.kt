@@ -1,6 +1,7 @@
 package com.traverse.android.data
 
 import android.content.Context
+import android.util.AtomicFile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -17,6 +18,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * 1:1 Kotlin port of iOS DataManager.swift.
@@ -27,6 +29,8 @@ import java.time.format.DateTimeFormatter
 class DataManager private constructor(private val context: Context) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val persistenceLock = Any()
+    private val persistenceGeneration = AtomicLong(0)
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -141,10 +145,9 @@ class DataManager private constructor(private val context: Context) {
     }
 
     private inline fun <reified T> loadFile(filename: String): T? {
-        val file = getFile(filename)
-        if (!file.exists()) return null
+        val atomicFile = AtomicFile(getFile(filename))
         return try {
-            val content = file.readText()
+            val content = atomicFile.openRead().bufferedReader(Charsets.UTF_8).use { it.readText() }
             json.decodeFromString<T>(content)
         } catch (e: Exception) {
             android.util.Log.e("DataManager", "Failed to load $filename", e)
@@ -153,11 +156,16 @@ class DataManager private constructor(private val context: Context) {
     }
 
     private inline fun <reified T> saveFile(data: T, filename: String) {
+        val atomicFile = AtomicFile(getFile(filename))
+        var output: java.io.FileOutputStream? = null
         try {
-            val file = getFile(filename)
             val content = json.encodeToString(data)
-            file.writeText(content)
+            val outputStream = atomicFile.startWrite()
+            output = outputStream
+            outputStream.write(content.toByteArray(Charsets.UTF_8))
+            atomicFile.finishWrite(outputStream)
         } catch (e: Exception) {
+            output?.let(atomicFile::failWrite)
             android.util.Log.e("DataManager", "Failed to save $filename", e)
         }
     }
@@ -194,31 +202,35 @@ class DataManager private constructor(private val context: Context) {
     }
 
     fun persistData() {
+        val generation = persistenceGeneration.get()
         scope.launch(Dispatchers.IO) {
-            saveFile(_friends.value, "friends.json")
-            saveFile(_receivedRequests.value, "receivedRequests.json")
-            saveFile(_sentRequests.value, "sentRequests.json")
-            saveFile(_receivedStreakRequests.value, "receivedStreakRequests.json")
-            saveFile(_sentStreakRequests.value, "sentStreakRequests.json")
-            saveFile(_friendStreaks.value, "friendStreaks.json")
+            synchronized(persistenceLock) {
+                if (persistenceGeneration.get() != generation) return@synchronized
+                saveFile(_friends.value, "friends.json")
+                saveFile(_receivedRequests.value, "receivedRequests.json")
+                saveFile(_sentRequests.value, "sentRequests.json")
+                saveFile(_receivedStreakRequests.value, "receivedStreakRequests.json")
+                saveFile(_sentStreakRequests.value, "sentStreakRequests.json")
+                saveFile(_friendStreaks.value, "friendStreaks.json")
 
-            _userStats.value?.let { saveFile(it, "userStats.json") }
-            _submissionStats.value?.let { saveFile(it, "submissionStats.json") }
-            _solveStats.value?.let { saveFile(it, "solveStats.json") }
-            _achievementStats.value?.let { saveFile(it, "achievementStats.json") }
-            saveFile(_allAchievements.value, "allAchievements.json")
-            saveFile(_awardSections.value, "awardSections.json")
-            _featuredAward.value?.let { saveFile(it, "featuredAward.json") }
-            saveFile(_recentSolves.value, "recentSolves.json")
-            saveFile(_todayRevisions.value, "todayRevisions.json")
-            saveFile(_completedRevisions.value, "completedRevisions.json")
-            saveFile(_allRevisions.value, "allRevisions.json")
+                _userStats.value?.let { saveFile(it, "userStats.json") }
+                _submissionStats.value?.let { saveFile(it, "submissionStats.json") }
+                _solveStats.value?.let { saveFile(it, "solveStats.json") }
+                _achievementStats.value?.let { saveFile(it, "achievementStats.json") }
+                saveFile(_allAchievements.value, "allAchievements.json")
+                saveFile(_awardSections.value, "awardSections.json")
+                _featuredAward.value?.let { saveFile(it, "featuredAward.json") }
+                saveFile(_recentSolves.value, "recentSolves.json")
+                saveFile(_todayRevisions.value, "todayRevisions.json")
+                saveFile(_completedRevisions.value, "completedRevisions.json")
+                saveFile(_allRevisions.value, "allRevisions.json")
 
-            _lastFetchTimestamp.value?.let { saveFile(it, "lastFetchTimestamp.json") }
+                _lastFetchTimestamp.value?.let { saveFile(it, "lastFetchTimestamp.json") }
 
-            saveFile(_revisionGroups.value, "revisionGroups.json")
-            _revisionStats.value?.let { saveFile(it, "revisionStats.json") }
-            _revisionScore.value?.let { saveFile(it, "revisionScore.json") }
+                saveFile(_revisionGroups.value, "revisionGroups.json")
+                _revisionStats.value?.let { saveFile(it, "revisionStats.json") }
+                _revisionScore.value?.let { saveFile(it, "revisionScore.json") }
+            }
         }
     }
 
@@ -377,6 +389,7 @@ class DataManager private constructor(private val context: Context) {
     // MARK: - Session Cleanup
 
     fun clearAllData() {
+        persistenceGeneration.incrementAndGet()
         _friends.value = emptyList()
         _receivedRequests.value = emptyList()
         _sentRequests.value = emptyList()
@@ -419,8 +432,10 @@ class DataManager private constructor(private val context: Context) {
             "revisionStats.json", "revisionScore.json", "revisionMode.json",
             "lastFetchTimestamp.json"
         )
-        filenames.forEach { filename ->
-            getFile(filename).delete()
+        synchronized(persistenceLock) {
+            filenames.forEach { filename ->
+                AtomicFile(getFile(filename)).delete()
+            }
         }
     }
 

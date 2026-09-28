@@ -351,11 +351,13 @@ sealed class NetworkResult<out T> {
     data class Error(val message: String) : NetworkResult<Nothing>()
 }
 
-class NetworkService private constructor(context: Context) {
+class NetworkService internal constructor(
+    context: Context,
+    baseUrl: String = TRAVERSE_API_URL
+) {
     
-    // initialize lazily so that TokenManager construction (which may throw)
-    // doesn't crash the application during ViewModel creation. also avoids
-    // doing crypto work if networking is never used (e.g. during some tests).
+    // Initialize lazily so Keystore and legacy-secret migration run only when
+    // the network service is actually used.
     private val tokenManager by lazy { TokenManager.getInstance(context) }
     
     private val json = Json {
@@ -404,7 +406,7 @@ class NetworkService private constructor(context: Context) {
         .build()
     
     private val retrofit = Retrofit.Builder()
-        .baseUrl(TRAVERSE_API_URL)
+        .baseUrl(baseUrl)
         .client(okHttpClient)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()

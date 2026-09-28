@@ -74,7 +74,8 @@ class PushRegistrationManager private constructor(private val context: Context) 
                     }
                 }
             } else {
-                cacheManager.cachePushToken(token)
+                // Keep device tokens out of local storage while signed out.
+                _isRegistered.value = false
             }
         }
     }
@@ -94,6 +95,8 @@ class PushRegistrationManager private constructor(private val context: Context) 
         }
         cacheManager.clearPushToken()
         _isRegistered.value = false
+        runCatching { FirebaseMessaging.getInstance().deleteToken().await() }
+            .onFailure { Log.w(TAG, "Unable to remove the signed-out FCM token", it) }
     }
 
     companion object {

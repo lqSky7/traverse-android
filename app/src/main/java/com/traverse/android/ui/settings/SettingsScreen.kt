@@ -232,8 +232,6 @@ fun SettingsScreen(
                 TextButton(
                     onClick = {
                         scope.launch {
-                            networkService.logout()
-                            cacheManager.clearAllCache()
                             showLogoutDialog = false
                             onLogout()
                         }
@@ -259,7 +257,6 @@ fun SettingsScreen(
                 scope.launch {
                     when (val result = networkService.deleteAccount(password)) {
                         is NetworkResult.Success -> {
-                            cacheManager.clearAllCache()
                             showDeleteAccountDialog = false
                             onLogout()
                         }

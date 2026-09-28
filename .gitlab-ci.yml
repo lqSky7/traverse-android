@@ -16,6 +16,7 @@
 # variable before this APK is handed to anyone.
 
 stages:
+  - test
   - build
 
 variables:
@@ -56,8 +57,21 @@ default:
     - echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
     - chmod +x gradlew
 
+unit-tests:
+  extends: .build-base
+  stage: test
+  script:
+    - |
+      if [ ! -f app/google-services.json ]; then
+        cat > app/google-services.json <<'EOF_JSON'
+        {"project_info":{"project_number":"0","project_id":"traverse-ci","storage_bucket":"traverse-ci.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:0:android:com.traverse.android","android_client_info":{"package_name":"com.traverse.android"}},"api_key":[{"current_key":"ci-placeholder"}],"services":{}}],"configuration_version":"1"}
+      EOF_JSON
+      fi
+    - ./gradlew testDebugUnitTest lintDebug --stacktrace --no-daemon
+
 build-release:
   extends: .build-base
+  needs: [unit-tests]
   script:
     - |
       if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
