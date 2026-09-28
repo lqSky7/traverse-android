@@ -6,6 +6,20 @@ plugins {
     alias(libs.plugins.google.services)
 }
 
+val releaseKeystorePath = providers.gradleProperty("ANDROID_RELEASE_KEYSTORE_PATH")
+    .orElse(providers.environmentVariable("ANDROID_RELEASE_KEYSTORE_PATH")).orNull
+val releaseStorePassword = providers.gradleProperty("ANDROID_RELEASE_STORE_PASSWORD")
+    .orElse(providers.environmentVariable("ANDROID_RELEASE_STORE_PASSWORD")).orNull
+val releaseKeyAlias = providers.gradleProperty("ANDROID_RELEASE_KEY_ALIAS")
+    .orElse(providers.environmentVariable("ANDROID_RELEASE_KEY_ALIAS")).orNull
+val releaseKeyPassword = providers.gradleProperty("ANDROID_RELEASE_KEY_PASSWORD")
+    .orElse(providers.environmentVariable("ANDROID_RELEASE_KEY_PASSWORD")).orNull
+val releaseKeystoreFile = releaseKeystorePath?.let { rootProject.file(it) }
+val releaseSigningConfigured = !releaseStorePassword.isNullOrBlank() &&
+    !releaseKeyAlias.isNullOrBlank() &&
+    !releaseKeyPassword.isNullOrBlank() &&
+    releaseKeystoreFile?.isFile == true
+
 android {
     namespace = "com.traverse.android"
     compileSdk = 36
@@ -22,22 +36,19 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystoreFile = rootProject.file("release.keystore")
-            if (keystoreFile.exists()) {
-                storeFile = keystoreFile
-                storePassword = "traverse"
-                keyAlias = "traverse"
-                keyPassword = "traverse"
-            } else {
-                initWith(getByName("debug"))
-            }
+            if (releaseKeystoreFile != null) storeFile = releaseKeystoreFile
+            storePassword = releaseStorePassword.orEmpty()
+            keyAlias = releaseKeyAlias.orEmpty()
+            keyPassword = releaseKeyPassword.orEmpty()
         }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+            if (releaseSigningConfigured) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -54,6 +65,22 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+}
+
+val validateReleaseSigning = tasks.register("validateReleaseSigning") {
+    doLast {
+        check(releaseSigningConfigured) {
+            "Release signing is required. Set ANDROID_RELEASE_KEYSTORE_PATH, " +
+                "ANDROID_RELEASE_STORE_PASSWORD, ANDROID_RELEASE_KEY_ALIAS, and " +
+                "ANDROID_RELEASE_KEY_PASSWORD."
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == "assembleRelease" || name == "bundleRelease") {
+        dependsOn(validateReleaseSigning)
     }
 }
 

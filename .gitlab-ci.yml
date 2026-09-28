@@ -1,19 +1,7 @@
-# GitLab CI/CD for traverse-android.
-#
-# This mirrors .github/workflows/android-build.yml, which stays in the repo for when
-# the GitHub Actions minutes come back. Both files are meant to stay equivalent: if
-# you change one, change the other.
-#
-# Required CI/CD variables (Settings -> CI/CD -> Variables):
-#
-#   ANDROID_KEYSTORE_BASE64   File/base64   optional but strongly recommended.
-#                                           `base64 -i release.keystore` of the real
-#                                           release keystore. Mark it Protected.
-#
-# Without ANDROID_KEYSTORE_BASE64 the job generates a throwaway keystore, exactly as
-# the GitHub workflow does. That builds a valid APK, but every run signs with a
-# different key, so the output cannot upgrade an already-installed build. Supply the
-# variable before this APK is handed to anyone.
+# GitLab CI for traverse-android. GitHub Actions remains the primary CI workflow.
+# Configure these protected variables before pushing a v* tag:
+#   ANDROID_KEYSTORE_BASE64, ANDROID_RELEASE_STORE_PASSWORD,
+#   ANDROID_RELEASE_KEY_ALIAS, ANDROID_RELEASE_KEY_PASSWORD.
 
 stages:
   - test
@@ -24,11 +12,10 @@ variables:
   ANDROID_HOME: "$CI_PROJECT_DIR/.android-sdk"
   GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle-home"
   DEBIAN_FRONTEND: noninteractive
-  # Pinned so the SDK is downloaded once and then reused from the cache.
   SDK_CACHE_KEY: "android-sdk-36"
+  ANDROID_RELEASE_KEYSTORE_PATH: "$CI_PROJECT_DIR/release.keystore"
 
 default:
-  # JDK 17 to match the GitHub workflow and `compileOptions` in app/build.gradle.kts.
   image: eclipse-temurin:17-jdk
 
 .build-base:
@@ -72,33 +59,20 @@ unit-tests:
 build-release:
   extends: .build-base
   needs: [unit-tests]
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v/'
   script:
     - |
-      if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
-        echo "Using the keystore from ANDROID_KEYSTORE_BASE64."
-        if base64 --decode "$ANDROID_KEYSTORE_BASE64" > release.keystore 2>/dev/null; then
-          :
-        else
-          base64 -d "$ANDROID_KEYSTORE_BASE64" > release.keystore
-        fi
-      else
-        echo "ANDROID_KEYSTORE_BASE64 is not set - generating a throwaway keystore."
-        echo "The resulting APK is signed with a one-off key and cannot upgrade an installed build."
-        keytool -genkey -v -keystore release.keystore -alias traverse -keyalg RSA \
-          -keysize 2048 -validity 10000 -storepass traverse -keypass traverse \
-          -dname "CN=Traverse, OU=Mobile, O=Traverse, L=SF, S=CA, C=US"
-      fi
+      test -n "${ANDROID_KEYSTORE_BASE64:-}" || { echo "ANDROID_KEYSTORE_BASE64 must be configured for release tags."; exit 1; }
+      test -n "${ANDROID_RELEASE_STORE_PASSWORD:-}" || { echo "ANDROID_RELEASE_STORE_PASSWORD must be configured for release tags."; exit 1; }
+      test -n "${ANDROID_RELEASE_KEY_ALIAS:-}" || { echo "ANDROID_RELEASE_KEY_ALIAS must be configured for release tags."; exit 1; }
+      test -n "${ANDROID_RELEASE_KEY_PASSWORD:-}" || { echo "ANDROID_RELEASE_KEY_PASSWORD must be configured for release tags."; exit 1; }
+      printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_RELEASE_KEYSTORE_PATH"
     - |
       if [ -n "${GOOGLE_SERVICES_BASE64:-}" ]; then
-        echo "Using google-services.json from GOOGLE_SERVICES_BASE64."
-        if base64 --decode "$GOOGLE_SERVICES_BASE64" > app/google-services.json 2>/dev/null; then
-          :
-        else
-          base64 -d "$GOOGLE_SERVICES_BASE64" > app/google-services.json
-        fi
+        printf '%s' "$GOOGLE_SERVICES_BASE64" | base64 --decode > app/google-services.json
       elif [ -n "${GOOGLE_SERVICES_JSON:-}" ]; then
-        echo "Using google-services.json from GOOGLE_SERVICES_JSON."
-        echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
+        printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
       fi
     - ./gradlew assembleRelease --stacktrace --no-daemon
   artifacts:
@@ -112,15 +86,12 @@ release:
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   needs: ["build-release"]
   rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_TAG =~ /^v/'
   script:
     - |
-      VERSION_NAME=$(grep -oE 'versionName = "[^"]+"' app/build.gradle.kts | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
-      TAG_NAME="v${VERSION_NAME}-build.${CI_PIPELINE_IID}"
-      echo "Creating release ${TAG_NAME}"
       release-cli create \
-        --name "Traverse Android ${TAG_NAME}" \
-        --tag-name "${TAG_NAME}" \
+        --name "Traverse Android ${CI_COMMIT_TAG}" \
+        --tag-name "${CI_COMMIT_TAG}" \
         --ref "$CI_COMMIT_SHA" \
-        --description "Automated build from pipeline ${CI_PIPELINE_IID} (${CI_COMMIT_SHORT_SHA})." \
+        --description "Automated Android release from ${CI_COMMIT_SHORT_SHA}." \
         --assets-link "{\"name\":\"traverse-android.apk\",\"url\":\"${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_REF_NAME}/raw/app/build/outputs/apk/release/app-release.apk?job=build-release\"}"

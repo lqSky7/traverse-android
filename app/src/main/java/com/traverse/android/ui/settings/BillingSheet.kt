@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -45,6 +46,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun BillingSheet(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val network = remember { NetworkService.getInstance(context) }
@@ -135,7 +137,10 @@ fun BillingSheet(onDismiss: () -> Unit) {
 
 private fun planDescription(status: SubscriptionStatusResponse?): String {
     if (status?.isSubscriptionActive != true) return "Upgrade whenever you’re ready."
-    if (status.cancellationScheduled) return "Renewal cancelled. Pro remains active through ${formatDate(status.activeUntil) ?: "this billing period"}."
+    if (status.cancellationScheduled) {
+        val activeUntil = status.activeUntil?.let(::formatDate) ?: "this billing period"
+        return "Renewal cancelled. Pro remains active through $activeUntil."
+    }
     return status.activeUntil?.let { "Renews after ${formatDate(it)}." } ?: "Pro is active on your account."
 }
 

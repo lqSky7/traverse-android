@@ -1,6 +1,7 @@
 package com.traverse.android.data
 
 import android.content.Context
+import com.traverse.android.BuildConfig
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -36,7 +37,7 @@ data class GitHubRelease(
 }
 
 // API Base URLs
-private const val TRAVERSE_API_URL = "https://neatness-enlarged-curled.ngrok-free.dev/api/"
+private const val TRAVERSE_API_URL = "https://traverses.tech/api/"
 private const val GITHUB_API_URL = "https://api.github.com/"
 
 /**
