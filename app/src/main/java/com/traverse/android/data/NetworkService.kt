@@ -304,6 +304,12 @@ interface TraverseApi {
     @POST("users/me/subscription/verify")
     suspend fun verifySubscription(@Body request: VerifySubscriptionRequest): VerifySubscriptionResponse
 
+    @GET("subscription/status")
+    suspend fun getBillingStatus(): SubscriptionStatusResponse
+
+    @POST("subscription/cancel")
+    suspend fun cancelSubscription(): SubscriptionCancellationResponse
+
     // MARK: - Notifications API
     @GET("notifications")
     suspend fun getNotifications(
@@ -381,7 +387,12 @@ class NetworkService private constructor(context: Context) {
     }
     
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
+        redactHeader("Authorization")
+        redactHeader("Cookie")
+        redactHeader("Set-Cookie")
+        // Request and response bodies can contain source code and account data.
+        level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.HEADERS
+        else HttpLoggingInterceptor.Level.NONE
     }
     
     private val okHttpClient = OkHttpClient.Builder()
@@ -440,7 +451,11 @@ class NetworkService private constructor(context: Context) {
     suspend fun login(username: String, password: String): NetworkResult<LoginResponse> {
         return try {
             val response = api.login(LoginRequest(username, password))
-            response.token?.let { tokenManager.saveToken(it) }
+            val token = response.token
+                ?: return NetworkResult.Error("Sign-in response did not include a session token.")
+            if (token.isBlank() || !tokenManager.saveToken(token)) {
+                return NetworkResult.Error("Secure sign-in storage is unavailable on this device.")
+            }
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))
@@ -470,7 +485,11 @@ class NetworkService private constructor(context: Context) {
     suspend fun loginWithGitHubCode(code: String): NetworkResult<LoginResponse> {
         return try {
             val response = api.exchangeSocialCode(SocialCallbackRequest(code))
-            response.token?.let { tokenManager.saveToken(it) }
+            val token = response.token
+                ?: return NetworkResult.Error("Sign-in response did not include a session token.")
+            if (token.isBlank() || !tokenManager.saveToken(token)) {
+                return NetworkResult.Error("Secure sign-in storage is unavailable on this device.")
+            }
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))
@@ -570,7 +589,11 @@ class NetworkService private constructor(context: Context) {
     suspend fun recoverAccount(username: String, password: String? = null): NetworkResult<RecoveryResponse> {
         return try {
             val response = api.recoverAccount(RecoverAccountRequest(username, password))
-            response.token?.let { tokenManager.saveToken(it) }
+            val token = response.token
+                ?: return NetworkResult.Error("Sign-in response did not include a session token.")
+            if (token.isBlank() || !tokenManager.saveToken(token)) {
+                return NetworkResult.Error("Secure sign-in storage is unavailable on this device.")
+            }
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))
@@ -1074,6 +1097,18 @@ class NetworkService private constructor(context: Context) {
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))
         }
+    }
+
+    suspend fun getBillingStatus(): NetworkResult<SubscriptionStatusResponse> = try {
+        NetworkResult.Success(api.getBillingStatus())
+    } catch (e: Exception) {
+        NetworkResult.Error(parseError(e))
+    }
+
+    suspend fun cancelSubscription(): NetworkResult<SubscriptionCancellationResponse> = try {
+        NetworkResult.Success(api.cancelSubscription())
+    } catch (e: Exception) {
+        NetworkResult.Error(parseError(e))
     }
     
     suspend fun createSubscriptionOrder(plan: String): NetworkResult<CreateSubscriptionOrderResponse> {

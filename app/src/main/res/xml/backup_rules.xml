@@ -2,4 +2,6 @@
 <full-backup-content>
     <include domain="sharedpref" path="."/>
     <exclude domain="sharedpref" path="device.xml"/>
+    <exclude domain="sharedpref" path="traverse_cache.xml"/>
+    <exclude domain="sharedpref" path="traverse_secure_prefs.xml"/>
 </full-backup-content>

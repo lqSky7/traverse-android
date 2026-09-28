@@ -13,6 +13,7 @@ import kotlinx.serialization.json.Json
 class CacheManager private constructor(context: Context) {
     
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val tokenManager = TokenManager.getInstance(context.applicationContext)
     private val json = Json { 
         ignoreUnknownKeys = true 
         encodeDefaults = true
@@ -220,12 +221,23 @@ class CacheManager private constructor(context: Context) {
     
     // MARK: - Gemini API Key
     
-    fun cacheGeminiApiKey(apiKey: String) {
-        prefs.edit().putString(KEY_GEMINI_API_KEY, apiKey).apply()
+    fun cacheGeminiApiKey(apiKey: String): Boolean {
+        // API keys are secrets, not cache data. Don't persist them in plaintext
+        // if Keystore-backed preferences are unavailable.
+        val saved = tokenManager.saveSecret(KEY_GEMINI_API_KEY, apiKey)
+        prefs.edit().remove(KEY_GEMINI_API_KEY).apply()
+        return saved
     }
-    
+
     fun getGeminiApiKey(): String? {
-        return prefs.getString(KEY_GEMINI_API_KEY, null)?.takeIf { it.isNotBlank() }
+        tokenManager.getSecret(KEY_GEMINI_API_KEY)?.takeIf { it.isNotBlank() }?.let { return it }
+        // Migrate API keys stored in plaintext by older app versions.
+        val legacy = prefs.getString(KEY_GEMINI_API_KEY, null)?.takeIf { it.isNotBlank() }
+        if (legacy != null) {
+            tokenManager.saveSecret(KEY_GEMINI_API_KEY, legacy)
+            prefs.edit().remove(KEY_GEMINI_API_KEY).apply()
+        }
+        return if (tokenManager.getSecret(KEY_GEMINI_API_KEY) != null) legacy else null
     }
     
     // MARK: - Exam Mode Cache
@@ -284,6 +296,7 @@ class CacheManager private constructor(context: Context) {
         }
         
         prefs.edit().clear().apply()
+        tokenManager.deleteSecret(KEY_GEMINI_API_KEY)
     }
     
     fun invalidateHomeCache() {

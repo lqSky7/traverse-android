@@ -77,11 +77,13 @@ fun SettingsScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showFreezeShopSheet by remember { mutableStateOf(false) }
     var showNotificationSettingsSheet by remember { mutableStateOf(false) }
+    var showBillingSheet by remember { mutableStateOf(false) }
     var showCalendarSheet by remember { mutableStateOf(false) }
     var showCheckUpdatesDialog by remember { mutableStateOf(false) }
     var showGeminiKeyDialog by remember { mutableStateOf(false) }
     var updateCheckMessage by remember { mutableStateOf<String?>(null) }
     var geminiKeyInput by remember { mutableStateOf(cacheManager.getGeminiApiKey() ?: "") }
+    var geminiKeyStorageError by remember { mutableStateOf(false) }
 
     // Palette selector state (mirrors the iOS `SettingsView` @State block)
     var showImportPalette by remember { mutableStateOf(false) }
@@ -158,6 +160,7 @@ fun SettingsScreen(
                 onDeleteAccount = { showDeleteAccountDialog = true },
                 onFreezeShop = { showFreezeShopSheet = true },
                 onNotificationSettings = { showNotificationSettingsSheet = true },
+                onBilling = { showBillingSheet = true },
                 onCalendarSubscription = { showCalendarSheet = true },
                 onGeminiApiKey = {
                     geminiKeyInput = cacheManager.getGeminiApiKey() ?: ""
@@ -386,6 +389,10 @@ fun SettingsScreen(
                         )
                     )
 
+                    if (geminiKeyStorageError) {
+                        Text("Secure storage is unavailable on this device. The key was not saved.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+
                     OutlinedTextField(
                         value = geminiKeyInput,
                         onValueChange = { geminiKeyInput = it },
@@ -419,8 +426,8 @@ fun SettingsScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        cacheManager.cacheGeminiApiKey(geminiKeyInput.trim())
-                        showGeminiKeyDialog = false
+                        geminiKeyStorageError = !cacheManager.cacheGeminiApiKey(geminiKeyInput.trim())
+                        if (!geminiKeyStorageError) showGeminiKeyDialog = false
                     }
                 ) {
                     Text("Save")
@@ -465,6 +472,10 @@ fun SettingsScreen(
             viewModel = notificationsViewModel,
             onDismiss = { showNotificationSettingsSheet = false }
         )
+    }
+
+    if (showBillingSheet) {
+        BillingSheet(onDismiss = { showBillingSheet = false })
     }
     
     // Error Snackbar
@@ -620,6 +631,7 @@ private fun BentoSettingsGrid(
     onDeleteAccount: () -> Unit,
     onFreezeShop: () -> Unit,
     onNotificationSettings: () -> Unit,
+    onBilling: () -> Unit,
     onCalendarSubscription: () -> Unit,
     onGeminiApiKey: () -> Unit,
     onImportPalette: () -> Unit,
@@ -721,6 +733,16 @@ private fun BentoSettingsGrid(
                 title = "Notifications",
                 subtitle = "Inbox, alerts and quiet hours",
                 onClick = onNotificationSettings
+            )
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+
+            BentoCellWide(
+                icon = Icons.Default.CreditCard,
+                iconColor = palette.colorAt(1),
+                title = "Billing",
+                subtitle = "View plan and manage renewal",
+                onClick = onBilling
             )
 
             HorizontalDivider(color = Color.White.copy(alpha = 0.1f))

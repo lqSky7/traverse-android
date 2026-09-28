@@ -446,10 +446,22 @@ data class AppUpdatesResponse(
 @Serializable
 data class SubscriptionStatusResponse(
     val isSubscriptionActive: Boolean = false,
+    val activeUntil: String? = null,
+    val startedAt: String? = null,
+    val planName: String? = null,
+    val canCancel: Boolean = false,
+    val cancellationScheduled: Boolean = false,
     val plan: String? = null,
     val status: String? = null,
     val expiresAt: String? = null,
     val isPro: Boolean = false
+)
+
+@Serializable
+data class SubscriptionCancellationResponse(
+    val success: Boolean = false,
+    val cancelAt: String? = null,
+    val message: String? = null
 )
 
 @Serializable

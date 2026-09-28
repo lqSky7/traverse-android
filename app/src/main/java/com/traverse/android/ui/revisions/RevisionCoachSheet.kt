@@ -91,6 +91,7 @@ fun RevisionCoachSheet(
     var apiKey by remember { mutableStateOf(cacheManager.getGeminiApiKey() ?: "") }
     var showApiKeyDialog by remember { mutableStateOf(false) }
     var inputKey by remember { mutableStateOf("") }
+    var apiKeyStorageError by remember { mutableStateOf(false) }
 
     var isLoading by remember { mutableStateOf(true) }
     var currentStepIndex by remember { mutableIntStateOf(0) }
@@ -492,6 +493,10 @@ fun RevisionCoachSheet(
                         )
                     )
 
+                    if (apiKeyStorageError) {
+                        Text("Secure storage is unavailable on this device. The key was not saved.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+
                     OutlinedTextField(
                         value = inputKey,
                         onValueChange = { inputKey = it },
@@ -526,12 +531,14 @@ fun RevisionCoachSheet(
                 Button(
                     onClick = {
                         if (inputKey.isNotBlank()) {
-                            cacheManager.cacheGeminiApiKey(inputKey.trim())
-                            apiKey = inputKey.trim()
-                            showApiKeyDialog = false
-                            // Restart flow
-                            isLoading = true
-                            aiFeedbackText = null
+                            apiKeyStorageError = !cacheManager.cacheGeminiApiKey(inputKey.trim())
+                            if (!apiKeyStorageError) {
+                                apiKey = inputKey.trim()
+                                showApiKeyDialog = false
+                                // Restart flow
+                                isLoading = true
+                                aiFeedbackText = null
+                            }
                         }
                     }
                 ) {
