@@ -186,6 +186,7 @@ class DataManager private constructor(private val context: Context) {
         loadFile<List<AwardSection>>("awardSections.json")?.let { _awardSections.value = it }
         loadFile<AchievementDetail>("featuredAward.json")?.let { _featuredAward.value = it }
         loadFile<List<Solve>>("recentSolves.json")?.let { _recentSolves.value = it }
+        loadFile<List<String>>("frozenDates.json")?.let { _frozenDates.value = it }
         loadFile<List<Revision>>("todayRevisions.json")?.let { _todayRevisions.value = it }
         loadFile<List<Revision>>("completedRevisions.json")?.let { _completedRevisions.value = it }
         loadFile<List<Revision>>("allRevisions.json")?.let { _allRevisions.value = it }
@@ -196,7 +197,7 @@ class DataManager private constructor(private val context: Context) {
         loadFile<RevisionStatsResponse>("revisionStats.json")?.let { _revisionStats.value = it }
         loadFile<RevisionScoreResponse>("revisionScore.json")?.let { _revisionScore.value = it }
 
-        if (_userStats.value != null || _recentSolves.value.isNotEmpty() || _friends.value.isNotEmpty()) {
+        if (_userStats.value != null || _recentSolves.value.isNotEmpty() || _friends.value.isNotEmpty() || _frozenDates.value.isNotEmpty()) {
             hasFetchedInitialData = true
         }
     }
@@ -221,6 +222,9 @@ class DataManager private constructor(private val context: Context) {
                 saveFile(_awardSections.value, "awardSections.json")
                 _featuredAward.value?.let { saveFile(it, "featuredAward.json") }
                 saveFile(_recentSolves.value, "recentSolves.json")
+                if (_frozenDates.value.isNotEmpty()) {
+                    saveFile(_frozenDates.value, "frozenDates.json")
+                }
                 saveFile(_todayRevisions.value, "todayRevisions.json")
                 saveFile(_completedRevisions.value, "completedRevisions.json")
                 saveFile(_allRevisions.value, "allRevisions.json")
@@ -261,14 +265,15 @@ class DataManager private constructor(private val context: Context) {
     // MARK: - Atomic Parallel Fetch (1:1 with iOS fetchAllData)
 
     /**
-     * Lightweight freeze-date fetch. Mirrors iOS `HomeViewModel.loadData` which always
-     * refreshes freeze dates first, independent of the main cache freshness check.
-     * Silent-fails, because freeze dates are non-critical for display.
+     * Lightweight freeze-date fetch. Mirrors iOS `HomeViewModel.loadData` which refreshes
+     * freeze dates independently. Silent-fails, because freeze dates are non-critical for display.
      */
     suspend fun fetchFreezeDates() = withContext(Dispatchers.IO) {
         val result = networkService.getUsedFreezeDates()
         if (result is NetworkResult.Success) {
-            _frozenDates.value = result.data.getAllDates()
+            val dates = result.data.getAllDates()
+            _frozenDates.value = dates
+            saveFile(dates, "frozenDates.json")
         }
     }
 
@@ -276,18 +281,20 @@ class DataManager private constructor(private val context: Context) {
      * Refresh everything the app caches, in one concurrent wave.
      *
      * [solveLimit] exists because the solve payload is by far the heaviest thing the API returns —
-     * each row carries an AI analysis blob, a mistake-tag array and the full attempt history. The
-     * home feed only needs enough history to fill its chart x-axes and asks for
-     * [HOME_SOLVE_LIMIT]; the Problems tab is the one screen that genuinely wants a long list and
-     * asks for [DEEP_SOLVE_LIMIT]. Because every fetch merges into the shared persisted cache
-     * (see [mergeAndPersistSolves]) rather than replacing it, opening Problems once tops the home
-     * charts up for good.
+     * each row carries an AI analysis blob, a mistake-tag array and the full attempt history.
+     * If we already have cached solves on disk, we only fetch [INCREMENTAL_SOLVE_LIMIT] (15) solves
+     * to capture recent activity, cutting payload transfer by ~75%.
+     * If cache is empty, we fetch [HOME_SOLVE_LIMIT] (60).
+     * The Problems tab is the one screen that genuinely wants a long list and asks for [DEEP_SOLVE_LIMIT].
+     * Because every fetch merges into the shared persisted cache (see [mergeAndPersistSolves])
+     * rather than replacing it, older solves are preserved.
      */
     suspend fun fetchAllData(
         username: String,
-        solveLimit: Int = DEEP_SOLVE_LIMIT
+        solveLimit: Int = if (_recentSolves.value.isNotEmpty()) INCREMENTAL_SOLVE_LIMIT else HOME_SOLVE_LIMIT
     ): Unit = withContext(Dispatchers.IO) {
-        // Execute all 10 network requests concurrently
+        // Execute all network requests concurrently (including freeze dates in the same wave)
+        val freezeDatesDeferred = async { networkService.getUsedFreezeDates() }
         val friendsDeferred = async { networkService.getFriends() }
         val receivedRequestsDeferred = async { networkService.getReceivedFriendRequests() }
         val sentRequestsDeferred = async { networkService.getSentFriendRequests() }
@@ -306,6 +313,7 @@ class DataManager private constructor(private val context: Context) {
         val revisionScoreDeferred = async { networkService.getRevisionScore() }
 
         // Await results
+        val freezeDatesRes = freezeDatesDeferred.await()
         val friendsRes = friendsDeferred.await()
         val receivedReqRes = receivedRequestsDeferred.await()
         val sentReqRes = sentRequestsDeferred.await()
@@ -322,6 +330,11 @@ class DataManager private constructor(private val context: Context) {
         val groupedRevisionsRes = groupedRevisionsDeferred.await()
         val revisionStatsRes = revisionStatsDeferred.await()
         val revisionScoreRes = revisionScoreDeferred.await()
+
+        // Process Freeze Dates
+        if (freezeDatesRes is NetworkResult.Success) {
+            _frozenDates.value = freezeDatesRes.data.getAllDates()
+        }
 
         // Process Friends data
         if (friendsRes is NetworkResult.Success) _friends.value = friendsRes.data.friends
@@ -426,7 +439,7 @@ class DataManager private constructor(private val context: Context) {
             "receivedStreakRequests.json", "sentStreakRequests.json", "friendStreaks.json",
             "userStats.json", "submissionStats.json", "solveStats.json",
             "achievementStats.json", "allAchievements.json", "awardSections.json",
-            "featuredAward.json", "recentSolves.json",
+            "featuredAward.json", "recentSolves.json", "frozenDates.json",
             "todayRevisions.json", "completedRevisions.json", "allRevisions.json",
             "revisionGroups.json",
             "revisionStats.json", "revisionScore.json", "revisionMode.json",
@@ -445,6 +458,12 @@ class DataManager private constructor(private val context: Context) {
          * `HomeViewModel.homeSolveLimit`.
          */
         const val HOME_SOLVE_LIMIT = 60
+
+        /**
+         * How many solves to pull when we already have cached solves on disk.
+         * Only recent activity is needed, cutting payload size by ~75%.
+         */
+        const val INCREMENTAL_SOLVE_LIMIT = 15
 
         /**
          * How many solves the Problems tab pulls. It is the one screen whose content — the full

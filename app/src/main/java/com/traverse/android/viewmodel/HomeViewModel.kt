@@ -119,7 +119,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     
     fun loadData(forceRefresh: Boolean = false) {
         val username = dataManager.userStats.value?.username ?: ""
-        if (!forceRefresh && dataManager.hasData) {
+        // Fast-path: If cache is fresh and not forcing refresh, render instantly with zero network calls
+        if (!forceRefresh && dataManager.isCacheFresh) {
             return
         }
         refresh()
@@ -131,6 +132,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 val cached = cacheManager.getRings()
                 if (cached != null) {
                     _uiState.update { it.copy(rings = cached) }
+                    return@launch
                 }
             }
             when (val result = networkService.getRings()) {
@@ -183,18 +185,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         loadRings(forceRefresh = true)
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            // Freeze dates are always refreshed first and fail silently (1:1 with iOS loadData).
             try {
-                dataManager.fetchFreezeDates()
-            } catch (_: Exception) {
-                // Non-critical for display
-            }
-            try {
-                // Deliberately the *home* limit, not the deep one. Every card on this feed reads
-                // solve history, but none of them needs more than enough to fill a chart axis —
-                // the deep payload with its AI blobs and attempt histories belongs to the Problems
-                // tab, which fetches it on demand. See `DataManager.HOME_SOLVE_LIMIT`.
-                dataManager.fetchAllData(username, solveLimit = DataManager.HOME_SOLVE_LIMIT)
+                // If we already have cached solves on disk, we only need the latest ~15 solves to catch up
+                // rather than re-downloading all 60 heavy records with AI blobs over mobile networks.
+                // DataManager.mergeAndPersistSolves will deduplicate and merge into our local cache.
+                val solveLimit = if (dataManager.recentSolves.value.isNotEmpty()) {
+                    DataManager.INCREMENTAL_SOLVE_LIMIT
+                } else {
+                    DataManager.HOME_SOLVE_LIMIT
+                }
+                dataManager.fetchAllData(username, solveLimit = solveLimit)
                 _uiState.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
