@@ -654,7 +654,7 @@ private fun RevisionRetentionRiskCard(
     onViewAll: () -> Unit,
     onInfoClick: () -> Unit
 ) {
-    val leechesCount = items.count { it.isLeech }
+    val criticalCount = items.count { it.retrievability < 0.5 }
     val lowRetentionCount = items.count { it.retrievability < 0.6 }
 
     Card(
@@ -718,9 +718,9 @@ private fun RevisionRetentionRiskCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Leeches", fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
+                        Text("Below 50%", fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
                         Text(
-                            text = "$leechesCount",
+                            text = "$criticalCount",
                             fontWeight = FontWeight.Bold,
                             color = paletteColorAt(0)
                         )
@@ -747,18 +747,16 @@ private fun RevisionRetentionRiskCard(
                 }
             }
 
-            // Focus Items List (sorted by leeches first, then lowest retrievability)
+            // Focus Items List (sorted by lowest retrievability)
             val focusItems = items.sortedWith(
-                compareByDescending<RevisionRetentionItem> { it.isLeech }
-                    .thenBy { it.retrievability }
-                    .thenByDescending { it.lapses }
+                compareBy<RevisionRetentionItem> { it.retrievability }
             ).take(5)
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 focusItems.forEach { item ->
                     val retrievabilityPct = (item.retrievability * 100).roundToInt()
                     val dotColor = when {
-                        item.isLeech || retrievabilityPct < 50 -> paletteColorAt(0)
+                        retrievabilityPct < 50 -> paletteColorAt(0)
                         retrievabilityPct < 70 -> paletteColorAt(1)
                         else -> paletteColorAt(1)
                     }

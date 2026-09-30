@@ -112,7 +112,7 @@ fun RevisionLoadExplanationSheet(
                     body = "Well Below and Below mean you are tapering and retention will start to " +
                         "slip. Optimal means you are holding steady. Above and Well Above mean a " +
                         "sharp ramp — expect gains, but take a lighter day if revisions start " +
-                        "failing."
+                        "hard to keep up with."
                 )
 
                 Explainer(

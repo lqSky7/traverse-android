@@ -48,7 +48,6 @@ fun ProUpgradeSheet(
     val features = listOf(
         FeatureItem(Icons.Default.Apps, "All Platforms"),
         FeatureItem(Icons.Default.Bolt, "Early Access"),
-        FeatureItem(Icons.Default.Watch, "WatchOS"),
         FeatureItem(Icons.Default.Sync, "Anki Sync"),
         FeatureItem(Icons.Default.TrendingUp, "AI Insights")
     )

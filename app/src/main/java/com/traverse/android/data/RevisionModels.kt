@@ -169,7 +169,6 @@ data class RevisionAnalyticsResponse(
 data class RevisionAnalyticsOverview(
     val totalProblemsTracked: Int,
     val masteredProblems: Int,
-    val leechProblems: Int,
     val averageStability: Double,
     val averageRetrievability: Double
 )
@@ -233,9 +232,7 @@ data class RevisionRetentionItem(
     val stability: Double,
     @SerialName("difficulty_D")
     val difficultyD: Double = 0.0,
-    val lapses: Int,
-    val lastReviewAt: String? = null,
-    val isLeech: Boolean
+    val lastReviewAt: String? = null
 )
 
 @Serializable

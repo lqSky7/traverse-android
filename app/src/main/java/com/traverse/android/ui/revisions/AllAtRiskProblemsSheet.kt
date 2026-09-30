@@ -31,7 +31,6 @@ private val CardBackground = Color(0xFF1A1A1A)
 
 enum class RiskSortOption(val label: String) {
     LOWEST_RETENTION("Lowest Retention"),
-    MOST_LAPSES("Most Lapses"),
     ALPHABETICAL("Alphabetical")
 }
 
@@ -55,7 +54,6 @@ fun AllAtRiskProblemsSheet(
 
         when (sortOption) {
             RiskSortOption.LOWEST_RETENTION -> list.sortedBy { it.retrievability }
-            RiskSortOption.MOST_LAPSES -> list.sortedByDescending { it.lapses }
             RiskSortOption.ALPHABETICAL -> list.sortedBy { it.problemTitle.lowercase() }
         }
     }
@@ -178,7 +176,7 @@ fun AllAtRiskProblemsSheet(
 private fun RiskProblemDetailCard(item: RevisionRetentionItem) {
     val retrievabilityPct = (item.retrievability * 100).roundToInt()
     val dotColor = when {
-        item.isLeech || retrievabilityPct < 50 -> paletteColorAt(0)
+        retrievabilityPct < 50 -> paletteColorAt(0)
         retrievabilityPct < 70 -> paletteColorAt(1)
         else -> paletteColorAt(2)
     }
@@ -230,20 +228,6 @@ private fun RiskProblemDetailCard(item: RevisionRetentionItem) {
                     }
                 }
 
-                if (item.isLeech) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = paletteColorAt(0).copy(alpha = 0.15f)
-                    ) {
-                        Text(
-                            text = "LEECH",
-                            color = paletteColorAt(0),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                }
             }
 
             // Metrics row: Retrievability, Stability, Lapses
@@ -288,13 +272,7 @@ private fun RiskProblemDetailCard(item: RevisionRetentionItem) {
                 }
 
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "Lapses: ${item.lapses}",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = if (item.lapses > 3) paletteColorAt(0) else Color.White.copy(alpha = 0.7f),
-                            fontWeight = FontWeight.Medium
-                        )
-                    )
+
                     Text(
                         text = "Stability: ${"%.1f".format(item.stability)}d",
                         style = MaterialTheme.typography.labelSmall.copy(

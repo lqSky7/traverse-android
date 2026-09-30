@@ -48,7 +48,6 @@ data class SubmissionStats(
 data class SubmissionStatsData(
     val total: Int = 0,
     val accepted: Int = 0,
-    val failed: Int = 0,
     val acceptanceRate: String = "0%",
     val languageBreakdown: List<LanguageBreakdown> = emptyList()
 )

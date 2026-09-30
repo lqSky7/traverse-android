@@ -405,7 +405,7 @@ enum class RevisionLoadBand(val label: String) {
                     "recover as needed if you feel especially fatigued."
             WELL_ABOVE ->
                 "Your 7-day load is well above your baseline. This is a sharp ramp — watch your " +
-                    "accuracy and take a lighter day if revisions start failing."
+                    "retention and take a lighter day if reviews become hard to keep up with."
             NO_DATA ->
                 "Not enough history yet. Load compares your last 7 days against a longer baseline, " +
                     "and it needs about two weeks of activity before that comparison means " +

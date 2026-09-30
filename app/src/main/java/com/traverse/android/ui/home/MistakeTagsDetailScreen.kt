@@ -281,8 +281,7 @@ fun MistakeTagsDetailScreen(
 
             // Tag list
             if (analysisData.displayedItems.isEmpty()) {
-                // Two different causes again: no tags at all (the extension has not seen a failed
-                // attempt yet) versus a search that matched nothing. The old copy said "No mistake
+                // Two different causes again: no tags at all (no code history has been analysed yet) versus a search that matched nothing. The old copy said "No mistake
                 // tags found" for both, which is actively misleading while a search box above it
                 // holds text the user typed.
                 EmptyStateView(
@@ -293,7 +292,7 @@ fun MistakeTagsDetailScreen(
                         "No results for \"$searchText\""
                     },
                     message = if (searchText.isEmpty()) {
-                        "Traverse tags the mistakes it sees in your failed submissions. " +
+                        "Traverse tags mistakes in the code history of your successful solves. " +
                             "They show up here after your next few attempts."
                     } else {
                         "No mistake tag in this list matches that search."
