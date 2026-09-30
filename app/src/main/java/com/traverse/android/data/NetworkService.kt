@@ -39,7 +39,7 @@ data class GitHubRelease(
 }
 
 // API Base URLs
-private const val TRAVERSE_API_URL = "https://traverses.tech/api/"
+private const val TRAVERSE_API_URL = "https://traverses.dpdns.org/api/"
 private const val GITHUB_API_URL = "https://api.github.com/"
 
 /**
