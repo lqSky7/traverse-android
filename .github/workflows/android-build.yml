@@ -47,12 +47,16 @@ jobs:
 
   release:
     name: Signed Android release
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'))
     needs: [unit-tests]
     runs-on: ubuntu-latest
+    concurrency:
+      group: android-release
+      cancel-in-progress: false
     permissions:
       contents: write
     env:
+      GH_TOKEN: ${{ github.token }}
       ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
       ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
       ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
@@ -60,6 +64,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Select release tag
+        id: release-version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            release_tag="${GITHUB_REF#refs/tags/}"
+          else
+            latest_build=$(gh api --paginate "repos/$GITHUB_REPOSITORY/tags?per_page=100" --jq '.[].name' \
+              | sed -nE 's/^v1\.5-build\.([0-9]+)$/\1/p' \
+              | sort -n | tail -1)
+            release_tag="v1.5-build.$(( ${latest_build:-0} + 1 ))"
+          fi
+          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-java@v5
         with:
           java-version: '17'
@@ -96,8 +112,9 @@ jobs:
           retention-days: 30
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Traverse Android ${{ github.ref_name }}
+          tag_name: ${{ steps.release-version.outputs.release_tag }}
+          target_commitish: ${{ github.sha }}
+          name: Traverse Android ${{ steps.release-version.outputs.release_tag }}
           files: app/build/outputs/apk/release/*.apk
           generate_release_notes: true
           draft: false
