@@ -816,7 +816,6 @@ private fun BentoCell(
     }
 }
 
-@Composable
 /**
  * Palette tile, mirroring the iOS bento grid's "Palette" cell exactly: the icon slot holds a
  * preview of the selected palette's first four colours (22dp circles, 1dp white-20% stroke,
