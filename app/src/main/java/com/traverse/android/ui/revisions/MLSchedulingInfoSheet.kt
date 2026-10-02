@@ -18,12 +18,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import com.traverse.android.ui.theme.paletteColorAt
 import com.traverse.android.ui.theme.palettePrimary
 
-private val CardBackground = Color(0xFF1A1A1A)
 private val SwiftGreen = Color(0xFF34C759)
 private val SecondaryText = Color(0x99EBEBF5)
 

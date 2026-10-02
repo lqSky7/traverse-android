@@ -19,6 +19,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.theme.SheetPanelBackground
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.RevisionRetentionItem
 import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
@@ -27,7 +29,6 @@ import kotlin.math.roundToInt
 import com.traverse.android.ui.theme.paletteColorAt
 import com.traverse.android.ui.theme.palettePrimary
 
-private val CardBackground = Color(0xFF1A1A1A)
 
 enum class RiskSortOption(val label: String) {
     LOWEST_RETENTION("Lowest Retention"),
@@ -184,7 +185,7 @@ private fun RiskProblemDetailCard(item: RevisionRetentionItem) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
+        colors = CardDefaults.cardColors(containerColor = SheetPanelBackground)
     ) {
         Column(
             modifier = Modifier

@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.Revision
 import com.traverse.android.data.Solve
 import com.traverse.android.ui.theme.rememberPalette
@@ -42,7 +43,6 @@ import kotlin.math.log10
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
-private val CardBackground = Color(0xFF1A1A1A)
 
 private data class DayActivity(
     val label: String,

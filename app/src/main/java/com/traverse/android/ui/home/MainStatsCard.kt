@@ -15,9 +15,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.ui.theme.rememberPalette
 
-private val CardBackground = Color(0xFF1A1A1A)
 
 @Composable
 fun MainStatsCard(

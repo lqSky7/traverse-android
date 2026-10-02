@@ -37,11 +37,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.Solve
 import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.theme.rememberPalette
 
-private val CardBackground = Color(0xFF1A1A1A)
 
 /**
  * 1:1 port of the iOS `MistakeTagsAnalysisCard`: distinct tag count in the header, a hero

@@ -45,9 +45,8 @@ import com.traverse.android.data.AwardSection
 import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.components.MedalBadge
 import com.traverse.android.ui.navigation.floatingBottomBarContentInset
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.ui.theme.RingiftFamily
-
-private val CardBackground = Color(0xFF1C1C1C)
 
 /**
  * The Awards shelf — Apple Fitness' award page, rebuilt for Traverse.

@@ -46,6 +46,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.traverse.android.ui.theme.SheetPanelBackground
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.AppNotification
 import com.traverse.android.data.NotificationRouter
 import com.traverse.android.data.NotificationType
@@ -56,7 +58,15 @@ import com.traverse.android.viewmodel.NotificationsViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private val CardBg = Color(0xFF1C1C1E)
+
+/**
+ * Panel surface *inside* a sheet — see the note in `RingGoalsSheet`.
+ *
+ * This was its own `#1C1C1E` on a `#121212` sheet, neither of which appears anywhere else in the
+ * app. The sheet now uses [CardBackground] like every other sheet, and the panels lift off it with
+ * a translucent white, matching `AllAtRiskProblemsSheet`.
+ */
+private val CardBg = SheetPanelBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,13 +76,30 @@ fun NotificationsSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // The inbox without the request types.
+    //
+    // FRIEND_REQUEST and STREAK_REQUEST no longer belong here. A request now arrives as a
+    // full-screen prompt with Accept and Reject, which is the right surface for the one thing in
+    // this list that actually needs an answer — and leaving a copy in the inbox meant the same
+    // request appeared twice, with the inbox copy unable to do anything about it.
+    //
+    // FRIEND_ACCEPTED deliberately stays. It is the outcome of a request *you* sent, so it has no
+    // prompt and no other surface; dropping it would leave you no way to learn it happened.
+    val visibleNotifications = remember(uiState.notifications) {
+        uiState.notifications.filter {
+            it.type != NotificationType.FRIEND_REQUEST.rawValue &&
+                it.type != NotificationType.STREAK_REQUEST.rawValue
+        }
+    }
+
     val scope = rememberCoroutineScope()
     val palette = rememberPalette()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF121212)
+        containerColor = CardBackground
     ) {
         Column(
             modifier = Modifier
@@ -120,7 +147,10 @@ fun NotificationsSheet(
                 modifier = Modifier.fillMaxSize()
             ) {
                 when {
-                    uiState.isLoading && uiState.notifications.isEmpty() -> {
+                    // Every branch tests `visibleNotifications`, not the raw list. An inbox holding
+                    // nothing but request rows would otherwise fall through to the list branch and
+                    // render an empty screen instead of the empty state.
+                    uiState.isLoading && visibleNotifications.isEmpty() -> {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -129,7 +159,7 @@ fun NotificationsSheet(
                         }
                     }
 
-                    uiState.errorMessage != null && uiState.notifications.isEmpty() -> {
+                    uiState.errorMessage != null && visibleNotifications.isEmpty() -> {
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -157,7 +187,7 @@ fun NotificationsSheet(
                         }
                     }
 
-                    uiState.notifications.isEmpty() -> {
+                    visibleNotifications.isEmpty() -> {
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -180,7 +210,7 @@ fun NotificationsSheet(
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Friend requests, awards and closed rings will show up here.",
+                                text = "Awards, closed rings and announcements will show up here. Friend and streak requests arrive as a full-screen prompt instead.",
                                 fontSize = 13.sp,
                                 color = Color.White.copy(alpha = 0.5f),
                                 textAlign = TextAlign.Center
@@ -189,7 +219,7 @@ fun NotificationsSheet(
                     }
 
                     else -> {
-                        val grouped = groupNotificationsByBucket(uiState.notifications)
+                        val grouped = groupNotificationsByBucket(visibleNotifications)
                         val listState = rememberLazyListState()
 
                         val shouldLoadMore by remember {
@@ -327,7 +357,7 @@ private fun NotificationRowItem(
                         .size(9.dp)
                         .align(Alignment.TopEnd)
                         .clip(CircleShape)
-                        .background(Color(0xFF1C1C1E))
+                        .background(CardBg)
                         .padding(1.dp)
                         .clip(CircleShape)
                         .background(palette.colorAt(0))

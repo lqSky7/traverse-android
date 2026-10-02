@@ -40,6 +40,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.theme.SheetPanelBackground
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.AuthSession
 import com.traverse.android.data.AuthSessionsResponse
 import com.traverse.android.data.NetworkResult
@@ -50,7 +52,15 @@ import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-private val SessionCardBackground = Color(0xFF1A1A1A)
+
+/**
+ * Panel surface *inside* a sheet — see the note in `RingGoalsSheet`.
+ *
+ * This was `#1A1A1A` on a `#121212` sheet, which happened to work by accident. The sheet now uses
+ * [CardBackground] like every other sheet, so the panels lift off it with a translucent white
+ * instead of repeating its colour.
+ */
+private val SessionCardBackground = SheetPanelBackground
 private val SessionDateFormat = DateTimeFormatter.ofPattern("MMM d, yyyy 'at' h:mm a")
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -85,7 +95,7 @@ fun ActiveSessionsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF121212)
+        containerColor = CardBackground
     ) {
         Column(
             modifier = Modifier

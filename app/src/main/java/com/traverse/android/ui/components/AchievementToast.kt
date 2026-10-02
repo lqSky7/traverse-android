@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.ui.theme.rememberPalette
 
 @Composable
@@ -101,7 +102,7 @@ fun AchievementToastView(
             .shadow(16.dp, RoundedCornerShape(24.dp), spotColor = categoryColor.copy(alpha = 0.4f))
             .border(1.dp, categoryColor.copy(alpha = 0.35f), RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
-        color = Color(0xFF1A1A1A).copy(alpha = 0.95f),
+        color = CardBackground.copy(alpha = 0.95f),
         tonalElevation = 6.dp
     ) {
         Row(

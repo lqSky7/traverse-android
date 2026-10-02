@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.utils.QRCodeGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -32,7 +33,6 @@ import java.io.File
 import java.io.FileOutputStream
 import com.traverse.android.ui.theme.palettePrimary
 
-private val CardBackground = Color(0xFF1A1A1A)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

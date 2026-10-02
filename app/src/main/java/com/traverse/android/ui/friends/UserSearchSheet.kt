@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
 import com.traverse.android.data.UserBasic
@@ -37,7 +38,6 @@ import com.traverse.android.ui.theme.paletteColorAt
 import com.traverse.android.ui.theme.palettePrimary
 
 // Pastel colors
-private val CardBackground = Color(0xFF1A1A1A)
 private val GoldColor = Color(0xFFFFD700)
 
 @OptIn(ExperimentalMaterial3Api::class)

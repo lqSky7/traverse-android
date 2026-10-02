@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.DataManager
 import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
@@ -92,7 +93,7 @@ fun OnboardingFlowDialog(
                 .fillMaxWidth()
                 .padding(16.dp),
             shape = RoundedCornerShape(28.dp),
-            color = Color(0xFF1A1A1A),
+            color = CardBackground,
             tonalElevation = 8.dp,
             border = androidx.compose.foundation.BorderStroke(
                 1.dp,

@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
 import com.traverse.android.ui.theme.paletteColorAt
 import com.traverse.android.ui.theme.palettePrimary
@@ -83,7 +84,7 @@ fun ExamModeActiveView(
                     .shadow(16.dp, RoundedCornerShape(28.dp)),
                 shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF1A1A1A).copy(alpha = 0.90f)
+                    containerColor = CardBackground.copy(alpha = 0.90f)
                 ),
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp,

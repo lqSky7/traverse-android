@@ -3,15 +3,14 @@ package com.traverse.android.ui.home
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -19,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -34,6 +34,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.traverse.android.data.RevisionLoadBreakdown
 import com.traverse.android.ui.components.GettingStartedEmptyState
+import com.traverse.android.ui.components.SweepGate
 import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.viewmodel.HomeUiState
@@ -137,6 +138,7 @@ fun HomeScreen(
 
         // iOS: AchievementStatsCard -> AllAchievementsView()
         composable(HomeDestinations.ALL_ACHIEVEMENTS) {
+            LaunchedEffect(Unit) { viewModel.loadAwards() }
             AllAchievementsScreen(
                 achievements = uiState.allAchievements,
                 stats = uiState.achievementStats?.stats,
@@ -187,13 +189,13 @@ fun HomeScreen(
 /**
  * 1:1 port of the iOS `HomeView` body.
  *
- * Layout order (outer `Column(spacedBy(20.dp))` + `.padding(16.dp)`):
+ * Cards are separate keyed LazyColumn items so offscreen charts do not stay composed.
  *  1. A brand-new account (no solves at all) gets `GettingStartedEmptyState` instead of the feed —
  *     every card below is built from solve history, so there would be nothing to draw.
  *  2. `StreakCard` full width
  *  3. `RevisionLoadCard` full width, tapping through to its trend screen
  *  4. `MainStatsCard`
- *  5. `Column(spacedBy(16.dp))` — achievements/insights row, activity heatmap, solving hours, and
+ *  5. Achievements/insights row, activity heatmap, solving hours, and
  *     the time/attempts step-count pair.
  *
  * Three cards that used to be here are deliberately gone, matching iOS: the easy/mid/hard
@@ -221,6 +223,18 @@ private fun HomeMainContent(
         LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, M"))
     }
     var showRingGoalsSheet by remember { mutableStateOf(false) }
+
+    // Once-per-visit latch for the feed's chroma sweeps.
+    //
+    // Held at screen level, not on the card: the card is a `LazyColumn` item and is disposed when
+    // it scrolls out of the keep-alive window, so a gate held there would reset on scroll and the
+    // sweep would replay every time the user scrolled back to the top.
+    //
+    // Reset comes free here. Compose Navigation only composes the current destination, so this
+    // screen is disposed on navigate-away and `remember` hands back a fresh gate on return — which
+    // is exactly "plays again when you come back from another view". (iOS has to do this
+    // explicitly; see `ChromaSweepGate`.)
+    val sweepGate = remember { SweepGate() }
 
     Scaffold(
         containerColor = Color.Black,
@@ -271,108 +285,99 @@ private fun HomeMainContent(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            Column(
-                modifier = modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp)
-                    // Applied *inside* the scroll container, so the cards still slide underneath the
-                    // floating bottom bar while the last one can always be scrolled clear of it.
-                    .padding(bottom = floatingBottomBarContentInset()),
+            val userStats = uiState.userStats
+            val solves = uiState.recentSolves
+            val solveStats = uiState.solveStats
+            val achievementStats = uiState.achievementStats
+            LazyColumn(
+                modifier = modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 16.dp, end = 16.dp, top = 16.dp,
+                    bottom = 16.dp + floatingBottomBarContentInset()
+                ),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                val errorMessage = uiState.errorMessage
-                val userStats = uiState.userStats
-                if (errorMessage != null) {
-                    ErrorView(message = errorMessage, onRetry = onRefresh)
-                } else if (userStats != null && userStats.stats.totalSolves == 0) {
-                    // A brand-new account. Every card below is built from solve history, so without
-                    // this branch the feed is a blank black screen with a date on it — which reads as
-                    // a broken app rather than an empty one.
-                    GettingStartedEmptyState(
-                        title = "Your feed fills in from your first solve",
-                        message = "Traverse reads your practice from the browser and reports it " +
-                            "back here. There is nothing to show until then."
-                    )
+                uiState.errorMessage?.let { message ->
+                    item(key = "error") { ErrorView(message = message, onRetry = onRefresh) }
+                }
+                if (userStats != null && userStats.stats.totalSolves == 0) {
+                    item(key = "getting_started") {
+                        GettingStartedEmptyState(
+                            title = "Your feed fills in from your first solve",
+                            message = "Traverse reads your practice from the browser and reports it " +
+                                "back here. There is nothing to show until then."
+                        )
+                    }
                 } else {
-                    val solves = uiState.recentSolves
-                    val solveStats = uiState.solveStats
-                    val achievementStats = uiState.achievementStats
-
-                    // MARK: Streak — full width.
-                    //
-                    // Left-aligned layout with streak count on the left, ring legend and activity
-                    // rings on the right. Tapping the card opens the ring goals customisation sheet.
                     if (userStats != null) {
-                        StreakCard(
-                            streak = userStats.stats.currentStreak,
-                            // `longestStreak` is the real "best" figure. The fallback only applies to
-                            // a cached payload written before the server started sending it —
-                            // `totalStreakDays` is a running total, so it is wrong here, just not
-                            // wrong-by-a-lot.
-                            maxStreak = userStats.stats.longestStreak
-                                ?: userStats.stats.totalStreakDays,
-                            rings = uiState.rings,
-                            onRingsClick = { showRingGoalsSheet = true }
-                        )
-
-                        // MARK: Revision Load — full-width tile, taps through to the trend screen.
-                        RevisionLoadCard(
-                            breakdown = uiState.revisionLoad,
-                            revisionScore = uiState.revisionScore?.score,
-                            onClick = onNavigateToRevisionLoad
-                        )
-                    }
-
-                    // MARK: Main Stats Card
-                    if (solveStats != null) {
-                        MainStatsCard(
-                            totalSolves = solveStats.stats.totalSolves,
-                            totalXp = solveStats.stats.totalXp,
-                            streak = solveStats.stats.totalStreakDays
-                        )
-                    }
-
-                    // MARK: Charts section
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        // Achievements and Insights side by side
-                        if (achievementStats != null && solves.isNotEmpty()) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                verticalAlignment = Alignment.Top
-                            ) {
-                                AchievementStatsCard(
-                                    stats = achievementStats.stats,
-                                    onClick = onNavigateToAchievements,
-                                    modifier = Modifier.weight(1f)
-                                )
-
-                                ProductivityInsightsCard(
-                                    solves = solves,
-                                    completedRevisions = uiState.completedRevisions,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        } else if (achievementStats != null) {
-                            AchievementStatsCard(
-                                stats = achievementStats.stats,
-                                onClick = onNavigateToAchievements
+                        item(key = "streak") {
+                            StreakCard(
+                                streak = userStats.stats.currentStreak,
+                                maxStreak = userStats.stats.longestStreak ?: userStats.stats.totalStreakDays,
+                                rings = uiState.rings,
+                                // The week strip reads solve history and freeze days. Both are
+                                // already on the ui state for the heatmap, so this is plumbing
+                                // rather than a new fetch.
+                                solves = uiState.recentSolves,
+                                frozenDates = uiState.frozenDates,
+                                sweepGate = sweepGate,
+                                onRingsClick = { showRingGoalsSheet = true }
                             )
                         }
-
-                        if (solves.isNotEmpty()) {
-                            // Activity heatmap, full width now that the difficulty card that shared
-                            // its row is gone.
+                        item(key = "revision_load") {
+                            RevisionLoadCard(
+                                breakdown = uiState.revisionLoad,
+                                revisionScore = uiState.revisionScore?.score,
+                                onClick = onNavigateToRevisionLoad
+                            )
+                        }
+                    }
+                    if (solveStats != null) {
+                        item(key = "stats") {
+                            MainStatsCard(
+                                totalSolves = solveStats.stats.totalSolves,
+                                totalXp = solveStats.stats.totalXp,
+                                streak = solveStats.stats.totalStreakDays
+                            )
+                        }
+                    }
+                    if (achievementStats != null) {
+                        item(key = "awards_activity") {
+                            if (solves.isNotEmpty()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    AchievementStatsCard(
+                                        stats = achievementStats.stats,
+                                        onClick = onNavigateToAchievements,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    ProductivityInsightsCard(
+                                        solves = solves,
+                                        completedRevisions = uiState.completedRevisions,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            } else {
+                                AchievementStatsCard(
+                                    stats = achievementStats.stats,
+                                    onClick = onNavigateToAchievements
+                                )
+                            }
+                        }
+                    }
+                    if (solves.isNotEmpty()) {
+                        item(key = "heatmap") {
                             SolveHeatmapCard(
                                 solves = solves,
                                 frozenDates = uiState.frozenDates,
                                 onClick = onNavigateToActivity
                             )
-
-                            BestSolvingHoursCard(solves = solves)
-
-                            // Time and attempts, as Step Count style tiles.
+                        }
+                        item(key = "hours") { BestSolvingHoursCard(solves = solves) }
+                        item(key = "metrics") {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -383,7 +388,6 @@ private fun HomeMainContent(
                                     modifier = Modifier.weight(1f),
                                     onClick = { onNavigateToMetric(MetricKind.TIME) }
                                 )
-
                                 AttemptsAnalysisCard(
                                     solves = solves,
                                     modifier = Modifier.weight(1f),

@@ -52,12 +52,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.Solve
 import com.traverse.android.ui.theme.rememberPalette
 import java.time.Duration
 import java.time.LocalDateTime
 
-private val RowBackground = Color(0xFF1A1A1A)
+private val RowBackground = CardBackground
 
 /** SwiftUI `Color.blue` (#007AFF), used for highlight tag chips on iOS. */
 private val HighlightTagBlue = Color(0xFF007AFF)

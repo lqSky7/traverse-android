@@ -75,6 +75,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.Friend
 import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.navigation.floatingBottomBarContentInset
@@ -86,7 +87,6 @@ import com.traverse.android.viewmodel.getLeaderboard
 import com.traverse.android.viewmodel.getTotalPendingCount
 
 // Pastel colors matching Android app's monochromish-pastel theme
-private val CardBackground = Color(0xFF1A1A1A)
 
 // iOS rank colours: gold (1.0, 0.84, 0), silver (0.75, 0.75, 0.8), bronze (0.8, 0.5, 0.2).
 private val GoldColor = Color(0xFFFFD600)
@@ -446,12 +446,15 @@ private fun FriendsMainContent(
                         }
 
                         // Friends List
+                        //
+                        // No wrapper surface here. This Column used to carry the same
+                        // `clip(12.dp) + background(CardBackground)` as the rows inside it, which
+                        // painted over the 16dp gaps between them — so the list read as one
+                        // continuous grey block and the spacing was invisible. Each row draws its
+                        // own surface now, and the gaps show the screen behind.
                         item {
                             Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(CardBackground),
+                                modifier = Modifier.fillMaxWidth(),
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 uiState.friends.forEach { friend ->
@@ -483,7 +486,7 @@ private fun LeaderboardSection(
         Column(
             modifier = modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(16.dp))
                 .background(CardBackground)
                 .padding(vertical = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -508,7 +511,7 @@ private fun LeaderboardSection(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
@@ -660,20 +663,12 @@ private fun FriendRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // iOS shows the glow whenever a friend streak exists, even at 0 days.
-    val hasActiveStreak = streakCount != null
     val streakColor = paletteColorAt(0)
-
-    // iOS breathes this glow with `.repeatForever`. As with the home achievement card, the value is
-    // pinned to the mid-point of the iOS range (its `sin(glowPhase)` factor averages 0.5) so the
-    // resting appearance matches without a per-frame recomposition of the whole list.
-    val glowFillOpacity = if (hasActiveStreak) 0.15f + 0.1f * 0.5f else 0f
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            // iOS: `.background(systemGray6)` then `.clipShape(RoundedRectangle(cornerRadius: 12))`
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(CardBackground)
             .clickable { onClick() }
     ) {
@@ -799,24 +794,6 @@ private fun FriendRow(
                     modifier = Modifier.offset(x = (-8).dp)
                 )
             }
-        }
-
-        // Bottom gradient wash while a streak is active. iOS overlays a vertical gradient that stays
-        // clear for two thirds and fades into the streak colour at the bottom edge.
-        if (hasActiveStreak) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Transparent,
-                                streakColor.copy(alpha = glowFillOpacity)
-                            )
-                        )
-                    )
-            )
         }
     }
 }

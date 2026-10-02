@@ -35,13 +35,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.Solve
 import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.ui.theme.rememberPalette
 import java.time.LocalDate
 
-private val CardBackground = Color(0xFF1A1A1A)
 
 /** iOS: `Color(red: 0.31, green: 0.76, blue: 0.97)` — frozen days. */
 private val IceBlue = Color(0xFF4FC3F7)

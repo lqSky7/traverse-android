@@ -73,6 +73,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.CacheManager
 import com.traverse.android.data.FriendStreak
 import com.traverse.android.data.NetworkResult
@@ -87,7 +88,6 @@ import com.traverse.android.ui.theme.palettePrimary
 import kotlinx.coroutines.launch
 
 // Pastel colors
-private val CardBackground = Color(0xFF1A1A1A)
 
 enum class FriendshipStatus {
     CURRENT_USER,

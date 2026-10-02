@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.RevisionStatsResponse
 import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.navigation.floatingBottomBarContentInset
@@ -28,7 +29,6 @@ import com.traverse.android.viewmodel.RevisionsViewModel
 import com.traverse.android.ui.theme.paletteColorAt
 import com.traverse.android.ui.theme.palettePrimary
 
-private val CardBackground = Color(0xFF1A1A1A)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

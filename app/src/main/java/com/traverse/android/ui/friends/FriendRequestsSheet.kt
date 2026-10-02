@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.FriendRequest
 import com.traverse.android.data.FriendStreakRequest
 import com.traverse.android.ui.components.EmptyStateView
@@ -31,7 +32,6 @@ import com.traverse.android.ui.theme.paletteColorAt
 import com.traverse.android.ui.theme.palettePrimary
 
 // Pastel colors
-private val CardBackground = Color(0xFF1A1A1A)
 private val GoldColor = Color(0xFFFFD700)
 
 @OptIn(ExperimentalMaterial3Api::class)

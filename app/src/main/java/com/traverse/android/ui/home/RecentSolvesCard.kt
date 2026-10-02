@@ -24,20 +24,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.Solve
 import com.traverse.android.ui.theme.rememberPalette
 
-private val CardBackground = Color(0xFF1A1A1A)
 
 /**
- * 1:1 port of the iOS `RecentSolvesCard`: header with a "View All" link, a hero solve count
- * and the five most recent solves rendered as expandable [SolveRow]s.
+ * 1:1 port of the iOS `RecentSolvesCard`: header with the solve count and a chevron on the right,
+ * then the five most recent solves rendered as expandable [SolveRow]s.
  *
- * Palette mapping from iOS: header icon and hero count use `color(at: 0)`;
- * the "View All" link uses `selectedPalette.primary`.
+ * Header anatomy deliberately matches `MistakeTagsCard`, which sits directly below it on the same
+ * screen — the count belongs in the header row, not in a band of its own. Palette mapping from iOS:
+ * the header icon and the count use `colorAt(0)`; the chevron is secondary.
  */
 @Composable
 fun RecentSolvesCard(
@@ -47,7 +50,6 @@ fun RecentSolvesCard(
 ) {
     val palette = rememberPalette()
     val accentColor = palette.colorAt(0)
-    val linkColor = palette.primary
 
     val rows = solves.take(5)
 
@@ -57,10 +59,19 @@ fun RecentSolvesCard(
             .clip(RoundedCornerShape(16.dp))
             .background(CardBackground)
     ) {
+        // Header — the same anatomy as MistakeTagsCard next to it on this screen: icon + title on
+        // the left, the headline figure and a chevron on the right, one divider, then content.
+        //
+        // This card used to break that: the count sat in its own 40sp band *below* a second divider,
+        // and "View All" was spelled out as text. So the top third read as three stacked strips —
+        // title, lone number, rows — with uneven padding between them, and the two cards disagreed
+        // about where a number belongs and what a navigation affordance looks like. Same screen,
+        // same header.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp)
+                .padding(top = 16.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -84,18 +95,23 @@ fun RecentSolvesCard(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .clickable(onClick = onViewAll)
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                    // The label is small and the row is not the target, so the hit area is grown
+                    // explicitly rather than left to the glyph bounds.
+                    .semantics { contentDescription = "View all ${solves.size} solves" },
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "View All",
-                    style = MaterialTheme.typography.bodySmall.copy(color = linkColor)
+                    text = "${solves.size}",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = accentColor
                 )
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(6.dp))
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = null,
-                    tint = linkColor,
+                    tint = Color.White.copy(alpha = 0.6f),
                     modifier = Modifier.size(14.dp)
                 )
             }
@@ -103,35 +119,11 @@ fun RecentSolvesCard(
 
         HorizontalDivider(color = Color.Gray.copy(alpha = 0.3f))
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(top = 16.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.Bottom
-        ) {
-            Text(
-                text = "${solves.size}",
-                fontSize = 40.sp,
-                lineHeight = 44.sp,
-                fontWeight = FontWeight.Bold,
-                color = accentColor
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = "PROBLEMS",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White.copy(alpha = 0.6f)
-                ),
-                modifier = Modifier.padding(bottom = 6.dp)
-            )
-        }
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
+                .padding(top = 12.dp)
                 .padding(bottom = 16.dp)
         ) {
             rows.forEachIndexed { index, solve ->

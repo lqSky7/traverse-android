@@ -34,13 +34,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.Solve
 import com.traverse.android.data.activityInstant
 import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.theme.rememberPalette
 import java.time.ZoneId
 
-private val CardBackground = Color(0xFF1A1A1A)
 
 /** One solve in an hour is not evidence of anything. Mirrors the iOS constant. */
 private const val MIN_SAMPLES_FOR_FASTEST_HOUR = 3

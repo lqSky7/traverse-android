@@ -61,6 +61,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.traverse.android.ui.theme.SheetPanelBackground
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.NotificationType
 import com.traverse.android.data.NotificationTypePreference
 import com.traverse.android.data.QuietHours
@@ -69,7 +71,17 @@ import com.traverse.android.ui.theme.rememberPalette
 import com.traverse.android.viewmodel.NotificationsViewModel
 import kotlinx.coroutines.launch
 
-private val CardBg = Color(0xFF1C1C1E)
+
+/**
+ * Panel surface *inside* a sheet.
+ *
+ * The sheet container is already [CardBackground], so an inner panel has to lift off it rather than
+ * repeat it — a translucent white over the sheet, matching `AllAtRiskProblemsSheet`.
+ *
+ * This was its own `#1C1C1E` sitting on a `#121212` sheet. Two private greys that appear nowhere
+ * else in the app is what made this sheet read as a different product.
+ */
+private val CardBg = SheetPanelBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -109,7 +121,7 @@ fun NotificationSettingsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF121212)
+        containerColor = CardBackground
     ) {
         Column(
             modifier = Modifier
@@ -204,7 +216,7 @@ fun NotificationSettingsSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(16.dp))
                         .background(CardBg)
                         .padding(14.dp),
                     verticalAlignment = Alignment.Top

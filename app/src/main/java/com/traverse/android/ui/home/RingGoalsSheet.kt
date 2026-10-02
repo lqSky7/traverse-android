@@ -43,13 +43,27 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.theme.SheetPanelBackground
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.RingGoals
 import com.traverse.android.data.RingProgress
 import com.traverse.android.ui.components.ActivityRings
 import com.traverse.android.ui.theme.rememberPalette
 import kotlinx.coroutines.launch
 
-private val SheetCardBg = Color(0xFF1C1C1E)
+
+/**
+ * Panel surface *inside* a sheet.
+ *
+ * The sheet container is already [CardBackground], so an inner panel has to lift off it rather than
+ * repeat it — a translucent white over the sheet, which is the same treatment
+ * `AllAtRiskProblemsSheet` uses for its cards.
+ *
+ * This used to be its own `#1C1C1E`, a third value that appeared nowhere else in the app and sat
+ * next to a `#121212` sheet. Two private greys on one screen is what made this sheet read as a
+ * different product.
+ */
+private val SheetPanelBg = SheetPanelBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,7 +94,7 @@ fun RingGoalsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF121212)
+        containerColor = CardBackground
     ) {
         Column(
             modifier = Modifier
@@ -154,8 +168,8 @@ fun RingGoalsSheet(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(SheetCardBg)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(SheetPanelBg)
                     .padding(vertical = 24.dp, horizontal = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -197,8 +211,8 @@ fun RingGoalsSheet(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(SheetCardBg)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(SheetPanelBg)
                     .padding(14.dp)
             ) {
                 Text(
@@ -253,7 +267,7 @@ fun RingGoalsSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(16.dp))
                         .background(Color(0xFFE65100).copy(alpha = 0.15f))
                         .padding(14.dp),
                     verticalAlignment = Alignment.Top
@@ -287,8 +301,8 @@ fun RingGoalsSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(SheetCardBg)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(SheetPanelBg)
                         .padding(14.dp),
                     verticalAlignment = Alignment.Top
                 ) {
@@ -327,8 +341,8 @@ private fun GoalStepperRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(SheetCardBg)
+            .clip(RoundedCornerShape(16.dp))
+            .background(SheetPanelBg)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -369,7 +383,7 @@ private fun GoalStepperRow(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = if (canDecrease) 0.12f else 0.05f))
+                    .background(Color.White.copy(alpha = if (canDecrease) 0.16f else 0.09f))
             ) {
                 Icon(
                     imageVector = Icons.Default.Remove,
@@ -394,7 +408,7 @@ private fun GoalStepperRow(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = if (canIncrease) 0.12f else 0.05f))
+                    .background(Color.White.copy(alpha = if (canIncrease) 0.16f else 0.09f))
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,

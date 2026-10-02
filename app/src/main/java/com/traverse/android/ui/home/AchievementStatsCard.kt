@@ -26,11 +26,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.AchievementStatsData
 import com.traverse.android.data.MedalCatalog
 import com.traverse.android.ui.components.MedalBadge
 
-private val CardBackground = Color(0xFF1A1A1A)
 
 /**
  * The Awards card on the home feed.

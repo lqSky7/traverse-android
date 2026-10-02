@@ -26,13 +26,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.RevisionLoadBand
 import com.traverse.android.data.RevisionLoadBreakdown
 import com.traverse.android.data.RevisionLoadSnapshot
 import com.traverse.android.ui.theme.ColorPalette
 import com.traverse.android.ui.theme.rememberPalette
 
-internal val LoadCardBackground = Color(0xFF1A1A1A)
+internal val LoadCardBackground = CardBackground
 
 /**
  * Palette-aware colour for a revision-load band, so the card follows the user's chosen palette the

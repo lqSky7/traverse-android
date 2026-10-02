@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import java.util.Locale
+import kotlin.math.roundToInt
 
 /**
  * 1:1 Kotlin port of the iOS `ColorPalette` model (`Models/ColorPalette.swift`).
@@ -33,6 +34,25 @@ data class ColorPalette(
     fun colorAt(index: Int): Color {
         val list = swiftUIColors
         return list[index.mod(list.size)]
+    }
+
+    /**
+     * The palette colour at position [index] of [count] positions, walking the whole palette left to
+     * right.
+     *
+     * Used to spread the palette across a row of small elements — the streak card's seven day dots —
+     * so a row of seven reads as the full palette rather than repeating part of it.
+     *
+     * Distinct from [colorAt], which cycles a single index and answers "which accent does this
+     * element use". This one answers "where does this element sit in a sequence", which is why it
+     * needs the count. Uses `swiftUIColors`, matching [colorAt].
+     */
+    fun colorAt(index: Int, of count: Int): Color {
+        val list = swiftUIColors
+        if (count <= 1 || list.isEmpty()) return list.firstOrNull() ?: Color.White
+        val t = index.toFloat() / (count - 1).toFloat()
+        val slot = (t * (list.size - 1)).roundToInt()
+        return list[slot.coerceIn(0, list.size - 1)]
     }
 
     companion object {
@@ -78,10 +98,39 @@ data class ColorPalette(
                 id = 6,
                 name = "Lavender Fields",
                 colors = listOf("E0BBE4", "957DAD", "D291BC", "FEC8D8", "FFDFD3")
+            ),
+            ColorPalette(
+                id = 7,
+                name = "Traverse",
+                colors = listOf("FFB6C1", "145AE6", "FFBE14", "F02832", "EBEBFF")
             )
         )
 
-        val default: ColorPalette get() = allPalettes[0]
+        /** id of the palette shipped as the default. */
+        const val DEFAULT_PALETTE_ID = 7
+
+        /**
+         * The palette a user gets before they ever open the picker.
+         *
+         * Slot order is deliberately NOT the band's left-to-right order, because the two orders
+         * carry different meanings. The band is a *sequence* — the sweep reads pink → crimson →
+         * amber → ice → cobalt and that order is the whole point. A palette is a *set*, and these
+         * slots have positional meaning baked into the code: slot 0 is the palette's primary,
+         * `RevisionLoadBand.paletteIndex` maps `optimal → 0` and walks away from it in both
+         * directions, slot 2 is the streak flame, and slot 3 carries numerals
+         * (`SubmissionStatsCard`, `SolveHeatmapCard`).
+         *
+         * That last one is why ice sits in slot 4. `#EBEBFF` is the band's glint — designed to
+         * flash bright for half a second mid-sweep, not to be a standing tint. On the 24pt numeral
+         * in `SolveHeatmapCard` it reads as unstyled white text rather than as a colour. Slot 4 is
+         * the least-used slot in the app (14 call sites, all small labels and icons), so it is the
+         * one safe home for it. Every band hex is still present.
+         *
+         * The streak card's week strip keeps true band order, because a gradient's order *is* its
+         * meaning. Same five colours, two orders, each where it belongs.
+         */
+        val default: ColorPalette
+            get() = allPalettes.firstOrNull { it.id == DEFAULT_PALETTE_ID } ?: allPalettes[0]
     }
 }
 

@@ -30,11 +30,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.Solve
+import com.traverse.android.data.ActivityTimestamp
+import com.traverse.android.data.activityAt
 import com.traverse.android.ui.theme.rememberPalette
 import java.time.LocalDate
 
-private val CardBackground = Color(0xFF1A1A1A)
 
 /** iOS: `Color(red: 0.31, green: 0.76, blue: 0.97)` — frozen days. */
 private val IceBlue = Color(0xFF4FC3F7)
@@ -68,7 +70,7 @@ fun SolveHeatmapCard(
     val hardestByDate = remember(solves) {
         val map = HashMap<LocalDate, String>()
         solves.forEach { solve ->
-            val date = parseLocalDate(solve.solvedAt) ?: return@forEach
+            val date = ActivityTimestamp.dayKey(solve.activityAt) ?: return@forEach
             val existing = map[date]
             map[date] = if (existing == null) {
                 solve.problem.difficulty
@@ -79,8 +81,8 @@ fun SolveHeatmapCard(
         map
     }
 
-    val weeks = remember {
-        val today = LocalDate.now()
+    val today = LocalDate.now()
+    val weeks = remember(today) {
         // DayOfWeek: MONDAY=1 … SUNDAY=7 — normalise so weeks start on Sunday like iOS.
         val daysFromSunday = today.dayOfWeek.value % 7
         val currentWeekStart = today.minusDays(daysFromSunday.toLong())

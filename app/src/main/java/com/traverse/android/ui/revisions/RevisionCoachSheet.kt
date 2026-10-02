@@ -40,6 +40,7 @@ import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
 import com.traverse.android.data.Revision
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
+import com.traverse.android.ui.theme.SheetPanelBackground
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.traverse.android.ui.theme.paletteColorAt
@@ -345,7 +346,7 @@ fun RevisionCoachSheet(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clip(RoundedCornerShape(16.dp))
-                                            .background(Color(0xFF1C1C1E))
+                                            .background(SheetPanelBackground)
                                             .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
                                             .padding(horizontal = 16.dp, vertical = 12.dp),
                                         verticalAlignment = Alignment.CenterVertically,

@@ -47,6 +47,7 @@ import com.traverse.android.data.AwardSection
 import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.components.MedalBadge
 import com.traverse.android.ui.components.MedalProgressBar
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.ui.theme.rememberPalette
 import java.time.Instant
@@ -145,7 +146,7 @@ fun AwardsSectionScreen(
         ModalBottomSheet(
             onDismissRequest = { selected = null },
             sheetState = sheetState,
-            containerColor = Color(0xFF0C0C0C)
+            containerColor = CardBackground
         ) {
             AwardDetailSheetContent(award = award)
         }

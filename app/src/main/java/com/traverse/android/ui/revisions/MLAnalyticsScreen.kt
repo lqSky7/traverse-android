@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.RevisionAnalyticsOverview
 import com.traverse.android.data.RevisionAnalyticsResponse
 import com.traverse.android.data.RevisionAnalyticsStreaks
@@ -32,7 +33,6 @@ import kotlin.math.roundToInt
 import com.traverse.android.ui.theme.paletteColorAt
 import com.traverse.android.ui.theme.palettePrimary
 
-private val CardBackground = Color(0xFF1A1A1A)
 
 @Composable
 fun MLAnalyticsScreen(

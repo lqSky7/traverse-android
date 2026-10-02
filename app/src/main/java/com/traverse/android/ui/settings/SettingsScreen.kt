@@ -31,6 +31,8 @@ import coil.compose.AsyncImage
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.theme.SheetPanelBackground
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.BuildConfig
 import com.traverse.android.data.*
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
@@ -41,6 +43,7 @@ import com.traverse.android.ui.theme.ColorPaletteManager
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.ui.theme.rememberPalette
 import com.traverse.android.viewmodel.NotificationsViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 
@@ -49,7 +52,6 @@ import kotlinx.coroutines.launch
 private val SwiftGreen = Color(0xFF34C759)
 private val SwiftOrange = Color(0xFFFF9500)
 private val SwiftRed = Color(0xFFFF3B30)
-private val CardBackground = Color(0xFF1A1A1A)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,7 +70,7 @@ fun SettingsScreen(
     var user by remember { mutableStateOf<User?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var profileImageUrl by remember { mutableStateOf<String?>(null) }
+    val profileImageUrl by cacheManager.profileImage.collectAsStateWithLifecycle()
     
     // Dialog states
     var showEditProfileSheet by remember { mutableStateOf(false) }
@@ -95,8 +97,6 @@ fun SettingsScreen(
     // Load user data and profile image
     LaunchedEffect(Unit) {
         isLoading = true
-        // Get cached profile image (prefer local file)
-        profileImageUrl = cacheManager.getProfileImageFile() ?: cacheManager.getProfileImage()
         
         when (val result = networkService.getCurrentUser()) {
             is NetworkResult.Success -> {
@@ -1701,7 +1701,7 @@ private fun FreezeShopSheet(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
+                colors = CardDefaults.cardColors(containerColor = SheetPanelBackground)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),

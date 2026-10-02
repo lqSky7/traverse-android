@@ -76,6 +76,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.Solve
 import com.traverse.android.ui.components.EmptyStateView
 import com.traverse.android.ui.navigation.floatingBottomBarContentInset
@@ -84,7 +85,6 @@ import com.traverse.android.ui.theme.rememberPalette
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-private val CardBackground = Color(0xFF1A1A1A)
 
 // iOS `difficultyColor(_:)` uses SwiftUI's system colours rather than the palette.
 private val DiffEasyGreen = Color(0xFF34C759)

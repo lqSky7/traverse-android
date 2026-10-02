@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.Revision
 import com.traverse.android.data.RevisionGroup
 import java.time.LocalDate
@@ -28,7 +29,6 @@ import java.time.format.DateTimeFormatter
 import com.traverse.android.ui.theme.paletteColorAt
 import com.traverse.android.ui.theme.palettePrimary
 
-private val CardBackground = Color(0xFF1A1A1A)
 
 @Composable
 fun RevisionGroupCard(

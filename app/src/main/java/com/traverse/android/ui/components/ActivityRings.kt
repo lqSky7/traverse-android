@@ -19,20 +19,29 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
+ * Track colour for both rings.
+ *
+ * This was `white 0.20f`, chosen so the rings stayed legible on top of the streak card's old
+ * lighting-sun background — a dark animated shader whose brightness varied with the streak,
+ * where alpha-blending white meant the track lightened where the shader was bright and darkened
+ * where it was dim.
+ *
+ * That shader is gone and the streak card is a flat `#1A1A1A` tile like every other card, so
+ * 0.20f is now just a slightly-too-visible ring on a flat surface. 0.14f reads as a track
+ * rather than as an unfilled ring.
+ */
+private val RingTrack = Color.White.copy(alpha = 0.14f)
+
+/**
  * Apple Fitness-style concentric activity rings.
  *
- * Two rings: outer = new solves, inner = completed revisions. Both are drawn
- * against a fixed full-circle track so an untouched day still reads as two
- * rings rather than nothing.
+ * Two rings: outer = new solves, inner = completed revisions. Both are drawn against a fixed
+ * full-circle track so an untouched day still reads as two rings rather than nothing.
  *
- * Track color: Color.White.copy(alpha = 0.20f)
- * Reason: On the streak card the rings sit on top of LightingSunBackground — a
- * dark animated shader. Alpha-blending white over it means the track automatically
- * lightens where the shader is bright and darkens where it is dim, mirroring iOS
- * .ultraThinMaterial without expensive RenderEffect backdrop blurs.
+ * Progress is animated rather than snapped — see the two `animateFloatAsState` calls. The rings
+ * are the reward for the action that just happened, and a ring that jumps from 0 to 1 in one
+ * frame is easy to miss when the user is looking at the submit button.
  */
-private val RingTrack = Color.White.copy(alpha = 0.20f)
-
 @Composable
 fun ActivityRings(
     solveFraction: Float,

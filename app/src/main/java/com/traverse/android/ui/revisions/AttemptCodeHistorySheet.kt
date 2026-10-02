@@ -60,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.CodeAttempt
 import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
@@ -70,7 +71,6 @@ import kotlinx.coroutines.launch
 import com.traverse.android.ui.theme.paletteColorAt
 import com.traverse.android.ui.theme.palettePrimary
 
-private val CardBackground = Color(0xFF1A1A1A)
 
 /**
  * 1:1 Kotlin port of iOS AttemptCodeHistorySheet.swift.
