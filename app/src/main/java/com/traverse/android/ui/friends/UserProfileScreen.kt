@@ -849,8 +849,8 @@ private fun ActionRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+            .padding(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically
     ) {
         StreakButton(
@@ -880,10 +880,12 @@ private fun StreakButton(
     when (status) {
         FriendStreakStatus.NONE -> Unit
 
-        // A status, not an action: the card above owns ending the streak.
+        // A status, not an action: the card above owns ending the streak. The label is just "Active"
+        // rather than "Streak Active" so the row has room for the freeze pill beside it — the card
+        // above already says which streak this is.
         FriendStreakStatus.ACTIVE -> ActionPill(
             icon = Icons.Default.LocalFireDepartment,
-            title = "Streak Active",
+            title = "Active",
             caption = activeStreak?.let { "${it.currentStreak}d" },
             tint = paletteColorAt(0)
         )
@@ -937,7 +939,7 @@ private fun ActionPill(
                 if (onClick != null) Modifier.clickable(enabled = enabled, onClick = onClick)
                 else Modifier
             )
-            .padding(horizontal = 18.dp, vertical = 11.dp),
+            .padding(horizontal = 14.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
