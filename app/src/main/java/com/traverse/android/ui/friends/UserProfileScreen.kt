@@ -69,6 +69,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -723,24 +724,28 @@ private fun ProfileBody(
             ProfileHeader(profile = profile, statistics = statistics)
         }
 
-        // Friend streak section (only for friends)
+        // The active-streak detail, when there is one. The action row below renders in every
+        // state, so the streak button never disappears.
+        if (isFriend && friendStreakStatus == FriendStreakStatus.ACTIVE && activeFriendStreak != null) {
+            item {
+                ActiveStreakCard(
+                    friendStreak = activeFriendStreak,
+                    onDelete = onDeleteStreak,
+                    isLoading = isActionLoading
+                )
+            }
+        }
+
+        // Streak and freeze, side by side. Everything destructive or housekeeping —
+        // remove, block, close-friend — lives in the top-right menu instead of
+        // stacking up the page.
         if (isFriend) {
             item {
-                StreakActionSection(
+                ActionRow(
                     status = friendStreakStatus,
                     activeStreak = activeFriendStreak,
                     isLoading = isActionLoading,
                     onSendStreakRequest = onSendStreakRequest,
-                    onDeleteStreak = onDeleteStreak
-                )
-            }
-
-            // The single on-page action. Everything destructive or housekeeping —
-            // remove, block, close-friend — lives in the top-right menu instead of
-            // stacking up the page.
-            item {
-                GiftFreezeButton(
-                    isGifting = isActionLoading,
                     onGift = onGift
                 )
             }
@@ -826,113 +831,170 @@ private fun ProfileBody(
     }
 }
 
-/** iOS `streakActionSection`: the friend streak in its five sub-states. */
+/**
+ * The streak action and the freeze gift, side by side.
+ *
+ * They used to be two stacked rows with different shapes — a full-width "Start Streak" button and a
+ * compact "Gift Freeze" one — so they read as two unrelated things, and the full-width one looked
+ * like the page's primary action. Both are compact now and share one centred row.
+ */
 @Composable
-private fun StreakActionSection(
+private fun ActionRow(
     status: FriendStreakStatus,
     activeStreak: FriendStreak?,
     isLoading: Boolean,
     onSendStreakRequest: () -> Unit,
-    onDeleteStreak: () -> Unit
+    onGift: () -> Unit
 ) {
-    when (status) {
-        FriendStreakStatus.NONE -> Unit
-
-        FriendStreakStatus.ACTIVE -> {
-            if (activeStreak != null) {
-                ActiveStreakCard(
-                    friendStreak = activeStreak,
-                    onDelete = onDeleteStreak,
-                    isLoading = isLoading
-                )
-            }
-        }
-
-        FriendStreakStatus.CAN_START -> {
-            Button(
-                onClick = onSendStreakRequest,
-                enabled = !isLoading,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = paletteColorAt(0),
-                    contentColor = Color.Black
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.LocalFireDepartment,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Start Streak")
-            }
-        }
-
-        FriendStreakStatus.REQUEST_SENT -> {
-            // iOS: flame.badge.checkmark tinted with colour(at: 0)
-            StatusPill(
-                icon = Icons.Default.LocalFireDepartment,
-                text = "Streak Request Sent",
-                color = paletteColorAt(0)
-            )
-        }
-
-        FriendStreakStatus.REQUEST_RECEIVED -> {
-            StatusPill(
-                icon = Icons.Default.LocalFireDepartment,
-                text = "Streak Request Received",
-                color = paletteColorAt(0)
-            )
-        }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        StreakButton(
+            status = status,
+            activeStreak = activeStreak,
+            isLoading = isLoading,
+            onSendStreakRequest = onSendStreakRequest
+        )
+        GiftFreezeButton(isGifting = isLoading, onGift = onGift)
     }
 }
 
 /**
- * iOS `giftFreezeButton` — deliberately compact, hugging its label instead of
- * stretching edge to edge. As a full-width pill it read as the page's primary
- * action and pushed the statistics below the fold.
+ * The streak button, in whichever state the relationship is in.
+ *
+ * Every state draws the same pill in the same slot; only the icon, label and tint change. The active
+ * state used to swap the button out for a card, so the control vanished the moment a streak existed
+ * — which is exactly when its slot most needs to stay legible.
+ */
+@Composable
+private fun StreakButton(
+    status: FriendStreakStatus,
+    activeStreak: FriendStreak?,
+    isLoading: Boolean,
+    onSendStreakRequest: () -> Unit
+) {
+    when (status) {
+        FriendStreakStatus.NONE -> Unit
+
+        // A status, not an action: the card above owns ending the streak.
+        FriendStreakStatus.ACTIVE -> ActionPill(
+            icon = Icons.Default.LocalFireDepartment,
+            title = "Streak Active",
+            caption = activeStreak?.let { "${it.currentStreak}d" },
+            tint = paletteColorAt(0)
+        )
+
+        FriendStreakStatus.CAN_START -> ActionPill(
+            icon = Icons.Default.LocalFireDepartment,
+            title = "Start Streak",
+            tint = paletteColorAt(0),
+            enabled = !isLoading,
+            onClick = onSendStreakRequest
+        )
+
+        FriendStreakStatus.REQUEST_SENT -> ActionPill(
+            icon = Icons.Default.LocalFireDepartment,
+            title = "Request Sent",
+            tint = Color.White.copy(alpha = 0.5f)
+        )
+
+        FriendStreakStatus.REQUEST_RECEIVED -> ActionPill(
+            icon = Icons.Default.LocalFireDepartment,
+            title = "Request Received",
+            tint = paletteColorAt(0)
+        )
+    }
+}
+
+/**
+ * The shared pill anatomy: icon, label, and an optional trailing caption.
+ *
+ * Deliberately compact — it hugs its content rather than stretching, so two of them sit on one row
+ * without either reading as the page's primary action. Both the streak button and the freeze button
+ * are built from this, so the two cannot drift apart.
+ *
+ * A null [onClick] renders the quieter status treatment: no ripple and no click target.
+ */
+@Composable
+private fun ActionPill(
+    icon: ImageVector,
+    title: String,
+    tint: Color,
+    caption: String? = null,
+    enabled: Boolean = true,
+    onClick: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null
+) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(tint.copy(alpha = 0.15f))
+            .then(
+                if (onClick != null) Modifier.clickable(enabled = enabled, onClick = onClick)
+                else Modifier
+            )
+            .padding(horizontal = 18.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(16.dp)
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontWeight = FontWeight.SemiBold,
+                color = tint
+            )
+        )
+        if (caption != null) {
+            Text(
+                text = caption,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    color = Color.White.copy(alpha = 0.6f)
+                )
+            )
+        }
+        trailing?.invoke()
+    }
+}
+
+/**
+ * Gift a streak freeze, beside the streak button.
+ *
+ * Compact by design — it hugs its label instead of stretching edge to edge, so it can share a row
+ * with the streak button without either reading as the page's primary action. Built from [ActionPill],
+ * the same helper the streak button uses, so the two cannot drift apart.
  */
 @Composable
 private fun GiftFreezeButton(
     isGifting: Boolean,
     onGift: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(Color(0xFF00B8D9).copy(alpha = 0.15f))
-            .clickable(enabled = !isGifting, onClick = onGift)
-            .padding(horizontal = 18.dp, vertical = 11.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Icon(
-            imageVector = Icons.Default.AcUnit,
-            contentDescription = null,
-            tint = Color.Cyan,
-            modifier = Modifier.size(16.dp)
-        )
-        Text(
-            text = if (isGifting) "Sending…" else "Gift Freeze",
-            style = MaterialTheme.typography.labelLarge.copy(
-                fontWeight = FontWeight.SemiBold,
-                color = Color.Cyan
-            )
-        )
-        Text(
-            text = "70 XP",
-            style = MaterialTheme.typography.labelSmall.copy(
-                color = Color.White.copy(alpha = 0.6f)
-            )
-        )
-        if (isGifting) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(14.dp),
-                strokeWidth = 2.dp,
-                color = Color.Cyan
-            )
-        }
-    }
+    ActionPill(
+        icon = Icons.Default.AcUnit,
+        title = if (isGifting) "Sending…" else "Gift Freeze",
+        caption = "70 XP",
+        tint = Color.Cyan,
+        enabled = !isGifting,
+        onClick = onGift,
+        trailing = if (isGifting) {
+            {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(14.dp),
+                    strokeWidth = 2.dp,
+                    color = Color.Cyan
+                )
+            }
+        } else null
+    )
 }
 
 /** iOS `.blocked` case: an inline banner plus the "Unblock" recovery button. */
