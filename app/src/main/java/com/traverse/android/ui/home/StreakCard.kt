@@ -346,7 +346,7 @@ private fun WeekStrip(days: List<StreakDay>, modifier: Modifier = Modifier) {
             // used to be pinned to a hardcoded band, which made the app's two most brand-forward
             // elements its two most palette-blind ones. The default palette (Traverse) is the chroma
             // band, so the out-of-the-box look is unchanged.
-            val tint = palette.colorAt(index, of = days.size)
+            val tint = palette.colorAt(index, spreadAcross = days.size)
 
             Column(
                 modifier = Modifier.weight(1f),

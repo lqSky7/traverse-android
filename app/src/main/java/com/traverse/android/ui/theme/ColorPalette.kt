@@ -47,7 +47,7 @@ data class ColorPalette(
      * element use". This one answers "where does this element sit in a sequence", which is why it
      * needs the count. Uses `swiftUIColors`, matching [colorAt].
      */
-    fun colorAt(index: Int, of count: Int): Color {
+    fun colorAt(index: Int, spreadAcross count: Int): Color {
         val list = swiftUIColors
         if (count <= 1 || list.isEmpty()) return list.firstOrNull() ?: Color.White
         val t = index.toFloat() / (count - 1).toFloat()

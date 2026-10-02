@@ -2,6 +2,8 @@ package com.traverse.android.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -19,6 +21,9 @@ class CacheManager private constructor(private val context: Context) {
         encodeDefaults = true
     }
     
+    private val _profileImage = MutableStateFlow(getProfileImageFile() ?: getProfileImage())
+    val profileImage = _profileImage.asStateFlow()
+
     companion object {
         private const val PREFS_NAME = "traverse_cache"
         private const val KEY_PREFIX = "cache_"
@@ -199,6 +204,7 @@ class CacheManager private constructor(private val context: Context) {
     // MARK: - Profile Image Cache (permanent, no TTL)
     
     fun cacheProfileImage(imageUrl: String) {
+        _profileImage.value = getProfileImageFile() ?: imageUrl
         prefs.edit()
             .putString(getKey(KEY_PROFILE_IMAGE), imageUrl)
             .apply()
@@ -210,6 +216,7 @@ class CacheManager private constructor(private val context: Context) {
     
     // Save profile image file path locally
     fun cacheProfileImageFile(filePath: String) {
+        _profileImage.value = filePath
         prefs.edit()
             .putString(getKey("${KEY_PROFILE_IMAGE}_file"), filePath)
             .apply()
@@ -300,6 +307,7 @@ class CacheManager private constructor(private val context: Context) {
             ?.forEach { file -> runCatching { file.delete() } }
         
         prefs.edit().clear().apply()
+        _profileImage.value = null
         tokenManager.deleteSecret(KEY_GEMINI_API_KEY)
     }
     

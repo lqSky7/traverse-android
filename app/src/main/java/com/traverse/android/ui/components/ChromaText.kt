@@ -193,6 +193,6 @@ fun ChromaText(
         style = style.copy(brush = fill),
         modifier = modifier
             .onSizeChanged { width = it.width.toFloat() }
-            .blur((1f - p).coerceIn(0f, 1f) * 1.dp),
+            .blur((1f - p).coerceIn(0f, 1f).dp),
     )
 }
