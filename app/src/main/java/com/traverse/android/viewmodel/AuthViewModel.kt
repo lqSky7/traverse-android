@@ -4,12 +4,15 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.traverse.android.data.CacheManager
-import com.traverse.android.data.DataManager
 import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
 import com.traverse.android.data.PushRegistrationManager
 import com.traverse.android.data.User
 import com.traverse.android.ui.components.AchievementToastManager
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -51,9 +54,9 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     
     private val networkService = NetworkService.getInstance(application)
     private val cacheManager = CacheManager.getInstance(application)
-    private val dataManager = DataManager.getInstance(application)
     private val toastManager = AchievementToastManager.getInstance(application)
     private val sessionCleaner = AccountSessionCleaner(application)
+    private var avatarJob: Job? = null
     private val json = Json { ignoreUnknownKeys = true }
     
     private val _uiState = MutableStateFlow(AuthUiState())
@@ -80,91 +83,75 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     
-    private suspend fun fetchRandomCatImage(): String? {
-        return withContext(Dispatchers.IO) {
+    private fun startAvatarLoad() {
+        avatarJob?.cancel()
+        avatarJob = viewModelScope.launch {
             try {
-                val url = java.net.URL("https://api.thecatapi.com/v1/images/search")
-                val connection = url.openConnection()
-                connection.setRequestProperty("Content-Type", "application/json")
-                val response = connection.getInputStream().bufferedReader().readText()
-                val cats = json.decodeFromString<List<CatApiResponse>>(response)
-                cats.firstOrNull()?.url
-            } catch (e: Exception) {
-                null
+                ensureProfileImage()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // Optional decoration must never block signing in or loading Home.
             }
         }
     }
-    
-    private suspend fun ensureProfileImage() {
-        val cachedImageFile = cacheManager.getProfileImageFile()
-        if (cachedImageFile != null && java.io.File(cachedImageFile).exists()) {
-            return
+
+    private suspend fun readAvatarBytes(url: String): ByteArray = withContext(Dispatchers.IO) {
+        val connection = java.net.URL(url).openConnection().apply {
+            connectTimeout = 5_000
+            readTimeout = 5_000
         }
-        
-        val cachedImageUrl = cacheManager.getProfileImage()
-        if (cachedImageUrl != null) {
-            try {
-                val imageBytes = withContext(Dispatchers.IO) {
-                    val url = java.net.URL(cachedImageUrl)
-                    url.readBytes()
-                }
-                val context = getApplication<Application>().applicationContext
-                val filename = "profile_image_${System.currentTimeMillis()}.jpg"
-                val file = java.io.File(context.filesDir, filename)
-                file.writeBytes(imageBytes)
-                cacheManager.cacheProfileImageFile(file.absolutePath)
-            } catch (e: Exception) {
-                val catImageUrl = fetchRandomCatImage()
-                catImageUrl?.let { 
-                    cacheManager.cacheProfileImage(it)
-                    try {
-                        val imageBytes = withContext(Dispatchers.IO) {
-                            val url = java.net.URL(it)
-                            url.readBytes()
-                        }
-                        val context = getApplication<Application>().applicationContext
-                        val filename = "profile_image_${System.currentTimeMillis()}.jpg"
-                        val file = java.io.File(context.filesDir, filename)
-                        file.writeBytes(imageBytes)
-                        cacheManager.cacheProfileImageFile(file.absolutePath)
-                    } catch (_: Exception) {}
-                }
-            }
-            return
-        }
-        
-        val catImageUrl = fetchRandomCatImage()
-        catImageUrl?.let { url ->
-            cacheManager.cacheProfileImage(url)
-            try {
-                val imageBytes = withContext(Dispatchers.IO) {
-                    val netUrl = java.net.URL(url)
-                    netUrl.readBytes()
-                }
-                val context = getApplication<Application>().applicationContext
-                val filename = "profile_image_${System.currentTimeMillis()}.jpg"
-                val file = java.io.File(context.filesDir, filename)
-                file.writeBytes(imageBytes)
-                cacheManager.cacheProfileImageFile(file.absolutePath)
-            } catch (_: Exception) {}
-        }
-    }
-    
-    private suspend fun preloadAllData(username: String) {
         try {
-            dataManager.fetchAllData(username)
-            ensureProfileImage()
-            toastManager.syncAppOpenUpdates(force = true)
-        } catch (_: Exception) {
+            connection.getInputStream().use { it.readBytes() }
+        } finally {
+            (connection as? java.net.HttpURLConnection)?.disconnect()
         }
-        
+    }
+
+    private suspend fun ensureProfileImage() {
+        val cachedFile = cacheManager.getProfileImageFile()
+        if (cachedFile != null && java.io.File(cachedFile).exists()) return
+
+        suspend fun newCatUrl(): String? {
+            val response = readAvatarBytes("https://api.thecatapi.com/v1/images/search")
+            return json.decodeFromString<List<CatApiResponse>>(response.toString(Charsets.UTF_8))
+                .firstOrNull()?.url
+        }
+
+        var imageUrl = cacheManager.getProfileImage() ?: newCatUrl() ?: return
+        val bytes = try {
+            readAvatarBytes(imageUrl)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            imageUrl = newCatUrl() ?: return
+            readAvatarBytes(imageUrl)
+        }
+        val file = java.io.File(getApplication<Application>().filesDir,
+            "profile_image_${System.currentTimeMillis()}.jpg")
+        try {
+            withContext(Dispatchers.IO) { file.writeBytes(bytes) }
+            // Cancellation on logout prevents an old request restoring the avatar cache.
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            cacheManager.cacheProfileImage(imageUrl)
+            cacheManager.cacheProfileImageFile(file.absolutePath)
+        } catch (e: Exception) {
+            file.delete()
+            throw e
+        }
+    }
+
+    private fun finishSignIn() {
         _uiState.value = _uiState.value.copy(
             isLoading = false,
             isAuthenticated = true,
             isDataLoaded = true
         )
+        // Home owns its own fetch; neither avatars nor toast checks gate app entry.
+        startAvatarLoad()
+        viewModelScope.launch { toastManager.syncAppOpenUpdates(force = true) }
     }
-    
+
     fun login(username: String, password: String) {
         if (username.isBlank() || password.isBlank()) {
             _uiState.value = _uiState.value.copy(errorMessage = "Please fill in all fields")
@@ -179,7 +166,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.value = _uiState.value.copy(
                         currentUser = result.data.user
                     )
-                    preloadAllData(result.data.user.username)
+                    finishSignIn()
                 }
                 is NetworkResult.Error -> {
                     _uiState.value = _uiState.value.copy(
@@ -250,7 +237,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.value = _uiState.value.copy(
                         currentUser = result.data.user
                     )
-                    preloadAllData(result.data.user.username)
+                    finishSignIn()
                 }
                 is NetworkResult.Error -> {
                     _uiState.value = _uiState.value.copy(
@@ -289,6 +276,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             
+            avatarJob?.cancelAndJoin()
+            avatarJob = null
             PushRegistrationManager.getInstance(getApplication()).unregisterFromServer()
             networkService.logout()
             sessionCleaner.clear()
@@ -305,7 +294,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         when (val result = networkService.getCurrentUser()) {
             is NetworkResult.Success -> {
                 _uiState.value = _uiState.value.copy(currentUser = result.data)
-                dataManager.fetchAllData(result.data.username)
+                startAvatarLoad()
             }
             is NetworkResult.Error -> {
                 _uiState.value = _uiState.value.copy(

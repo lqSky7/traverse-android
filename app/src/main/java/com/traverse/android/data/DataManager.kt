@@ -6,6 +6,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,7 +28,10 @@ import java.util.concurrent.atomic.AtomicLong
  * cold-start JSON disk persistence in internal filesDir, solve deduplication,
  * and concurrent atomic fetch updates.
  */
-class DataManager private constructor(private val context: Context) {
+class DataManager internal constructor(
+    private val context: Context,
+    private val networkService: NetworkService = NetworkService.getInstance(context)
+) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val persistenceLock = Any()
@@ -38,7 +43,6 @@ class DataManager private constructor(private val context: Context) {
         encodeDefaults = true
     }
 
-    private val networkService by lazy { NetworkService.getInstance(context) }
 
     // MARK: - Reactive StateFlows (Friends & Streaks)
     private val _friends = MutableStateFlow<List<Friend>>(emptyList())
@@ -255,8 +259,8 @@ class DataManager private constructor(private val context: Context) {
             solvesMap[key] = solve
         }
 
-        // 3. Sort descending by solvedAt
-        val merged = solvesMap.values.sortedByDescending { it.solvedAt }
+        // 3. Put recently revised problems first as well as new solves.
+        val merged = solvesMap.values.sortedByDescending { it.activityAt }
         _recentSolves.value = merged
         saveFile(merged, "recentSolves.json")
         return merged
@@ -397,6 +401,74 @@ class DataManager private constructor(private val context: Context) {
         _lastFetchTimestamp.value = System.currentTimeMillis()
 
         persistData()
+    }
+
+    suspend fun fetchAwards() = withContext(Dispatchers.IO) {
+        val generation = persistenceGeneration.get()
+        val result = networkService.getAllAchievements()
+        ensureActive()
+        if (generation != persistenceGeneration.get()) return@withContext
+        if (result is NetworkResult.Success) {
+            _allAchievements.value = result.data.achievements
+            _awardSections.value = result.data.sections
+            _featuredAward.value = result.data.featured
+                ?: result.data.achievements.filter { it.unlocked }.maxByOrNull { it.unlockedAt ?: "" }
+            persistData()
+        }
+    }
+
+    /** Home publishes each result immediately and never fetches social-tab data. */
+    suspend fun fetchHomeData(
+        solveLimit: Int = if (_recentSolves.value.isNotEmpty()) INCREMENTAL_SOLVE_LIMIT else HOME_SOLVE_LIMIT
+    ): Unit = withContext(Dispatchers.IO) {
+        val generation = persistenceGeneration.get()
+        suspend fun <T> fetch(
+            request: suspend () -> NetworkResult<T>,
+            publish: (T) -> Unit
+        ): Boolean {
+            val result = request()
+            ensureActive()
+            if (persistenceGeneration.get() != generation) return false
+            if (result is NetworkResult.Success) {
+                publish(result.data)
+                return true
+            }
+            return false
+        }
+
+        val user = async { fetch({ networkService.getUserStats() }) { _userStats.value = it } }
+        val stats = async { fetch({ networkService.getSolveStats() }) { _solveStats.value = it } }
+        val solves = async {
+            fetch({ networkService.getSolves(limit = solveLimit) }) { mergeAndPersistSolves(it.solves) }
+        }
+        val optional = listOf(
+            async { fetch({ networkService.getAchievementStats() }) { _achievementStats.value = it } },
+            async { fetch({ networkService.getUsedFreezeDates() }) { _frozenDates.value = it.getAllDates() } },
+            async { fetch({ networkService.getRevisionScore() }) { _revisionScore.value = it } },
+            async {
+                fetch({ networkService.getGroupedRevisions(includeCompleted = true) }) { response ->
+                    val revisions = response.groups.flatMap { it.revisions }
+                    _allRevisions.value = revisions
+                    val since = LocalDate.now().minusDays(7)
+                    _completedRevisions.value = revisions.filter { revision ->
+                        revision.isCompleted &&
+                            (revision.completedDate?.toLocalDate()?.let { !it.isBefore(since) } ?: false)
+                    }
+                }
+            }
+        )
+        val coreSucceeded = listOf(user, stats, solves).awaitAll().all { it }
+        optional.awaitAll()
+        ensureActive()
+        if (persistenceGeneration.get() != generation) return@withContext
+        if (coreSucceeded) {
+            hasFetchedInitialData = true
+            _lastFetchTimestamp.value = System.currentTimeMillis()
+        }
+        persistData()
+        if (!coreSucceeded) {
+            throw java.io.IOException("Could not refresh all Home data. Pull to refresh to try again.")
+        }
     }
 
     // MARK: - Session Cleanup

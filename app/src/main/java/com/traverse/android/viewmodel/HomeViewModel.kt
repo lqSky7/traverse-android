@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.traverse.android.data.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,6 +48,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
      * recompute it. `RevisionLoadBreakdown.build` walks both lists, so recomputing it on every
      * recomposition would be wasteful; it only needs to run when the data actually moves.
      */
+    private var refreshJob: Job? = null
     private var latestSolves: List<Solve> = emptyList()
     private var latestRevisions: List<Revision> = emptyList()
     
@@ -118,7 +121,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
     
     fun loadData(forceRefresh: Boolean = false) {
-        val username = dataManager.userStats.value?.username ?: ""
         // Fast-path: If cache is fresh and not forcing refresh, render instantly with zero network calls
         if (!forceRefresh && dataManager.isCacheFresh) {
             return
@@ -181,9 +183,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun refresh() {
-        val username = dataManager.userStats.value?.username ?: ""
+        if (refreshJob?.isActive == true) return
         loadRings(forceRefresh = true)
-        viewModelScope.launch {
+        refreshJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 // If we already have cached solves on disk, we only need the latest ~15 solves to catch up
@@ -194,14 +196,22 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 } else {
                     DataManager.HOME_SOLVE_LIMIT
                 }
-                dataManager.fetchAllData(username, solveLimit = solveLimit)
+                dataManager.fetchHomeData(solveLimit = solveLimit)
                 _uiState.update { it.copy(isLoading = false) }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
+                _uiState.update { it.copy(errorMessage = e.message) }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }
     
+    fun loadAwards() {
+        viewModelScope.launch { dataManager.fetchAwards() }
+    }
+
     fun clearCache() {
         dataManager.clearAllData()
         cacheManager.invalidateHomeCache()
