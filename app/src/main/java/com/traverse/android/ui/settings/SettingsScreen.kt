@@ -18,6 +18,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -67,6 +68,7 @@ fun SettingsScreen(
     val palette = rememberPalette()
     
     // State
+    var subscriptionActive by remember { mutableStateOf<Boolean?>(null) }
     var user by remember { mutableStateOf<User?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -94,6 +96,13 @@ fun SettingsScreen(
     var paletteInput by remember { mutableStateOf("") }
     var importError by remember { mutableStateOf<String?>(null) }
     
+    LaunchedEffect(Unit) {
+        when (val result = networkService.getSubscriptionStatus()) {
+            is NetworkResult.Success -> subscriptionActive = result.data.isSubscriptionActive
+            is NetworkResult.Error -> {}
+        }
+    }
+
     // Load user data and profile image
     LaunchedEffect(Unit) {
         isLoading = true
@@ -137,7 +146,8 @@ fun SettingsScreen(
             user?.let { currentUser ->
                 UserProfileCard(
                     user = currentUser,
-                    profileImageUrl = profileImageUrl
+                    profileImageUrl = profileImageUrl,
+                    isPro = subscriptionActive ?: currentUser.isSubscriptionActive
                 )
             } ?: run {
                 if (isLoading) {
@@ -497,6 +507,7 @@ fun SettingsScreen(
 private fun UserProfileCard(
     user: User,
     profileImageUrl: String?,
+    isPro: Boolean,
     modifier: Modifier = Modifier
 ) {
     // iOS `SettingsView` tints "Day Streak" with `color(at: 0)` and "Total XP" with `color(at: 1)`.
@@ -556,8 +567,8 @@ private fun UserProfileCard(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // User info
-                Column {
+                // Leave room for the Pro label at the upper right.
+                Column(modifier = Modifier.padding(end = if (isPro) 88.dp else 0.dp)) {
                     Text(
                         text = user.username,
                         style = MaterialTheme.typography.headlineSmall.copy(
@@ -599,6 +610,16 @@ private fun UserProfileCard(
                         color = palette.colorAt(1)
                     )
                 }
+            }
+            if (isPro) {
+                Text(
+                    text = "PRO",
+                    fontSize = 44.sp,
+                    fontWeight = FontWeight.Black,
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                    color = palette.primary,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 12.dp, end = 18.dp).rotate(12f)
+                )
             }
         }
     }

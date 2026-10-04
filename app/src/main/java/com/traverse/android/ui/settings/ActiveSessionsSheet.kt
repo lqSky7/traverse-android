@@ -48,7 +48,6 @@ import com.traverse.android.data.NetworkResult
 import com.traverse.android.data.NetworkService
 import com.traverse.android.ui.theme.rememberPalette
 import kotlinx.coroutines.launch
-import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -61,7 +60,6 @@ import java.time.format.DateTimeFormatter
  * instead of repeating its colour.
  */
 private val SessionCardBackground = SheetPanelBackground
-private val SessionDateFormat = DateTimeFormatter.ofPattern("MMM d, yyyy 'at' h:mm a")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -148,7 +146,7 @@ fun ActiveSessionsSheet(
                     color = Color.White.copy(alpha = 0.7f)
                 )
                 else -> {
-                    response?.sessions.orEmpty().forEach { session ->
+                    response?.sessions.orEmpty().sortedByDescending { it.isCurrent }.forEach { session ->
                         SessionCard(
                             session = session,
                             enabled = !isWorking,
@@ -254,13 +252,14 @@ private fun SessionCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         session.deviceName.ifBlank { "Unknown device" },
+                        modifier = Modifier.weight(1f),
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold
                     )
                     if (session.isCurrent) {
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "THIS DEVICE",
+                            "This device",
                             color = palette.colorAt(0),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
@@ -276,6 +275,7 @@ private fun SessionCard(
                     color = Color.White.copy(alpha = 0.58f),
                     fontSize = 12.sp
                 )
+                Text("Signed in ${formatSessionDate(session.createdAt)}", color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp)
                 session.ipAddress?.takeIf(String::isNotBlank)?.let {
                     Text(it, color = Color.White.copy(alpha = 0.45f), fontSize = 12.sp)
                 }
@@ -287,14 +287,14 @@ private fun SessionCard(
                 onClick = onRevoke,
                 modifier = Modifier.align(Alignment.End)
             ) {
-                Text("Revoke", color = Color(0xFFFF6961))
+                Text("Sign out device", color = Color(0xFFFF6961))
             }
         }
     }
 }
 
-private fun formatSessionDate(value: String): String = runCatching {
-    OffsetDateTime.parse(value)
-        .atZoneSameInstant(ZoneId.systemDefault())
-        .format(SessionDateFormat)
-}.getOrDefault(value)
+private fun formatSessionDate(value: String): String =
+    com.traverse.android.data.ActivityTimestamp.parse(value)
+        ?.atZone(ZoneId.systemDefault())
+        ?.format(DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.MEDIUM, java.time.format.FormatStyle.SHORT))
+        ?: "Unknown time"

@@ -53,6 +53,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -111,6 +113,19 @@ fun FriendsScreen(
     viewModel: FriendsViewModel,
     modifier: Modifier = Modifier
 ) {
+    val socialContext = LocalContext.current
+    DisposableEffect(viewModel) {
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+                viewModel.refresh()
+            }
+        }
+        androidx.core.content.ContextCompat.registerReceiver(socialContext, receiver,
+            android.content.IntentFilter("com.traverse.android.SOCIAL_REQUESTS_CHANGED"),
+            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
+        onDispose { socialContext.unregisterReceiver(receiver) }
+    }
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val navController = rememberNavController()
     var showQRCode by remember { mutableStateOf(false) }

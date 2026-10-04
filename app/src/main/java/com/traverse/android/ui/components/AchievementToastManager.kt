@@ -33,6 +33,15 @@ data class AchievementToastItem(
  * Manages in-app animated toast notifications for unlocked achievements,
  * friend requests, streak invites, and gifted streak freezes.
  */
+data class IncomingSocialRequest(
+    val requestId: Int,
+    val username: String,
+    val createdAt: String,
+    val isStreak: Boolean
+) {
+    val key: String get() = "${if (isStreak) "streak" else "friend"}:$requestId"
+}
+
 class AchievementToastManager private constructor(private val context: Context) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -40,6 +49,71 @@ class AchievementToastManager private constructor(private val context: Context) 
 
     private val _currentToast = MutableStateFlow<AchievementToastItem?>(null)
     val currentToast: StateFlow<AchievementToastItem?> = _currentToast.asStateFlow()
+
+    private val _incomingRequest = MutableStateFlow<IncomingSocialRequest?>(null)
+    val incomingRequest = _incomingRequest.asStateFlow()
+    private val _requestError = MutableStateFlow<String?>(null)
+    val requestError = _requestError.asStateFlow()
+    private val _isResponding = MutableStateFlow(false)
+    val isResponding = _isResponding.asStateFlow()
+    private val requestQueue = mutableListOf<IncomingSocialRequest>()
+    private val presentedRequests = mutableSetOf<String>()
+
+    private fun queueRequests(incoming: List<IncomingSocialRequest>, isStreak: Boolean) {
+        val valid = incoming.map { it.key }.toSet()
+        requestQueue.removeAll { it.isStreak == isStreak && it.key !in valid }
+        _incomingRequest.value?.let {
+            if (it.isStreak == isStreak && it.key !in valid && !_isResponding.value) _incomingRequest.value = null
+        }
+        incoming.asReversed().forEach {
+            if (presentedRequests.add(it.key)) requestQueue.add(it)
+        }
+        presentNextRequest()
+    }
+
+    private fun presentNextRequest() {
+        if (_incomingRequest.value != null || requestQueue.isEmpty()) return
+        _requestError.value = null
+        _incomingRequest.value = requestQueue.removeAt(0)
+    }
+
+    fun dismissRequest() {
+        if (_isResponding.value) return
+        _incomingRequest.value = null
+        _requestError.value = null
+        presentNextRequest()
+    }
+
+    fun respondToRequest(accept: Boolean) {
+        val request = _incomingRequest.value ?: return
+        if (_isResponding.value) return
+        _isResponding.value = true
+        _requestError.value = null
+        responseJob = scope.launch {
+            try {
+                val service = NetworkService.getInstance(context)
+                val result = if (request.isStreak) {
+                    if (accept) service.acceptFriendStreakRequest(request.requestId)
+                    else service.rejectFriendStreakRequest(request.requestId)
+                } else {
+                    if (accept) service.acceptFriendRequest(request.requestId)
+                    else service.rejectFriendRequest(request.requestId)
+                }
+                when (result) {
+                    is NetworkResult.Success -> {
+                        _incomingRequest.value = null
+                        presentNextRequest()
+                        context.sendBroadcast(android.content.Intent("com.traverse.android.SOCIAL_REQUESTS_CHANGED").setPackage(context.packageName))
+                    }
+                    is NetworkResult.Error -> _requestError.value = result.message
+                }
+            } catch (error: kotlinx.coroutines.CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                _requestError.value = error.message ?: "Couldn't respond. Try again."
+            } finally { _isResponding.value = false }
+        }
+    }
 
     private val toastQueue = mutableListOf<AchievementToastItem>()
     private var dismissJob: Job? = null
@@ -89,37 +163,40 @@ class AchievementToastManager private constructor(private val context: Context) 
     /**
      * Sync updates on app open / resume with throttling (minimum 10s between checks)
      */
+    private var syncJob: Job? = null
+    private var responseJob: Job? = null
+
     fun syncAppOpenUpdates(force: Boolean = false) {
-        val networkService = NetworkService.getInstance(context)
-        if (!networkService.isAuthenticated()) return
-
-        val now = System.currentTimeMillis()
-        if (!force && (now - lastSyncTimestamp) < 10_000L) {
-            return
-        }
-
-        if (isSyncing) return
-        isSyncing = true
-
-        scope.launch(Dispatchers.IO) {
-            try {
-                val result = networkService.getAppUpdates()
-                lastSyncTimestamp = System.currentTimeMillis()
-
-                if (result is NetworkResult.Success) {
-                    val updates = result.data
-                    val dataManager = DataManager.getInstance(context)
-
-                    // Check newly unlocked / received items
-                    checkNewAchievements(updates.achievements)
-                    checkFriendRequests(updates.friendRequests)
-                    checkStreakRequests(updates.streakRequests)
-                    checkFreezeInfo(updates.freezeInfo)
-                }
-            } catch (e: Exception) {
-                android.util.Log.e("AchievementToastManager", "syncAppOpenUpdates failed", e)
-            } finally {
-                isSyncing = false
+        scope.launch {
+            val networkService = NetworkService.getInstance(context)
+            if (!networkService.isAuthenticated()) return@launch
+            val now = System.currentTimeMillis()
+            if ((!force && now - lastSyncTimestamp < 10_000L) || isSyncing) return@launch
+            isSyncing = true
+            syncJob = launch {
+                try {
+                    // Requests don't depend on optional award/freeze updates.
+                    val friends = launch {
+                        val result = networkService.getReceivedFriendRequests()
+                        if (result is NetworkResult.Success) queueRequests(result.data.requests.map {
+                            IncomingSocialRequest(it.id, it.requester?.username ?: "Someone", it.createdAt, false)
+                        }, false)
+                    }
+                    val streaks = launch {
+                        val result = networkService.getReceivedFriendStreakRequests()
+                        if (result is NetworkResult.Success) queueRequests(result.data.requests.map {
+                            IncomingSocialRequest(it.id, it.requester?.username ?: "Someone", it.createdAt, true)
+                        }, true)
+                    }
+                    val result = networkService.getAppUpdates()
+                    if (result is NetworkResult.Success) {
+                        checkNewAchievements(result.data.achievements)
+                        checkFreezeInfo(result.data.freezeInfo)
+                    }
+                    friends.join()
+                    streaks.join()
+                    lastSyncTimestamp = System.currentTimeMillis()
+                } finally { isSyncing = false }
             }
         }
     }
@@ -325,6 +402,13 @@ class AchievementToastManager private constructor(private val context: Context) 
     }
 
     fun resetState() {
+        syncJob?.cancel()
+        responseJob?.cancel()
+        _incomingRequest.value = null
+        _requestError.value = null
+        _isResponding.value = false
+        requestQueue.clear()
+        presentedRequests.clear()
         prefs.edit().clear().apply()
         lastSyncTimestamp = 0
         isSyncing = false

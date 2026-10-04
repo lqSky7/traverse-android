@@ -141,6 +141,12 @@ fun NotificationsSheet(
                 }
             }
 
+            if (uiState.notifications.isNotEmpty()) {
+                TextButton(onClick = { viewModel.clearAllLocally() }, modifier = Modifier.align(Alignment.End).padding(horizontal = 16.dp)) {
+                    Text("Clear all on this device", color = palette.primary)
+                }
+            }
+
             PullToRefreshBox(
                 isRefreshing = uiState.isLoading && uiState.notifications.isNotEmpty(),
                 onRefresh = { viewModel.load(forceRefresh = true) },

@@ -314,9 +314,8 @@ fun RingGoalsSheet(
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Today's rings keep the goals they were opened with. A change applies " +
-                            "from tomorrow, so raising a goal never takes away a ring you have " +
-                            "already earned.",
+                        text = "Your new goals apply to today as soon as you save. Past days and " +
+                            "rings you have already earned stay recorded.",
                         fontSize = 13.sp,
                         lineHeight = 18.sp,
                         color = Color.White.copy(alpha = 0.6f)

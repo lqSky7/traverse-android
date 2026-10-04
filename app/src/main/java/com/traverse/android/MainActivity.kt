@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import androidx.lifecycle.repeatOnLifecycle
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -85,8 +86,13 @@ class MainActivity : ComponentActivity() {
                 // Sync updates and check onboarding on app launch / auth
                 LaunchedEffect(uiState.isAuthenticated) {
                     if (uiState.isAuthenticated) {
-                        toastManager.syncAppOpenUpdates()
                         PushRegistrationManager.getInstance(applicationContext).register()
+                        this@MainActivity.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+                            while (true) {
+                                toastManager.syncAppOpenUpdates()
+                                kotlinx.coroutines.delay(15_000L)
+                            }
+                        }
                     }
                 }
                 

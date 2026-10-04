@@ -90,6 +90,7 @@ data class User(
     val createdAt: String? = null,
     val profileImageURL: String? = null,
     val calendarToken: String? = null,
+    val isSubscriptionActive: Boolean = false,
     // Local-only field for cached avatar
     @kotlinx.serialization.Transient
     val localProfileImageUrl: String? = null

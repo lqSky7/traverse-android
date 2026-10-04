@@ -7,6 +7,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -57,6 +59,8 @@ fun AchievementToastOverlayContainer(
     val context = LocalContext.current
     val toastManager = AchievementToastManager.getInstance(context)
     val currentToast by toastManager.currentToast.collectAsState()
+    val request by toastManager.incomingRequest.collectAsState()
+    request?.let { IncomingSocialRequestDialog(it, toastManager) }
 
     Box(
         modifier = modifier
@@ -194,5 +198,39 @@ private fun getToastCategoryIcon(category: String, customIcon: String?, count: I
         "psychology", "brain", "revision", "revisions", "ml" -> Icons.Filled.Psychology
         "sparkles", "auto_awesome" -> Icons.Filled.AutoAwesome
         else -> Icons.Filled.EmojiEvents
+    }
+}
+
+
+@Composable
+private fun IncomingSocialRequestDialog(request: IncomingSocialRequest, manager: AchievementToastManager) {
+    val palette = rememberPalette()
+    val busy by manager.isResponding.collectAsState()
+    val error by manager.requestError.collectAsState()
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = { manager.dismissRequest() },
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, dismissOnBackPress = !busy, dismissOnClickOutside = false)
+    ) {
+        Surface(modifier = Modifier.fillMaxSize(), color = CardBackground) {
+            androidx.compose.foundation.layout.Column(
+                modifier = Modifier.fillMaxSize().padding(28.dp).verticalScroll(androidx.compose.foundation.rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(24.dp, Alignment.CenterVertically)
+            ) {
+                Icon(if (request.isStreak) Icons.Default.LocalFireDepartment else Icons.Default.PersonAdd,
+                    contentDescription = null, tint = palette.primary, modifier = Modifier.size(64.dp))
+                Text(if (request.isStreak) "Streak invitation" else "Friend request", style = MaterialTheme.typography.headlineLarge, color = Color.White)
+                Text(request.username, style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                Text(if (request.isStreak) "Wants to build a streak with you." else "Wants to be your friend on Traverse.", color = Color.White.copy(alpha = 0.7f))
+                com.traverse.android.data.ActivityTimestamp.parse(request.createdAt)?.let {
+                    Text(it.atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.MEDIUM, java.time.format.FormatStyle.SHORT)), color = Color.White.copy(alpha = 0.6f))
+                }
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                androidx.compose.material3.Button(enabled = !busy, onClick = { manager.respondToRequest(true) }, colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = palette.primary)) { Text("Accept") }
+                androidx.compose.material3.OutlinedButton(enabled = !busy, onClick = { manager.respondToRequest(false) }) { Text("Reject", color = MaterialTheme.colorScheme.error) }
+                androidx.compose.material3.TextButton(enabled = !busy, onClick = { manager.dismissRequest() }) { Text("Later") }
+                if (busy) androidx.compose.material3.CircularProgressIndicator(color = palette.primary)
+            }
+        }
     }
 }

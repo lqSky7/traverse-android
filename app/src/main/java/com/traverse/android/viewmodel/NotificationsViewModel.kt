@@ -33,6 +33,28 @@ class NotificationsViewModel(application: Application) : AndroidViewModel(applic
     private val networkService by lazy { NetworkService.getInstance(application) }
     private val cacheManager by lazy { CacheManager.getInstance(application) }
 
+    private val localPrefs = application.getSharedPreferences("traverse_local_inbox", android.content.Context.MODE_PRIVATE)
+    private var clearedThrough: Int
+        get() = localPrefs.getInt("cleared_through", 0)
+        set(value) { localPrefs.edit().putInt("cleared_through", value).apply() }
+
+    private fun visible(data: NotificationsResponse): NotificationsResponse {
+        val rows = data.notifications.filter { it.id > clearedThrough }
+        return data.copy(
+            notifications = rows,
+            unreadCount = data.unreadCount,
+            nextCursor = data.nextCursor?.takeIf { it > clearedThrough }
+        )
+    }
+
+    fun clearAllLocally() {
+        clearedThrough = maxOf(clearedThrough, _uiState.value.notifications.maxOfOrNull { it.id } ?: 0)
+        _uiState.update { it.copy(notifications = emptyList(), unreadCount = 0, nextCursor = null) }
+        cacheManager.cacheNotifications(NotificationsResponse(notifications = emptyList(), unreadCount = 0, nextCursor = null))
+        val manager = getApplication<Application>().getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        manager.cancelAll()
+    }
+
     private val _uiState = MutableStateFlow(NotificationsUiState())
     val uiState: StateFlow<NotificationsUiState> = _uiState.asStateFlow()
 
@@ -44,7 +66,7 @@ class NotificationsViewModel(application: Application) : AndroidViewModel(applic
     fun load(forceRefresh: Boolean = false) {
         viewModelScope.launch {
             if (!forceRefresh) {
-                val cached = cacheManager.getNotifications()
+                val cached = cacheManager.getNotifications()?.let(::visible)
                 if (cached != null) {
                     _uiState.update {
                         it.copy(
@@ -57,9 +79,12 @@ class NotificationsViewModel(application: Application) : AndroidViewModel(applic
             }
 
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            when (val result = networkService.getNotifications(limit = 30)) {
+            val watermark = clearedThrough
+            when (val result = networkService.getNotifications(limit = 30, afterId = watermark)) {
                 is NetworkResult.Success -> {
-                    val data = result.data
+                    val data = visible(result.data).let {
+                        if (watermark == clearedThrough) it else it.copy(unreadCount = it.notifications.count { row -> !row.isRead })
+                    }
                     cacheManager.cacheNotifications(data)
                     _uiState.update {
                         it.copy(
@@ -85,9 +110,12 @@ class NotificationsViewModel(application: Application) : AndroidViewModel(applic
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingMore = true) }
-            when (val result = networkService.getNotifications(limit = 30, cursor = cursor)) {
+            val watermark = clearedThrough
+            when (val result = networkService.getNotifications(limit = 30, cursor = cursor, afterId = watermark)) {
                 is NetworkResult.Success -> {
-                    val data = result.data
+                    val data = visible(result.data).let {
+                        if (watermark == clearedThrough) it else it.copy(unreadCount = it.notifications.count { row -> !row.isRead })
+                    }
                     _uiState.update { current ->
                         val existingIds = current.notifications.map { it.id }.toSet()
                         val uniqueNew = data.notifications.filter { it.id !in existingIds }
@@ -116,9 +144,10 @@ class NotificationsViewModel(application: Application) : AndroidViewModel(applic
 
     fun refreshUnreadCount() {
         viewModelScope.launch {
-            when (val result = networkService.getUnreadNotificationCount()) {
+            val watermark = clearedThrough
+            when (val result = networkService.getUnreadNotificationCount(afterId = watermark)) {
                 is NetworkResult.Success -> {
-                    _uiState.update { it.copy(unreadCount = result.data.unreadCount) }
+                    if (watermark == clearedThrough) _uiState.update { it.copy(unreadCount = result.data.unreadCount) }
                 }
                 is NetworkResult.Error -> {}
             }
@@ -156,7 +185,11 @@ class NotificationsViewModel(application: Application) : AndroidViewModel(applic
                 }
                 is NetworkResult.Error -> {
                     // Rollback
-                    _uiState.value = previousState
+                    _uiState.value = previousState.copy(
+                        notifications = previousState.notifications.filter { it.id > clearedThrough },
+                        unreadCount = if (clearedThrough == 0) previousState.unreadCount else previousState.notifications.count { it.id > clearedThrough && !it.isRead },
+                        nextCursor = previousState.nextCursor?.takeIf { it > clearedThrough }
+                    )
                 }
             }
         }
@@ -190,7 +223,11 @@ class NotificationsViewModel(application: Application) : AndroidViewModel(applic
                 }
                 is NetworkResult.Error -> {
                     // Rollback
-                    _uiState.value = previousState
+                    _uiState.value = previousState.copy(
+                        notifications = previousState.notifications.filter { it.id > clearedThrough },
+                        unreadCount = if (clearedThrough == 0) previousState.unreadCount else previousState.notifications.count { it.id > clearedThrough && !it.isRead },
+                        nextCursor = previousState.nextCursor?.takeIf { it > clearedThrough }
+                    )
                 }
             }
         }
@@ -260,6 +297,7 @@ class NotificationsViewModel(application: Application) : AndroidViewModel(applic
     }
 
     fun clear() {
+        localPrefs.edit().clear().apply()
         _uiState.value = NotificationsUiState()
         cacheManager.clearCache(CacheManager.KEY_NOTIFICATIONS)
         cacheManager.clearCache(CacheManager.KEY_NOTIFICATION_PREFS)

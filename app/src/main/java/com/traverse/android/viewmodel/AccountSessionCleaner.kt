@@ -11,6 +11,7 @@ internal class AccountSessionCleaner(context: Context) {
     private val appContext = context.applicationContext
 
     fun clear() {
+        appContext.getSharedPreferences("traverse_local_inbox", Context.MODE_PRIVATE).edit().clear().apply()
         TokenManager.getInstance(appContext).clearAllSecrets()
         CacheManager.getInstance(appContext).clearAllCache()
         DataManager.getInstance(appContext).clearAllData()

@@ -25,6 +25,7 @@ class TraverseMessagingService : FirebaseMessagingService() {
         super.onMessageReceived(remoteMessage)
         Log.d(TAG, "FCM message received from: ${remoteMessage.from}")
 
+        com.traverse.android.ui.components.AchievementToastManager.getInstance(applicationContext).syncAppOpenUpdates(force = true)
         val data = remoteMessage.data
         val title = remoteMessage.notification?.title ?: data["title"]
         val body = remoteMessage.notification?.body ?: data["body"]

@@ -326,11 +326,12 @@ interface TraverseApi {
     @GET("notifications")
     suspend fun getNotifications(
         @Query("limit") limit: Int? = null,
-        @Query("cursor") cursor: Int? = null
+        @Query("cursor") cursor: Int? = null,
+        @Query("afterId") afterId: Int = 0
     ): NotificationsResponse
 
     @GET("notifications/unread-count")
-    suspend fun getUnreadNotificationCount(): UnreadCountResponse
+    suspend fun getUnreadNotificationCount(@Query("afterId") afterId: Int = 0): UnreadCountResponse
 
     @POST("notifications/{id}/read")
     suspend fun markNotificationRead(@retrofit2.http.Path("id") id: Int): SimpleSuccessResponse
@@ -1179,18 +1180,18 @@ class NetworkService internal constructor(
     }
 
     // MARK: - Notifications API
-    suspend fun getNotifications(limit: Int? = null, cursor: Int? = null): NetworkResult<NotificationsResponse> {
+    suspend fun getNotifications(limit: Int? = null, cursor: Int? = null, afterId: Int = 0): NetworkResult<NotificationsResponse> {
         return try {
-            val response = api.getNotifications(limit, cursor)
+            val response = api.getNotifications(limit, cursor, afterId)
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))
         }
     }
 
-    suspend fun getUnreadNotificationCount(): NetworkResult<UnreadCountResponse> {
+    suspend fun getUnreadNotificationCount(afterId: Int = 0): NetworkResult<UnreadCountResponse> {
         return try {
-            val response = api.getUnreadNotificationCount()
+            val response = api.getUnreadNotificationCount(afterId)
             NetworkResult.Success(response)
         } catch (e: Exception) {
             NetworkResult.Error(parseError(e))

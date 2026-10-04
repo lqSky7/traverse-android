@@ -82,7 +82,7 @@ object NotificationRouter {
 fun formatRelativeTime(createdAtIso: String): String {
     if (createdAtIso.isBlank()) return ""
     return try {
-        val instant = Instant.parse(createdAtIso)
+        val instant = ActivityTimestamp.parse(createdAtIso) ?: return ""
         val zone = ZoneId.systemDefault()
         val notifDate = instant.atZone(zone).toLocalDate()
         val today = LocalDate.now(zone)
@@ -91,14 +91,14 @@ fun formatRelativeTime(createdAtIso: String): String {
         val secondsAgo = ChronoUnit.SECONDS.between(instant, now)
         if (secondsAgo < 60) return "Just now"
         val minutesAgo = ChronoUnit.MINUTES.between(instant, now)
-        if (minutesAgo < 60) return "${minutesAgo}m"
+        if (minutesAgo < 60) return "$minutesAgo min ago"
         val hoursAgo = ChronoUnit.HOURS.between(instant, now)
-        if (hoursAgo < 24 && notifDate == today) return "${hoursAgo}h"
+        if (hoursAgo < 24 && notifDate == today) return "$hoursAgo hr ago"
 
         if (notifDate == today.minusDays(1)) return "Yesterday"
 
         val daysAgo = ChronoUnit.DAYS.between(notifDate, today)
-        if (daysAgo < 7) return "${daysAgo}d"
+        if (daysAgo < 7) return "$daysAgo days ago"
 
         val notifZoned = instant.atZone(zone)
         if (notifZoned.year == today.year) {
