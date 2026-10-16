@@ -626,6 +626,30 @@ private fun UserProfileCard(
 }
 
 @Composable
+private fun StatColumn(
+    value: String,
+    label: String,
+    color: Color
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontFamily = BelfastGroteskBlackFamily,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(
+                color = Color.White.copy(alpha = 0.7f)
+            )
+        )
+    }
+}
+
+@Composable
 private fun BentoSettingsGrid(
     onEditProfile: () -> Unit,
     onChangePassword: () -> Unit,
