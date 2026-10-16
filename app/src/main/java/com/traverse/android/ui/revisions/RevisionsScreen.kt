@@ -9,6 +9,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.WarningAmber
+import com.traverse.android.ui.components.glance.ActionChip
+import com.traverse.android.ui.components.glance.ActionChipRow
+import com.traverse.android.ui.components.glance.GlanceCard
+import com.traverse.android.ui.components.glance.GlanceHeaderHeight
+import com.traverse.android.ui.components.glance.GlanceScreenHeader
+import com.traverse.android.ui.components.glance.TraverseRefreshIndicator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +58,7 @@ fun RevisionsScreen(
     var showMLControlsSheet by remember { mutableStateOf(false) }
     var showDailyLimitSheet by remember { mutableStateOf(false) }
     var showSchedulingInfoSheet by remember { mutableStateOf(false) }
+    var showFreezeShop by remember { mutableStateOf(false) }
 
     // Load analytics when analytics tab is selected
     LaunchedEffect(selectedTab) {
@@ -64,243 +76,107 @@ fun RevisionsScreen(
         return
     }
 
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val retentionPercent = uiState.analytics?.overview?.averageRetrievability
+    val atRiskCount = uiState.analytics?.retentionHeatmap?.count { it.retrievability < 0.7 } ?: 0
+
+    // Same three cards as iOS: due today, average retention, at-risk problems.
+    val revisionCards = listOf(
+        GlanceCard(
+            id = "upcoming",
+            icon = Icons.Filled.Event,
+            value = "${uiState.stats?.dueToday ?: 0}",
+            label = "Due Today",
+            tint = paletteColorAt(2),
+            onClick = { selectedTab = 0 }
+        ),
+        GlanceCard(
+            id = "analytics",
+            icon = Icons.Filled.TrendingUp,
+            value = retentionPercent?.let { "${(it * 100).toInt()}%" } ?: "—",
+            label = "Avg Retention",
+            tint = paletteColorAt(3),
+            progress = retentionPercent?.toFloat(),
+            onClick = { selectedTab = 1 }
+        ),
+        GlanceCard(
+            id = "atrisk",
+            icon = Icons.Filled.WarningAmber,
+            value = "$atRiskCount",
+            label = "At Risk",
+            tint = paletteColorAt(0),
+            badge = atRiskCount.takeIf { it > 0 },
+            onClick = { selectedTab = 1 }
+        )
+    )
+
+    val actionChips = listOf(
+        ActionChip(
+            id = "freezes",
+            icon = Icons.Default.AcUnit,
+            title = "Freezes",
+            tint = paletteColorAt(3),
+            onClick = { showFreezeShop = true }
+        ),
+        ActionChip(
+            id = "limit",
+            icon = Icons.Default.Tune,
+            title = "Daily Limit",
+            tint = paletteColorAt(1),
+            onClick = { showDailyLimitSheet = true }
+        ),
+        ActionChip(
+            id = "exam",
+            icon = if (uiState.isExamModeActive) Icons.Default.PlayCircle else Icons.Default.School,
+            title = if (uiState.isExamModeActive) "Stop Exam" else "Exam Mode",
+            tint = paletteColorAt(0),
+            onClick = { viewModel.setExamMode(!uiState.isExamModeActive) }
+        ),
+        ActionChip(
+            id = "ml",
+            icon = Icons.Default.Psychology,
+            title = "ML Info",
+            tint = paletteColorAt(2),
+            onClick = { showSchedulingInfoSheet = true }
+        ),
+        ActionChip(
+            id = "controls",
+            icon = Icons.Default.CalendarMonth,
+            title = "ML Controls",
+            tint = paletteColorAt(3),
+            onClick = { showMLControlsSheet = true }
+        ),
+        ActionChip(
+            id = "calendar",
+            icon = Icons.Default.CalendarMonth,
+            title = "Calendar",
+            tint = paletteColorAt(1),
+            onClick = { showCalendarSheet = true }
+        ),
+        ActionChip(
+            id = "completed",
+            icon = Icons.Default.CheckCircle,
+            title = "Completed",
+            tint = paletteColorAt(4),
+            onClick = { viewModel.toggleShowCompleted() }
+        )
+    )
+
     Scaffold(
         // Bottom inset is owned by the root navigation Scaffold's bottom bar.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Revisions",
-                        style = MaterialTheme.typography.headlineLarge.copy(
-                            fontFamily = RingiftFamily
-                        )
-                    )
-                },
-                actions = {
-                    // Single overflow Menu — mirrors iOS `ellipsis.circle` toolbar Menu
-                    Box {
-                        IconButton(onClick = { showMenu = true }) {
-                            Icon(
-                                imageVector = Icons.Default.MoreHoriz,
-                                contentDescription = "Menu"
-                            )
-                        }
-
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false },
-                            containerColor = CardBackground,
-                            modifier = Modifier.width(230.dp)
-                        ) {
-                            // 1. How ML Scheduling Works — iOS: Label("How ML Scheduling Works", systemImage: "brain.head.profile")
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        "How ML Scheduling Works",
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontFamily = BelfastGroteskBlackFamily,
-                                            fontWeight = FontWeight.Bold,
-                                            color = paletteColorAt(2)
-                                        )
-                                    )
-                                },
-                                onClick = {
-                                    showSchedulingInfoSheet = true
-                                    showMenu = false
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.Psychology,
-                                        contentDescription = null,
-                                        tint = paletteColorAt(2)
-                                    )
-                                },
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            )
-
-                            // 2. Daily Revision Limit — iOS: Label("Daily Revision Limit", systemImage: "slider.horizontal.3")
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        "Daily Revision Limit",
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontFamily = BelfastGroteskBlackFamily,
-                                            fontWeight = FontWeight.Bold,
-                                            color = palettePrimary
-                                        )
-                                    )
-                                },
-                                onClick = {
-                                    showDailyLimitSheet = true
-                                    showMenu = false
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.Tune,
-                                        contentDescription = null,
-                                        tint = palettePrimary
-                                    )
-                                },
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            )
-
-                            // 3. Exam Mode — iOS: "Exam Mode" (graduationcap.fill) / "Stop Exam Mode" (play.circle.fill)
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        if (uiState.isExamModeActive) "Stop Exam Mode" else "Exam Mode",
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontFamily = BelfastGroteskBlackFamily,
-                                            fontWeight = FontWeight.Bold,
-                                            color = paletteColorAt(4)
-                                        )
-                                    )
-                                },
-                                onClick = {
-                                    viewModel.setExamMode(!uiState.isExamModeActive)
-                                    showMenu = false
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = if (uiState.isExamModeActive) {
-                                            Icons.Default.PlayCircle
-                                        } else {
-                                            Icons.Default.School
-                                        },
-                                        contentDescription = null,
-                                        tint = paletteColorAt(4)
-                                    )
-                                },
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            )
-
-                            HorizontalDivider(
-                                modifier = Modifier.padding(vertical = 4.dp),
-                                color = Color.White.copy(alpha = 0.1f)
-                            )
-
-                            // Android-only extras (no iOS counterpart)
-
-                            // Show Completed Toggle
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Checkbox(
-                                            checked = uiState.showCompletedRevisions,
-                                            onCheckedChange = null,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Text(
-                                            "Show Completed",
-                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                fontFamily = BelfastGroteskBlackFamily,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color.White
-                                            )
-                                        )
-                                    }
-                                },
-                                onClick = {
-                                    viewModel.toggleShowCompleted()
-                                    showMenu = false
-                                },
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            )
-
-                            // ML Controls & Pause
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        "ML Controls & Pause",
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontFamily = BelfastGroteskBlackFamily,
-                                            fontWeight = FontWeight.Bold,
-                                            color = paletteColorAt(4)
-                                        )
-                                    )
-                                },
-                                onClick = {
-                                    showMLControlsSheet = true
-                                    showMenu = false
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.CalendarMonth,
-                                        contentDescription = null,
-                                        tint = paletteColorAt(4)
-                                    )
-                                },
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            )
-
-                            // Calendar Export
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        "Calendar Feed Sync",
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontFamily = BelfastGroteskBlackFamily,
-                                            fontWeight = FontWeight.Bold,
-                                            color = palettePrimary
-                                        )
-                                    )
-                                },
-                                onClick = {
-                                    showCalendarSheet = true
-                                    showMenu = false
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.CalendarMonth,
-                                        contentDescription = null,
-                                        tint = palettePrimary
-                                    )
-                                },
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            )
-                        }
-                    }
-                }
-            )
-        }
+        // The glance header (drawn over the list below) replaces the app
+        // bar; the old ⋯ menu is now a row of action chips in the list.
+        topBar = {}
     ) { padding ->
-        Column(
+        Box(
             modifier = modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Tab Row (Upcoming vs Analytics)
-            TabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    text = {
-                        Text(
-                            text = "Upcoming",
-                            fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
-                        )
-                    }
-                )
-                Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    text = {
-                        Text(
-                            text = "Analytics",
-                            fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
-                        )
-                    }
-                )
-            }
+        Column(modifier = Modifier.fillMaxSize()) {
+            // The Upcoming/Analytics switch now lives in the header's glance
+            // cards: Due Today -> Upcoming, Avg Retention / At Risk -> Analytics.
 
             // Content based on selected tab
             when (selectedTab) {
@@ -366,11 +242,31 @@ fun RevisionsScreen(
                     RevisionsListContent(
                         uiState = uiState,
                         viewModel = viewModel,
+                        topInset = GlanceHeaderHeight + statusBarTop + 16.dp,
+                        chips = actionChips,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
             }
         }
+
+        // Pinned header: title + glance cards over the progressive scrim.
+        GlanceScreenHeader(
+            title = "Revisions",
+            cards = revisionCards,
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
+        }
+    }
+
+    // Freeze Shop — moved out of Settings: freezes protect scheduled
+    // revisions, not a general preference.
+    if (showFreezeShop) {
+        com.traverse.android.ui.settings.FreezeShopSheet(
+            userXp = dataManager.userStats.value?.stats?.totalXp ?: 0,
+            onDismiss = { showFreezeShop = false },
+            onXpUpdated = { viewModel.refresh() }
+        )
     }
 
     // Pro Upgrade Dialog if not subscribed
@@ -419,11 +315,15 @@ fun RevisionsScreen(
 private fun RevisionsListContent(
     uiState: com.traverse.android.viewmodel.RevisionsUiState,
     viewModel: RevisionsViewModel,
+    topInset: androidx.compose.ui.unit.Dp,
+    chips: List<ActionChip>,
     modifier: Modifier = Modifier
 ) {
     PullToRefreshBox(
         onRefresh = { viewModel.refresh() },
         isRefreshing = uiState.isLoading,
+        // Our own palette-themed loader instead of the grey default.
+        indicator = { TraverseRefreshIndicator(isRefreshing = uiState.isLoading) },
         modifier = modifier
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -432,13 +332,20 @@ private fun RevisionsListContent(
                 contentPadding = PaddingValues(
                     start = 16.dp,
                     end = 16.dp,
-                    top = if (uiState.stats != null) 90.dp else 16.dp,
+                    // Clears the pinned header so the list scrolls under it.
+                    top = topInset,
                     // Clears the floating bottom bar. Content still scrolls underneath the pill
                     // because this is a `contentPadding` rather than an outer modifier.
                     bottom = floatingBottomBarContentInset()
                 ),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Action chips — first in the scroll content, NOT pinned: they
+                // scroll away under the header. This is the old ⋯ menu.
+                item(key = "chips") {
+                    ActionChipRow(chips = chips)
+                }
+
                 // Loading State
                 if (uiState.isLoading && uiState.revisionGroups.isEmpty()) {
                     item {

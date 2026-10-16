@@ -50,6 +50,16 @@ private const val MAX_TILT = 32f
 private const val CAMERA_DISTANCE = 12f
 
 /**
+ * How much of the square the artwork occupies.
+ *
+ * Every badge is drawn at the same fraction, so badges with tight or loose
+ * transparent margins in the source PNG all end up the same visual size — and
+ * none of them touch the frame edge, which is what made some of them look cut
+ * off at the top.
+ */
+private const val ART_INSET = 0.92f
+
+/**
  * An Apple Fitness style award badge.
  *
  * The badge leans in 3D while the user holds and drags on it. This is deliberately **not**
@@ -102,8 +112,7 @@ fun MedalBadge(
                 scaleY = lift
                 // `density` here is GraphicsLayerScope's own Float density.
                 cameraDistance = CAMERA_DISTANCE * density
-            }
-            .then(
+            }            .then(
                 if (interactive) {
                     Modifier.pointerInput(Unit) {
                         detectDragGestures(
@@ -129,7 +138,7 @@ fun MedalBadge(
             Image(
                 painter = painter,
                 contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize(ART_INSET),
                 contentScale = ContentScale.Fit
             )
             // The renders already carry their own baked specular, so the moving highlight is
@@ -142,7 +151,7 @@ fun MedalBadge(
             Image(
                 painter = painter,
                 contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize(ART_INSET),
                 contentScale = ContentScale.Fit,
                 colorFilter = lockedColorFilter()
             )
@@ -192,7 +201,7 @@ private fun SpecularSheen(painter: Painter, tilt: Offset, sizePx: Float) {
             painter = painter,
             contentDescription = null,
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxSize(ART_INSET)
                 .graphicsLayer { blendMode = BlendMode.DstIn },
             contentScale = ContentScale.Fit
         )

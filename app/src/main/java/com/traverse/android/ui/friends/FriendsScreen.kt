@@ -86,6 +86,18 @@ import com.traverse.android.ui.theme.paletteColorAt
 import com.traverse.android.viewmodel.FriendsViewModel
 import com.traverse.android.viewmodel.getFriendStreakCount
 import com.traverse.android.viewmodel.getLeaderboard
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.QrCode2
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.MarkEmailUnread
+import com.traverse.android.data.DataManager
+import com.traverse.android.ui.components.glance.GlanceCard
+import com.traverse.android.ui.components.glance.GlanceHeaderHeight
+import com.traverse.android.ui.components.glance.GlanceScreenHeader
+import com.traverse.android.ui.components.glance.TraverseRefreshIndicator
+import com.traverse.android.ui.theme.rememberPalette
 import com.traverse.android.viewmodel.getTotalPendingCount
 
 // Pastel colors matching Android app's monochromish-pastel theme
@@ -269,95 +281,68 @@ private fun FriendsMainContent(
     val receivedCount = uiState.getTotalPendingCount()
     var showMenu by remember { mutableStateOf(false) }
 
+    val palette = rememberPalette()
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val currentUsername = remember {
+        DataManager.getInstance(context).userStats.value?.username ?: ""
+    }
+    val myRank = leaderboard.indexOfFirst { it.username == currentUsername }
+        .takeIf { it >= 0 }
+        ?.plus(1)
+
+    // Same four cards as iOS: requests, your rank, add friend, QR.
+    val friendsCards = listOf(
+        GlanceCard(
+            id = "requests",
+            icon = Icons.Filled.MarkEmailUnread,
+            value = "$receivedCount",
+            label = "Requests",
+            tint = palette.colorAt(1),
+            badge = receivedCount.takeIf { it > 0 },
+            onClick = onShowRequestsSheet
+        ),
+        GlanceCard(
+            id = "rank",
+            icon = Icons.Filled.EmojiEvents,
+            value = myRank?.let { "#$it" } ?: "—",
+            label = "Your Rank",
+            tint = palette.colorAt(0),
+            onClick = {}
+        ),
+        GlanceCard(
+            id = "add",
+            icon = Icons.Filled.PersonAdd,
+            value = "Add",
+            label = "Find Friends",
+            tint = palette.colorAt(2),
+            onClick = onShowSearchSheet
+        ),
+        GlanceCard(
+            id = "qr",
+            icon = Icons.Filled.QrCode2,
+            value = "QR",
+            label = "My Code",
+            tint = palette.colorAt(3),
+            onClick = onShowQRCode
+        )
+    )
+
     Scaffold(
         // Bottom inset is owned by the root navigation Scaffold's bottom bar.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Friends",
-                        style = MaterialTheme.typography.headlineLarge.copy(
-                            fontFamily = RingiftFamily
-                        )
-                    )
-                },
-                actions = {
-                    // QR Menu
-                    Box {
-                        IconButton(onClick = { showMenu = true }) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "More options"
-                            )
-                        }
-                        
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Show My QR Code") },
-                                onClick = {
-                                    showMenu = false
-                                    onShowQRCode()
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.QrCode,
-                                        contentDescription = null
-                                    )
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Scan QR Code") },
-                                onClick = {
-                                    showMenu = false
-                                    onShowQRScanner()
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.QrCodeScanner,
-                                        contentDescription = null
-                                    )
-                                }
-                            )
-                        }
-                    }
-                    
-                    // Search button
-                    IconButton(onClick = onShowSearchSheet) {
-                        Icon(
-                            imageVector = Icons.Outlined.PersonAdd,
-                            contentDescription = "Add Friend"
-                        )
-                    }
-
-                    // Requests button with badge
-                    BadgedBox(
-                        badge = {
-                            if (receivedCount > 0) {
-                                Badge { Text("$receivedCount") }
-                            }
-                        }
-                    ) {
-                        IconButton(onClick = onShowRequestsSheet) {
-                            Icon(
-                                imageVector = Icons.Default.PersonSearch,
-                                contentDescription = "Friend Requests"
-                            )
-                        }
-                    }
-                }
-            )
-        },
+        // The glance header (drawn over the list below) replaces the app bar:
+        // requests, rank, add-friend and QR are now cards.
+        topBar = {}
     ) { padding ->
         PullToRefreshBox(
             modifier = modifier
                 .fillMaxSize()
                 .padding(padding),
             onRefresh = onRefresh,
-            isRefreshing = uiState.isLoading
+            isRefreshing = uiState.isLoading,
+            // Our own palette-themed loader instead of the grey default.
+            indicator = { TraverseRefreshIndicator(isRefreshing = uiState.isLoading) }
         ) {
             when {
                 uiState.isLoading && uiState.friends.isEmpty() -> {
@@ -402,6 +387,8 @@ private fun FriendsMainContent(
                         modifier = Modifier.fillMaxSize(),
                         // Clears the floating bottom bar; the list still scrolls underneath it.
                         contentPadding = PaddingValues(
+                            // Clears the pinned header.
+                            top = GlanceHeaderHeight + statusBarTop + 16.dp,
                             bottom = floatingBottomBarContentInset()
                         )
                     ) {
@@ -423,7 +410,8 @@ private fun FriendsMainContent(
                         verticalArrangement = Arrangement.spacedBy(20.dp),
                         // Clears the floating bottom bar; the list still scrolls underneath it.
                         contentPadding = PaddingValues(
-                            top = 16.dp,
+                            // Clears the pinned header.
+                            top = GlanceHeaderHeight + statusBarTop + 16.dp,
                             bottom = floatingBottomBarContentInset()
                         )
                     ) {
@@ -484,6 +472,13 @@ private fun FriendsMainContent(
                     }
                 }
             }
+
+            // Pinned header: title + quick-glance cards over the scrim.
+            GlanceScreenHeader(
+                title = "Friends",
+                cards = friendsCards,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
         }
     }
 }

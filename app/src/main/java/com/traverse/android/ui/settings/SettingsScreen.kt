@@ -513,174 +513,77 @@ private fun UserProfileCard(
     // iOS `SettingsView` tints "Day Streak" with `color(at: 0)` and "Total XP" with `color(at: 1)`.
     val palette = rememberPalette()
 
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp)
-        ) {
-            // Profile image background (cat pic)
-            if (profileImageUrl != null) {
-                AsyncImage(
-                    model = if (profileImageUrl!!.startsWith("/")) {
-                        // Local file path
-                        java.io.File(profileImageUrl!!)
-                    } else {
-                        // URL
-                        profileImageUrl
-                    },
-                    contentDescription = "Profile background",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        SettingsSection(title = "Account & Security") {
+            SettingsGridRow {
+                BentoCell(
+                    icon = Icons.Default.AccountCircle,
+                    iconColor = palette.colorAt(3),
+                    title = "Profile",
+                    subtitle = "Edit details",
+                    onClick = onEditProfile,
+                    modifier = Modifier.weight(1f)
                 )
-            } else {
-                // Fallback gradient
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Gray.copy(alpha = 0.3f),
-                                    Color.Gray.copy(alpha = 0.1f)
-                                )
-                            )
-                        )
+                VerticalDivider()
+                BentoCell(
+                    icon = Icons.Default.Lock,
+                    iconColor = palette.colorAt(4),
+                    title = "Security",
+                    subtitle = "Change password",
+                    onClick = onChangePassword,
+                    modifier = Modifier.weight(1f)
                 )
             }
-            
-            // Dark overlay
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.5f))
-            )
-            
-            // Content
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                // Leave room for the Pro label at the upper right.
-                Column(modifier = Modifier.padding(end = if (isPro) 88.dp else 0.dp)) {
-                    Text(
-                        text = user.username,
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontFamily = BelfastGroteskBlackFamily,
-                            fontWeight = FontWeight.Black,
-                            color = Color.White.copy(alpha = 0.9f)
-                        )
-                    )
-                    Text(
-                        text = user.email ?: "No email",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = Color.White.copy(alpha = 0.7f)
-                        )
-                    )
-                }
-                
-                // Stats row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(32.dp)
-                ) {
-                    StatColumn(
-                        value = "${user.currentStreak}",
-                        label = "Day Streak",
-                        color = palette.colorAt(0)
-                    )
-                    
-                    // Divider
-                    Box(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .height(40.dp)
-                            .background(Color.White.copy(alpha = 0.3f))
-                    )
-                    
-                    StatColumn(
-                        value = "${user.totalXp}",
-                        label = "Total XP",
-                        color = palette.colorAt(1)
-                    )
-                }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+
+            SettingsGridRow {
+                BentoCell(
+                    icon = Icons.Default.Devices,
+                    iconColor = palette.colorAt(1),
+                    title = "Sessions",
+                    subtitle = "Manage signed-in devices",
+                    onClick = onSessions,
+                    modifier = Modifier.weight(1f)
+                )
+                VerticalDivider()
+                BentoCell(
+                    icon = Icons.Default.CreditCard,
+                    iconColor = palette.colorAt(1),
+                    title = "Billing",
+                    subtitle = "Plan and renewal",
+                    onClick = onBilling,
+                    modifier = Modifier.weight(1f)
+                )
             }
-            if (isPro) {
-                Text(
-                    text = "PRO",
-                    fontSize = 44.sp,
-                    fontWeight = FontWeight.Black,
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                    color = palette.primary,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 12.dp, end = 18.dp).rotate(12f)
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+
+            SettingsGridRow {
+                BentoCell(
+                    icon = Icons.AutoMirrored.Filled.Logout,
+                    iconColor = Color.Red,
+                    title = "Logout",
+                    subtitle = "Sign out",
+                    onClick = onLogout,
+                    modifier = Modifier.weight(1f)
+                )
+                VerticalDivider()
+                BentoCell(
+                    icon = Icons.Default.DeleteForever,
+                    iconColor = SwiftRed,
+                    title = "Delete Account",
+                    subtitle = "Permanently delete",
+                    onClick = onDeleteAccount,
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
-    }
-}
 
-@Composable
-private fun StatColumn(
-    value: String,
-    label: String,
-    color: Color
-) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontFamily = BelfastGroteskBlackFamily,
-                fontWeight = FontWeight.Bold,
-                color = color
-            )
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall.copy(
-                color = Color.White.copy(alpha = 0.7f)
-            )
-        )
-    }
-}
-
-@Composable
-private fun BentoSettingsGrid(
-    onEditProfile: () -> Unit,
-    onChangePassword: () -> Unit,
-    onLogout: () -> Unit,
-    onCheckUpdates: () -> Unit,
-    onDeleteAccount: () -> Unit,
-    onFreezeShop: () -> Unit,
-    onNotificationSettings: () -> Unit,
-    onBilling: () -> Unit,
-    onSessions: () -> Unit,
-    onCalendarSubscription: () -> Unit,
-    onGeminiApiKey: () -> Unit,
-    onImportPalette: () -> Unit,
-    onHuePicker: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    // Every tile icon follows the selected palette exactly like `paletteManager.color(at:)` on iOS.
-    val palette = rememberPalette()
-
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground)
-    ) {
-        Column {
-            // Row 1: Palette | Hue Picker
-            Row(modifier = Modifier.height(140.dp)) {
+        SettingsSection(title = "Personalization") {
+            SettingsGridRow {
                 PaletteTile(modifier = Modifier.weight(1f))
-
                 VerticalDivider()
-
                 BentoCell(
                     icon = Icons.Default.Palette,
                     iconColor = palette.colorAt(1),
@@ -693,8 +596,7 @@ private fun BentoSettingsGrid(
 
             HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
 
-            // Row 2: Import | Profile
-            Row(modifier = Modifier.height(140.dp)) {
+            SettingsGridRow {
                 BentoCell(
                     icon = Icons.Default.ArrowCircleDown,
                     iconColor = palette.colorAt(2),
@@ -703,76 +605,77 @@ private fun BentoSettingsGrid(
                     onClick = onImportPalette,
                     modifier = Modifier.weight(1f)
                 )
-
                 VerticalDivider()
-
                 BentoCell(
-                    icon = Icons.Default.AccountCircle,
-                    iconColor = palette.colorAt(3),
-                    title = "Profile",
-                    subtitle = "Edit details",
-                    onClick = onEditProfile,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-
-            // Row 3: Security | Active sessions
-            Row(modifier = Modifier.height(140.dp)) {
-                BentoCell(
-                    icon = Icons.Default.Lock,
-                    iconColor = palette.colorAt(4),
-                    title = "Security",
-                    subtitle = "Change password",
-                    onClick = onChangePassword,
-                    modifier = Modifier.weight(1f)
-                )
-
-                VerticalDivider()
-
-                BentoCell(
-                    icon = Icons.Default.Devices,
+                    icon = Icons.Default.Download,
                     iconColor = palette.colorAt(1),
-                    title = "Sessions",
-                    subtitle = "Manage signed-in devices",
-                    onClick = onSessions,
+                    title = "Updates",
+                    subtitle = "Check for a new version",
+                    onClick = onCheckUpdates,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        SettingsSection(title = "App") {
+            SettingsGridRow {
+                BentoCell(
+                    icon = Icons.Default.Notifications,
+                    iconColor = palette.colorAt(2),
+                    title = "Notifications",
+                    subtitle = "Alerts and quiet hours",
+                    onClick = onNotificationSettings,
+                    modifier = Modifier.weight(1f)
+                )
+                VerticalDivider()
+                BentoCell(
+                    icon = Icons.Default.CalendarMonth,
+                    iconColor = palette.colorAt(1),
+                    title = "Calendar",
+                    subtitle = "Sync revisions",
+                    onClick = onCalendarSubscription,
                     modifier = Modifier.weight(1f)
                 )
             }
 
             HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
 
-            // Compact two-column rows keep settings actions in the same bento rhythm.
             SettingsGridRow {
-                BentoCell(Icons.AutoMirrored.Filled.Logout, Color.Red, "Logout", "Sign out", onLogout, Modifier.weight(1f))
+                BentoCell(
+                    icon = Icons.Default.AutoAwesome,
+                    iconColor = palette.colorAt(3),
+                    title = "AI Coach",
+                    subtitle = "Configure Gemini",
+                    onClick = onGeminiApiKey,
+                    modifier = Modifier.weight(1f)
+                )
                 VerticalDivider()
-                BentoCell(Icons.Default.CreditCard, palette.colorAt(1), "Billing", "Plan and renewal", onBilling, Modifier.weight(1f))
+                Spacer(modifier = Modifier.weight(1f))
             }
+        }
+    }
+}
 
-            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+/** A labelled card holding one group of settings tiles. */
+@Composable
+private fun SettingsSection(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            text = title.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            color = Color.White.copy(alpha = 0.6f),
+            modifier = Modifier.padding(start = 6.dp)
+        )
 
-            SettingsGridRow {
-                BentoCell(Icons.Default.Notifications, palette.colorAt(2), "Notifications", "Alerts and quiet hours", onNotificationSettings, Modifier.weight(1f))
-                VerticalDivider()
-                BentoCell(Icons.Default.AcUnit, palette.colorAt(0), "Freeze Shop", "Protect your streak", onFreezeShop, Modifier.weight(1f))
-            }
-
-            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-
-            SettingsGridRow {
-                BentoCell(Icons.Default.CalendarMonth, palette.colorAt(1), "Calendar", "Sync revisions", onCalendarSubscription, Modifier.weight(1f))
-                VerticalDivider()
-                BentoCell(Icons.Default.AutoAwesome, palette.colorAt(3), "AI Coach", "Configure Gemini", onGeminiApiKey, Modifier.weight(1f))
-            }
-
-            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-
-            SettingsGridRow {
-                BentoCell(Icons.Default.Download, palette.colorAt(1), "Updates", "Check for a new version", onCheckUpdates, Modifier.weight(1f))
-                VerticalDivider()
-                BentoCell(Icons.Default.DeleteForever, SwiftRed, "Delete Account", "Permanently delete", onDeleteAccount, Modifier.weight(1f))
-            }
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = CardBackground)
+        ) {
+            Column(content = content)
         }
     }
 }
@@ -1646,7 +1549,7 @@ private fun DeleteWarningRow(icon: ImageVector, text: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FreezeShopSheet(
+fun FreezeShopSheet(
     userXp: Int,
     onDismiss: () -> Unit,
     onXpUpdated: (Int) -> Unit

@@ -27,6 +27,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.material.icons.filled.Label
+import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.material.icons.filled.PieChart
+import com.traverse.android.ui.components.glance.GlanceCard
+import com.traverse.android.ui.components.glance.GlanceHeaderHeight
+import com.traverse.android.ui.components.glance.GlanceScreenHeader
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cancel
@@ -145,34 +153,50 @@ fun MistakeTagsDetailScreen(
         buildMistakeAnalysis(solves, selectedDifficulty, searchText, sortOption)
     }
 
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val mostCommonTag = analysisData.displayedItems.maxByOrNull { it.count }?.tag
+    val taggedPercentage = (100 - analysisData.cleanPercentage).coerceIn(0, 100)
+
+    // Same three cards as iOS: types, most common tag, tagged share.
+    val glanceCards = listOf(
+        GlanceCard(
+            id = "types",
+            icon = Icons.Filled.Label,
+            value = "${analysisData.totalTagTypes}",
+            label = "Mistake Types",
+            tint = palette.colorAt(2)
+        ),
+        GlanceCard(
+            id = "top",
+            icon = Icons.Filled.WarningAmber,
+            value = mostCommonTag?.replace('-', ' ') ?: "—",
+            label = "Most Common",
+            tint = palette.colorAt(0)
+        ),
+        GlanceCard(
+            id = "tagged",
+            icon = Icons.Filled.PieChart,
+            value = "$taggedPercentage%",
+            label = "Tagged",
+            tint = palette.colorAt(3),
+            progress = taggedPercentage / 100f
+        )
+    )
+
     Scaffold(
         // Bottom inset is owned by the root navigation Scaffold's bottom bar.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Mistake Analysis",
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontFamily = RingiftFamily
-                        )
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                }
-            )
-        }
+        // The glance header below carries the title and the back button.
+        topBar = {}
     ) { padding ->
-        Column(
+        Box(
             modifier = modifier
                 .fillMaxSize()
                 .padding(padding)
+        ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
                 // Applied *inside* the scroll container so the cards still slide underneath the
@@ -180,27 +204,9 @@ fun MistakeTagsDetailScreen(
                 .padding(bottom = floatingBottomBarContentInset()),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Summary metrics
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                SummaryMetric(
-                    value = "${analysisData.totalMistakes}",
-                    label = "Total Mistakes",
-                    color = palette.primary,
-                    modifier = Modifier.weight(1f)
-                )
-                SummaryMetric(
-                    value = "${analysisData.totalTagTypes}",
-                    label = "Mistake Types",
-                    color = palette.colorAt(2),
-                    modifier = Modifier.weight(1f)
-                )
-                SummaryMetric(
-                    value = "${analysisData.cleanPercentage}%",
-                    label = "Clean Solves",
-                    color = palette.colorAt(1),
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            // The summary metrics moved into the pinned header's glance cards;
+            // this space clears it so the content scrolls underneath.
+            Spacer(modifier = Modifier.height(GlanceHeaderHeight + statusBarTop))
 
             // Difficulty segmented picker
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
@@ -322,7 +328,16 @@ fun MistakeTagsDetailScreen(
                 }
             }
         }
+
+            // Pinned header: title + summary cards over the progressive scrim.
+            GlanceScreenHeader(
+                title = "Mistake Analysis",
+                cards = glanceCards,
+                onBack = onBack,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
     }
+}
 }
 
 @Composable

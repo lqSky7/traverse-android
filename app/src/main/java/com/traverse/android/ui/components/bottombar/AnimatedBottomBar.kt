@@ -27,6 +27,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -49,6 +50,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -146,8 +149,27 @@ fun AnimatedBottomBar(
                 .fillMaxWidth()
                 .height(style.barHeight)
                 .clip(RoundedCornerShape(style.containerShapeRadius))
+                // Liquid glass: a hairline on the pill's edge…
+                .border(
+                    width = 0.7.dp,
+                    color = Color.White.copy(alpha = 0.14f),
+                    shape = RoundedCornerShape(style.containerShapeRadius)
+                )
                 .drawBehind {
                     drawRect(color = style.containerColor)
+
+                    // …and the specular catch along its top edge, which is what
+                    // makes it read as glass rather than a flat translucent bar.
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.16f),
+                                Color.Transparent
+                            ),
+                            startY = 0f,
+                            endY = size.height * 0.6f
+                        )
+                    )
 
                     // 1. Draw the base hill
                     val hill = buildIndicatorHillPath(

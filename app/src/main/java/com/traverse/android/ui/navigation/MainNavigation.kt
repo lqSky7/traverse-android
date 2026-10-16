@@ -73,13 +73,17 @@ sealed class MainRoute(
     data object Settings : MainRoute("settings", "Settings", Icons.Filled.Settings, Icons.Outlined.Settings)
 }
 
-/** Tab order matches the iOS `MainTabView`: Home, Problems, Revisions, Friends, Settings. */
+/**
+ * The tab bar is deliberately minimal, matching the iOS `MainTabView`:
+ * Problems was absorbed into Home's quick-glance cards, and Settings is
+ * reached from the Profile chip on Home rather than occupying a tab.
+ *
+ * `Problems` and `Settings` are still routes — they're just not tabs.
+ */
 val tabs = listOf(
     MainRoute.Home,
-    MainRoute.Problems,
     MainRoute.Revisions,
-    MainRoute.Friends,
-    MainRoute.Settings
+    MainRoute.Friends
 )
 
 // MARK: Floating bottom bar metrics
@@ -146,12 +150,12 @@ fun MainNavigation(
     LaunchedEffect(pendingTab) {
         pendingTab?.let { tabIndex ->
             val targetRoute = when (tabIndex) {
+                // Mirrors the iOS `NotificationRouter`: problem-related
+                // notifications land on Home, since that tab no longer exists.
                 0 -> MainRoute.Home.route
-                1 -> MainRoute.Problems.route
-                2 -> MainRoute.Revisions.route
-                3 -> MainRoute.Friends.route
-                4 -> MainRoute.Settings.route
-                else -> null
+                1 -> MainRoute.Revisions.route
+                2 -> MainRoute.Friends.route
+                else -> MainRoute.Home.route
             }
             if (targetRoute != null) {
                 navController.navigate(targetRoute) {
@@ -207,7 +211,14 @@ fun MainNavigation(
                 HomeScreen(
                     viewModel = homeViewModel,
                     notificationsViewModel = notificationsViewModel,
-                    unreadCount = unreadCount
+                    unreadCount = unreadCount,
+                    // Settings left the tab bar; Home's Profile chip is how it
+                    // is reached now.
+                    onOpenSettings = {
+                        navController.navigate(MainRoute.Settings.route) {
+                            launchSingleTop = true
+                        }
+                    }
                 )
             }
             composable(MainRoute.Problems.route) {
@@ -251,7 +262,9 @@ fun MainNavigation(
                     vertical = BottomBarVerticalPadding
                 ),
             style = BottomBarDefaults.style(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                // Liquid glass: translucent so the feed shows through the pill,
+                // with the highlight + hairline border drawn by AnimatedBottomBar.
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.72f),
                 // Everything tinted from the live colour palette, exactly like the rest of the app.
                 indicatorColor = palette.primary.copy(alpha = 0.22f),
                 selectedIconColor = palette.primary,

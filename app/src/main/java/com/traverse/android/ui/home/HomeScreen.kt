@@ -50,6 +50,22 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.traverse.android.viewmodel.NotificationsViewModel
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Label
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Person
+import com.traverse.android.data.CacheManager
+import com.traverse.android.ui.components.glance.ActionChip
+import com.traverse.android.ui.components.glance.ActionChipRow
+import com.traverse.android.ui.components.glance.GlanceCard
+import com.traverse.android.ui.components.glance.GlanceHeaderHeight
+import com.traverse.android.ui.components.glance.GlanceScreenHeader
+import com.traverse.android.ui.components.glance.TraverseRefreshIndicator
+import com.traverse.android.ui.theme.rememberPalette
 
 /**
  * Home navigation graph. Mirrors the iOS `HomeView` `NavigationStack` destinations.
@@ -59,6 +75,10 @@ object HomeDestinations {
     const val ALL_ACHIEVEMENTS = "all_achievements"
     const val ACTIVITY = "activity"
     const val REVISION_LOAD = "revision_load"
+
+    /** iOS: the Solved / Top Mistake cards push these. */
+    const val ALL_SOLVES = "all_solves"
+    const val MISTAKES = "mistakes"
 
     /** `metric_detail/time` or `metric_detail/attempts`. */
     const val METRIC_DETAIL = "metric_detail/{kind}"
@@ -75,6 +95,8 @@ fun HomeScreen(
     notificationsViewModel: NotificationsViewModel? = null,
     unreadCount: Int = 0,
     onOpenNotifications: (() -> Unit)? = null,
+    /** Settings left the tab bar; Home's Profile chip opens it. */
+    onOpenSettings: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -106,6 +128,9 @@ fun HomeScreen(
                 onNavigateToActivity = { navController.navigate(HomeDestinations.ACTIVITY) },
                 onNavigateToRevisionLoad = { navController.navigate(HomeDestinations.REVISION_LOAD) },
                 onNavigateToMetric = { kind -> navController.navigate(HomeDestinations.metricDetail(kind)) },
+                onNavigateToAllSolves = { navController.navigate(HomeDestinations.ALL_SOLVES) },
+                onNavigateToMistakes = { navController.navigate(HomeDestinations.MISTAKES) },
+                onOpenSettings = onOpenSettings,
                 modifier = modifier
             )
         }
@@ -168,6 +193,22 @@ fun HomeScreen(
             }
         }
 
+        // iOS: the Solved glance card -> AllSolvesView(solves:)
+        composable(HomeDestinations.ALL_SOLVES) {
+            AllSolvesScreen(
+                solves = uiState.recentSolves,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // iOS: the Top Mistake glance card -> MistakeTagsDetailView(solves:)
+        composable(HomeDestinations.MISTAKES) {
+            MistakeTagsDetailScreen(
+                solves = uiState.recentSolves,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
         // iOS: SolveHeatmapCard -> ActivityDetailView(solves:frozenDates:)
         composable(HomeDestinations.ACTIVITY) {
             ActivityDetailScreen(
@@ -216,6 +257,9 @@ private fun HomeMainContent(
     onNavigateToActivity: () -> Unit,
     onNavigateToRevisionLoad: () -> Unit,
     onNavigateToMetric: (MetricKind) -> Unit,
+    onNavigateToAllSolves: () -> Unit,
+    onNavigateToMistakes: () -> Unit,
+    onOpenSettings: (() -> Unit)?,
     modifier: Modifier = Modifier
 ) {
     val currentDate = remember {
@@ -236,51 +280,72 @@ private fun HomeMainContent(
     // explicitly; see `ChromaSweepGate`.)
     val sweepGate = remember { SweepGate() }
 
+    val palette = rememberPalette()
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val context = LocalContext.current
+    val avatarUrl by CacheManager.getInstance(context).profileImage.collectAsStateWithLifecycle()
+
+    // The same four cards as iOS: streak, solves, top mistake, revision score.
+    val topMistakeTag = remember(uiState.recentSolves) {
+        uiState.recentSolves
+            .flatMap { it.mistakeTags ?: emptyList() }
+            .groupingBy { it }
+            .eachCount()
+            .maxByOrNull { it.value }
+            ?.key
+    }
+    val glanceCards = listOf(
+        GlanceCard(
+            id = "streak",
+            icon = Icons.Filled.LocalFireDepartment,
+            value = "${uiState.userStats?.stats?.currentStreak ?: 0}",
+            label = "Day Streak",
+            tint = palette.colorAt(0),
+            onClick = onNavigateToActivity
+        ),
+        GlanceCard(
+            id = "solves",
+            icon = Icons.Filled.CheckCircle,
+            value = "${uiState.userStats?.stats?.totalSolves ?: 0}",
+            label = "Solved",
+            tint = palette.colorAt(1),
+            onClick = onNavigateToAllSolves
+        ),
+        GlanceCard(
+            id = "mistakes",
+            icon = Icons.Filled.Label,
+            value = topMistakeTag?.replace('-', ' ') ?: "—",
+            label = "Top Mistake",
+            tint = palette.colorAt(2),
+            onClick = onNavigateToMistakes
+        ),
+        GlanceCard(
+            id = "load",
+            icon = Icons.Filled.Speed,
+            value = uiState.revisionScore?.score?.toString() ?: "—",
+            label = "Revision Score",
+            tint = palette.colorAt(3),
+            progress = uiState.revisionScore?.let { it.score / 100f },
+            onClick = onNavigateToRevisionLoad
+        )
+    )
+
     Scaffold(
         containerColor = Color.Black,
         // The bottom bar floats over the content, so the screen is edge-to-edge: the root
         // navigation no longer reserves a strip for the bar, and the status-bar inset is consumed
         // by the `TopAppBar` below rather than by this `Scaffold`.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = currentDate,
-                        style = MaterialTheme.typography.headlineLarge.copy(
-                            fontFamily = RingiftFamily
-                        )
-                    )
-                },
-                actions = {
-                    BadgedBox(
-                        badge = {
-                            if (unreadCount > 0) {
-                                Badge {
-                                    Text(if (unreadCount > 9) "9+" else "$unreadCount")
-                                }
-                            }
-                        }
-                    ) {
-                        IconButton(onClick = onOpenNotifications) {
-                            Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = "Notifications",
-                                tint = Color.White
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Black,
-                    titleContentColor = Color.White
-                )
-            )
-        }
+        // The header is drawn inside the content Box below (it has to overlay
+        // the feed so content scrolls under the scrim), so the Scaffold keeps
+        // no top bar of its own.
+        topBar = {}
     ) { padding ->
         PullToRefreshBox(
             isRefreshing = uiState.isLoading,
             onRefresh = onRefresh,
+            // Our own palette-themed loader instead of the grey default.
+            indicator = { TraverseRefreshIndicator(isRefreshing = uiState.isLoading) },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
@@ -292,11 +357,39 @@ private fun HomeMainContent(
             LazyColumn(
                 modifier = modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
-                    start = 16.dp, end = 16.dp, top = 16.dp,
+                    start = 16.dp, end = 16.dp,
+                    // Start below the pinned header so the feed scrolls under it.
+                    top = GlanceHeaderHeight + statusBarTop + 16.dp,
                     bottom = 16.dp + floatingBottomBarContentInset()
                 ),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
+                // Action chips — first in the scroll content, NOT pinned:
+                // they scroll away under the header and the feed takes their
+                // place. These replace the old toolbar bell/avatar.
+                item(key = "chips") {
+                    ActionChipRow(
+                        chips = listOf(
+                            ActionChip(
+                                id = "alerts",
+                                icon = Icons.Default.Notifications,
+                                title = "Notifications",
+                                tint = palette.colorAt(1),
+                                badge = unreadCount.takeIf { it > 0 },
+                                onClick = onOpenNotifications
+                            ),
+                            ActionChip(
+                                id = "profile",
+                                icon = Icons.Filled.Person,
+                                title = "Profile",
+                                tint = palette.colorAt(3),
+                                avatarUrl = avatarUrl,
+                                onClick = { onOpenSettings?.invoke() }
+                            )
+                        )
+                    )
+                }
+
                 uiState.errorMessage?.let { message ->
                     item(key = "error") { ErrorView(message = message, onRetry = onRefresh) }
                 }
@@ -398,6 +491,14 @@ private fun HomeMainContent(
                     }
                 }
             }
+
+            // Pinned header: title + quick-glance cards, drawn last so it sits
+            // above the feed, with the progressive scrim behind it.
+            GlanceScreenHeader(
+                title = currentDate,
+                cards = glanceCards,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
         }
     }
 

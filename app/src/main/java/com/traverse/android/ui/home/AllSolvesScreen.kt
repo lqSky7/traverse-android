@@ -16,6 +16,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import com.traverse.android.data.ActivityTimestamp
+import com.traverse.android.ui.components.glance.GlanceCard
+import com.traverse.android.ui.components.glance.GlanceHeaderHeight
+import com.traverse.android.ui.components.glance.GlanceScreenHeader
+import com.traverse.android.ui.theme.rememberPalette
+import java.time.LocalDate
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -83,6 +97,62 @@ fun AllSolvesScreen(
     var selectedTopic by remember { mutableStateOf<String?>(null) }
     var isLoadingMore by remember { mutableStateOf(false) }
 
+    val palette = rememberPalette()
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
+    // The same four cards as iOS: total, this week (7-day sparkline),
+    // average per day, and the single best day.
+    val dailyCounts = remember(solves) {
+        val today = LocalDate.now()
+        val counts = IntArray(7)
+        solves.forEach { solve ->
+            ActivityTimestamp.dayKey(solve.solvedAt)?.let { day ->
+                val offset = java.time.temporal.ChronoUnit.DAYS.between(day, today).toInt()
+                if (offset in 0..6) counts[6 - offset] += 1
+            }
+        }
+        counts.toList()
+    }
+    val weekTotal = dailyCounts.sum()
+    val bestDayCount = remember(solves) {
+        solves.mapNotNull { ActivityTimestamp.dayKey(it.solvedAt) }
+            .groupingBy { it }
+            .eachCount()
+            .maxOfOrNull { it.value } ?: 0
+    }
+
+    val glanceCards = listOf(
+        GlanceCard(
+            id = "total",
+            icon = Icons.Filled.CheckCircle,
+            value = "${solves.size}",
+            label = "Total",
+            tint = palette.colorAt(1)
+        ),
+        GlanceCard(
+            id = "week",
+            icon = Icons.Filled.Event,
+            value = "$weekTotal",
+            label = "This Week",
+            tint = palette.colorAt(2),
+            sparkline = dailyCounts.map { it.toFloat() }
+        ),
+        GlanceCard(
+            id = "avg",
+            icon = Icons.Filled.BarChart,
+            value = String.format("%.1f", weekTotal / 7f),
+            label = "Avg / Day",
+            tint = palette.colorAt(3)
+        ),
+        GlanceCard(
+            id = "best",
+            icon = Icons.Filled.LocalFireDepartment,
+            value = "$bestDayCount",
+            label = "Best Day",
+            tint = palette.colorAt(0)
+        )
+    )
+
     val availableTopics = remember(solves) {
         solves.mapNotNull { it.problem.topic }
             .filter { it.isNotEmpty() }
@@ -112,32 +182,18 @@ fun AllSolvesScreen(
     Scaffold(
         // Bottom inset is owned by the root navigation Scaffold's bottom bar.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontFamily = RingiftFamily
-                        )
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                }
-            )
-        }
+        // The glance header below carries the title and the back button.
+        topBar = {}
     ) { padding ->
-        Column(
+        Box(
             modifier = modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Clears the pinned header so the list scrolls under it.
+            Spacer(modifier = Modifier.height(GlanceHeaderHeight + statusBarTop + 8.dp))
+
             SearchField(
                 value = searchText,
                 onValueChange = { searchText = it },
@@ -246,8 +302,17 @@ fun AllSolvesScreen(
                     }
                 }
             }
+
+            // Pinned header: title + stat cards over the progressive scrim.
+            GlanceScreenHeader(
+                title = title,
+                cards = glanceCards,
+                onBack = onBack,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
         }
     }
+}
 }
 
 @Composable
