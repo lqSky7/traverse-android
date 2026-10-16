@@ -1,6 +1,5 @@
 package com.traverse.android.ui.components.glass
 
-import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -11,11 +10,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.TileMode
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -92,19 +87,3 @@ fun ProgressiveHeaderScrim(
         }
     )
 }
-
-/**
- * A real blur, where the platform can do it (API 31+). Used for full-surface
- * glass panels that sit over media rather than over the app's own list
- * content; the header uses [ProgressiveHeaderScrim] instead.
- */
-fun Modifier.platformBlur(radius: Dp): Modifier = this.then(
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        Modifier.graphicsLayer {
-            renderEffect = RenderEffect
-                .createBlurEffect(radius.toPx(), radius.toPx(), TileMode.Clamp)
-        }
-    } else {
-        Modifier
-    }
-)

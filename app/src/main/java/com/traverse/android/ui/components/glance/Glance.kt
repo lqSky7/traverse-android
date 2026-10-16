@@ -39,6 +39,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -58,6 +59,7 @@ import androidx.compose.ui.unit.sp
 import com.traverse.android.ui.components.glass.ProgressiveHeaderScrim
 import com.traverse.android.ui.components.glass.liquidGlass
 import com.traverse.android.ui.theme.RingiftFamily
+import com.traverse.android.ui.theme.rememberPalette
 
 /**
  * The Android port of the iOS quick-glance header: a pinned title row above a

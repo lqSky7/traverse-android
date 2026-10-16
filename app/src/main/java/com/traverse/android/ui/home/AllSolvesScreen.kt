@@ -303,7 +303,11 @@ fun AllSolvesScreen(
                 }
             }
 
+            }
+
             // Pinned header: title + stat cards over the progressive scrim.
+            // It is the last child of the Box, so it overlays the scrolling
+            // list instead of scrolling with it.
             GlanceScreenHeader(
                 title = title,
                 cards = glanceCards,
@@ -312,7 +316,6 @@ fun AllSolvesScreen(
             )
         }
     }
-}
 }
 
 @Composable
