@@ -56,6 +56,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.traverse.android.ui.components.glass.GlassBackdrop
+import com.traverse.android.ui.components.glass.Glur
+import com.traverse.android.ui.components.glass.GlurSegment
 import com.traverse.android.ui.components.glass.ProgressiveHeaderScrim
 import com.traverse.android.ui.components.glass.liquidGlass
 import com.traverse.android.ui.theme.RingiftFamily
@@ -133,31 +136,45 @@ fun GlanceScreenHeader(
     title: String,
     cards: List<GlanceCard>,
     modifier: Modifier = Modifier,
+    backdrop: GlassBackdrop? = null,
     onBack: (() -> Unit)? = null
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            // The scrim: content scrolling underneath dissolves into the app's
-            // black background. This is our own progressive blur for Android —
-            // it draws a little past the header's bottom edge (drawing isn't
-            // clipped), so the fade never ends on a hard line.
-            .drawBehind {
-                val overhang = 24.dp.toPx()
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0f to Color.Black,
-                            0.45f to Color.Black.copy(alpha = 0.9f),
-                            0.8f to Color.Black.copy(alpha = 0.45f),
-                            1f to Color.Transparent
-                        ),
-                        startY = 0f,
-                        endY = size.height + overhang
-                    )
-                )
-            }
-    ) {
+    Box(modifier = modifier.fillMaxWidth()) {
+        if (backdrop != null) {
+            // The Glur: the live feed scrolling underneath is blurred and
+            // ramped out toward the header's bottom edge, so it dissolves
+            // under the header instead of stopping at a hard black band.
+            Glur(
+                backdrop = backdrop,
+                modifier = Modifier.matchParentSize(),
+                radius = 16.dp,
+                segment = GlurSegment.Single
+            )
+        } else {
+            // No capture to blur: fall back to the flat scrim, which at least
+            // keeps the header legible over the feed. It draws a little past
+            // the header's bottom edge (drawing isn't clipped), so the fade
+            // never ends on a hard line.
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .drawBehind {
+                        val overhang = 24.dp.toPx()
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colorStops = arrayOf(
+                                    0f to Color.Black,
+                                    0.45f to Color.Black.copy(alpha = 0.9f),
+                                    0.8f to Color.Black.copy(alpha = 0.45f),
+                                    1f to Color.Transparent
+                                ),
+                                startY = 0f,
+                                endY = size.height + overhang
+                            )
+                        )
+                    }
+            )
+        }
         Column(
             modifier = Modifier
                 .fillMaxWidth()

@@ -94,6 +94,8 @@ import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import com.traverse.android.data.DataManager
 import com.traverse.android.ui.components.glance.GlanceCard
+import com.traverse.android.ui.components.glass.backdrops.layerGlassBackdrop
+import com.traverse.android.ui.components.glass.backdrops.rememberLayerGlassBackdrop
 import com.traverse.android.ui.components.glance.GlanceHeaderHeight
 import com.traverse.android.ui.components.glance.GlanceScreenHeader
 import com.traverse.android.ui.components.glance.TraverseRefreshIndicator
@@ -344,6 +346,9 @@ private fun FriendsMainContent(
             // Our own palette-themed loader instead of the grey default.
             indicator = { TraverseRefreshIndicator(isRefreshing = uiState.isLoading) }
         ) {
+            // The list is captured into this backdrop so the pinned header can
+            // blur what is scrolling underneath it.
+            val glassBackdrop = rememberLayerGlassBackdrop()
             when {
                 uiState.isLoading && uiState.friends.isEmpty() -> {
                     Box(
@@ -384,7 +389,9 @@ private fun FriendsMainContent(
 
                 uiState.friends.isEmpty() -> {
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .layerGlassBackdrop(glassBackdrop),
                         // Clears the floating bottom bar; the list still scrolls underneath it.
                         contentPadding = PaddingValues(
                             // Clears the pinned header.
@@ -406,6 +413,7 @@ private fun FriendsMainContent(
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
+                            .layerGlassBackdrop(glassBackdrop)
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(20.dp),
                         // Clears the floating bottom bar; the list still scrolls underneath it.
@@ -477,7 +485,8 @@ private fun FriendsMainContent(
             GlanceScreenHeader(
                 title = "Friends",
                 cards = friendsCards,
-                modifier = Modifier.align(Alignment.TopCenter)
+                modifier = Modifier.align(Alignment.TopCenter),
+                backdrop = glassBackdrop
             )
         }
     }

@@ -17,6 +17,8 @@ import androidx.compose.material.icons.filled.WarningAmber
 import com.traverse.android.ui.components.glance.ActionChip
 import com.traverse.android.ui.components.glance.ActionChipRow
 import com.traverse.android.ui.components.glance.GlanceCard
+import com.traverse.android.ui.components.glass.backdrops.layerGlassBackdrop
+import com.traverse.android.ui.components.glass.backdrops.rememberLayerGlassBackdrop
 import com.traverse.android.ui.components.glance.GlanceHeaderHeight
 import com.traverse.android.ui.components.glance.GlanceScreenHeader
 import com.traverse.android.ui.components.glance.TraverseRefreshIndicator
@@ -174,7 +176,10 @@ fun RevisionsScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        // The tab content is captured into this backdrop so the pinned header
+        // can blur what is scrolling underneath it.
+        val glassBackdrop = rememberLayerGlassBackdrop()
+        Column(modifier = Modifier.fillMaxSize().layerGlassBackdrop(glassBackdrop)) {
             // The Upcoming/Analytics switch now lives in the header's glance
             // cards: Due Today -> Upcoming, Avg Retention / At Risk -> Analytics.
 
@@ -254,7 +259,8 @@ fun RevisionsScreen(
         GlanceScreenHeader(
             title = "Revisions",
             cards = revisionCards,
-            modifier = Modifier.align(Alignment.TopCenter)
+            modifier = Modifier.align(Alignment.TopCenter),
+            backdrop = glassBackdrop
         )
         }
     }

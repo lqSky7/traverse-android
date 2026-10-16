@@ -26,6 +26,8 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import com.traverse.android.data.ActivityTimestamp
 import com.traverse.android.ui.components.glance.GlanceCard
+import com.traverse.android.ui.components.glass.backdrops.layerGlassBackdrop
+import com.traverse.android.ui.components.glass.backdrops.rememberLayerGlassBackdrop
 import com.traverse.android.ui.components.glance.GlanceHeaderHeight
 import com.traverse.android.ui.components.glance.GlanceScreenHeader
 import com.traverse.android.ui.theme.rememberPalette
@@ -190,7 +192,10 @@ fun AllSolvesScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        // The list is captured into this backdrop so the pinned header can
+        // blur what is scrolling underneath it.
+        val glassBackdrop = rememberLayerGlassBackdrop()
+        Column(modifier = Modifier.fillMaxSize().layerGlassBackdrop(glassBackdrop)) {
             // Clears the pinned header so the list scrolls under it.
             Spacer(modifier = Modifier.height(GlanceHeaderHeight + statusBarTop + 8.dp))
 
@@ -312,7 +317,8 @@ fun AllSolvesScreen(
                 title = title,
                 cards = glanceCards,
                 onBack = onBack,
-                modifier = Modifier.align(Alignment.TopCenter)
+                modifier = Modifier.align(Alignment.TopCenter),
+                backdrop = glassBackdrop
             )
         }
     }

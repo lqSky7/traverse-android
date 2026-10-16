@@ -15,26 +15,26 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * The Android counterpart of the iOS glass language.
+ * The static glass surface — for anything that cannot sample a backdrop.
  *
- * The look is the same as the ClearPDF / Kyant liquid glass: a translucent
- * surface, a specular highlight along the top edge, and a hairline border.
+ * The real thing is [glurBackdrop] and [backdropGlass], which blur the content
+ * behind the surface using the vendored Kyant backdrop library. Those need a
+ * [GlassBackdrop] capture of what sits behind, and a surface *inside* the
+ * scrolling feed cannot have one: it would be sampling a capture that contains
+ * itself, so the blurs would compound frame over frame.
  *
- * A true backdrop blur (sampling and blurring whatever sits *behind* the
- * surface) needs the `com.kyant.backdrop` library that ClearPDF vendors — that
- * library requires Kotlin 2.3 + AGP 9 + the `-Xcontext-parameters` compiler
- * flag, which this project's toolchain (Kotlin 2.0.21 / AGP 8.13) can't
- * compile. Everything here therefore reproduces the appearance natively: no
- * new dependency, works on the current toolchain.
+ * The glance cards and action chips live in the feed, so they use this
+ * instead: a translucent fill, a specular catch along the top edge, and a
+ * hairline border. Same language as the backdrop glass, no capture required.
  */
 
 /** Liquid-glass surface: translucent fill, top highlight, hairline border. */
 fun Modifier.liquidGlass(
     shape: Shape = RoundedCornerShape(18.dp),
     tint: Color = Color.White,
-    tintAlpha: Float = 0.10f,
-    highlightAlpha: Float = 0.18f,
-    borderAlpha: Float = 0.14f,
+    tintAlpha: Float = 0.16f,
+    highlightAlpha: Float = 0.22f,
+    borderAlpha: Float = 0.18f,
     borderWidth: Dp = 0.7.dp
 ): Modifier = this
     .clip(shape)

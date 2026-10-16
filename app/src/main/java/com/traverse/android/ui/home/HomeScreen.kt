@@ -62,6 +62,8 @@ import com.traverse.android.data.CacheManager
 import com.traverse.android.ui.components.glance.ActionChip
 import com.traverse.android.ui.components.glance.ActionChipRow
 import com.traverse.android.ui.components.glance.GlanceCard
+import com.traverse.android.ui.components.glass.backdrops.layerGlassBackdrop
+import com.traverse.android.ui.components.glass.backdrops.rememberLayerGlassBackdrop
 import com.traverse.android.ui.components.glance.GlanceHeaderHeight
 import com.traverse.android.ui.components.glance.GlanceScreenHeader
 import com.traverse.android.ui.components.glance.TraverseRefreshIndicator
@@ -354,8 +356,13 @@ private fun HomeMainContent(
             val solves = uiState.recentSolves
             val solveStats = uiState.solveStats
             val achievementStats = uiState.achievementStats
+            // The feed is captured into this backdrop so the pinned header can
+            // blur what is scrolling underneath it.
+            val glassBackdrop = rememberLayerGlassBackdrop()
             LazyColumn(
-                modifier = modifier.fillMaxSize(),
+                modifier = modifier
+                    .fillMaxSize()
+                    .layerGlassBackdrop(glassBackdrop),
                 contentPadding = PaddingValues(
                     start = 16.dp, end = 16.dp,
                     // Start below the pinned header so the feed scrolls under it.
@@ -497,7 +504,8 @@ private fun HomeMainContent(
             GlanceScreenHeader(
                 title = currentDate,
                 cards = glanceCards,
-                modifier = Modifier.align(Alignment.TopCenter)
+                modifier = Modifier.align(Alignment.TopCenter),
+                backdrop = glassBackdrop
             )
         }
     }
