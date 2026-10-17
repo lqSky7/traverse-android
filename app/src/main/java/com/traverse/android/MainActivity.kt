@@ -40,6 +40,7 @@ import com.traverse.android.ui.auth.AuthNavigation
 import com.traverse.android.ui.auth.OnboardingFlowDialog
 import com.traverse.android.ui.components.AchievementToastManager
 import com.traverse.android.ui.components.AchievementToastOverlayContainer
+import com.traverse.android.ui.components.glass.GlassSettings
 import com.traverse.android.ui.navigation.MainNavigation
 import com.traverse.android.ui.onboarding.SetupStepsScreen
 import com.traverse.android.ui.theme.ColorPaletteManager
@@ -68,6 +69,11 @@ class MainActivity : ComponentActivity() {
 
         // Restore the persisted colour palette before the first composition.
         ColorPaletteManager.init(applicationContext)
+
+        // Same for the glass preference: reading it here means the very first
+        // frame is already opaque in performance mode, instead of flashing a
+        // screen of glass and then swapping.
+        GlassSettings.load(applicationContext)
 
         setContent {
             TraverseTheme {

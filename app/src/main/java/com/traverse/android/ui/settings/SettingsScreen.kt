@@ -37,6 +37,7 @@ import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.BuildConfig
 import com.traverse.android.data.*
 import com.traverse.android.ui.components.rememberSheetOverscrollClamper
+import com.traverse.android.ui.components.glass.GlassSettings
 import com.traverse.android.ui.revisions.CalendarExportSheet
 import com.traverse.android.ui.navigation.floatingBottomBarContentInset
 import com.traverse.android.ui.theme.BelfastGroteskBlackFamily
@@ -668,6 +669,7 @@ private fun BentoSettingsGrid(
 ) {
     // Every tile icon follows the selected palette exactly like `paletteManager.color(at:)` on iOS.
     val palette = rememberPalette()
+    val context = LocalContext.current
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -813,6 +815,22 @@ private fun BentoSettingsGrid(
                     VerticalDivider()
                     Spacer(modifier = Modifier.weight(1f))
                 }
+
+                HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+
+                // Liquid glass costs a blur pass and a refraction shader per
+                // surface, plus a layer capture per screen. Turning it off
+                // keeps the identical layout and colours, drawn opaque.
+                SettingsToggleRow(
+                    icon = Icons.Default.Speed,
+                    iconColor = palette.colorAt(2),
+                    title = "Performance mode",
+                    subtitle = "Opaque surfaces, no blur",
+                    checked = GlassSettings.performanceMode,
+                    onCheckedChange = { enabled ->
+                        GlassSettings.setPerformanceMode(context, enabled)
+                    }
+                )
             }
         }
     }
@@ -899,6 +917,59 @@ private fun BentoCell(
                 )
             }
         }
+    }
+}
+
+/**
+ * A full-width settings row with a switch — for on/off app preferences that read
+ * as a sentence rather than as a destination.
+ */
+@Composable
+private fun SettingsToggleRow(
+    icon: ImageVector,
+    iconColor: Color,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = iconColor,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    color = Color.White.copy(alpha = 0.5f)
+                )
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = iconColor
+            )
+        )
     }
 }
 

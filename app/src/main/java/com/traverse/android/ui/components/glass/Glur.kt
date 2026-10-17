@@ -1,18 +1,15 @@
 package com.traverse.android.ui.components.glass
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.traverse.android.ui.components.glass.effects.blur
-import com.traverse.android.ui.components.glass.effects.vibrancy
 
 /**
  * The Android port of Glur's backdrop blur — `GlurView` on iOS.
@@ -163,33 +160,10 @@ fun Glur(
     Box(modifier = modifier.glurBackdrop(backdrop, radius, segment)) {}
 }
 
-/**
- * Real backdrop glass for a surface that can safely sample what is behind it.
- *
- * Use this only where the surface is drawn *outside* the content it samples —
- * the bottom tab bar, floating overlays. A surface that lives inside the
- * scrolling feed cannot use it: it would be sampling a capture that contains
- * itself, and the blurs compound frame over frame.
- *
- * @param tintAlpha a light wash over the blur, so the surface keeps its edge
- *   against dark content without becoming a solid panel.
+/*
+ * Every glass *surface* in the app now goes through `Modifier.liquidGlass`
+ * (see Glass.kt), which is the same library pipeline with the specular rim,
+ * inner shadow and surface wash that make it read as glass. The Glur above is
+ * the other half of the language: it is the pinned header's *backdrop*, not a
+ * surface of its own.
  */
-fun Modifier.backdropGlass(
-    backdrop: GlassBackdrop,
-    shape: Shape = RoundedCornerShape(18.dp),
-    blurRadius: Dp = 12.dp,
-    tint: Color = Color.White,
-    tintAlpha: Float = 0.06f
-): Modifier = this.drawGlassBackdrop(
-    backdrop = backdrop,
-    shape = { shape },
-    effects = {
-        vibrancy()
-        blur(blurRadius.toPx())
-    },
-    onDrawSurface = {
-        if (tintAlpha > 0f) {
-            drawRect(tint.copy(alpha = tintAlpha))
-        }
-    }
-)

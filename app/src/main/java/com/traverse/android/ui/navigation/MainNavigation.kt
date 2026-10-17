@@ -19,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -28,10 +29,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.traverse.android.ui.components.bottombar.AnimatedBottomBar
-import com.traverse.android.ui.components.bottombar.BottomBarDefaults
-import com.traverse.android.ui.components.bottombar.BottomBarItem
-import com.traverse.android.ui.components.bottombar.IconSource
+import com.traverse.android.ui.components.bottombar.LiquidBarItem
+import com.traverse.android.ui.components.bottombar.LiquidBottomBar
+import com.traverse.android.ui.components.glass.backdrops.layerGlassBackdrop
+import com.traverse.android.ui.components.glass.backdrops.rememberLayerGlassBackdrop
 import com.traverse.android.ui.friends.FriendsScreen
 import com.traverse.android.ui.home.HomeScreen
 import com.traverse.android.ui.problems.ProblemsScreen
@@ -41,7 +42,6 @@ import com.traverse.android.ui.theme.rememberPalette
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.traverse.android.data.NotificationRouter
-import com.traverse.android.ui.components.bottombar.Badge
 import com.traverse.android.viewmodel.FriendsViewModel
 import com.traverse.android.viewmodel.HomeViewModel
 import com.traverse.android.viewmodel.NotificationsViewModel
@@ -88,8 +88,8 @@ val tabs = listOf(
 
 // MARK: Floating bottom bar metrics
 
-/** Height of the pill itself. Must match the `barHeight` handed to [BottomBarDefaults.style]. */
-private val BottomBarHeight = 68.dp
+/** Height of the pill itself. Must match the `barHeight` handed to [LiquidBottomBar]. */
+private val BottomBarHeight = 64.dp
 
 /** Horizontal inset that detaches the pill from the screen edges. */
 private val BottomBarHorizontalPadding = 16.dp
@@ -177,16 +177,23 @@ fun MainNavigation(
 
     // The bar items with dynamic unread badge on the Home tab. Icons mirror the iOS tab bar's
     // filled-when-selected / outlined-when-idle pairing.
-    val barItems = remember(unreadCount) {
+    val barTabs = remember(unreadCount) {
         tabs.mapIndexed { index, tab ->
-            BottomBarItem(
-                icon = IconSource.Vector(tab.unselectedIcon),
-                selectedIcon = IconSource.Vector(tab.selectedIcon),
+            LiquidBarItem(
+                icon = tab.unselectedIcon,
+                selectedIcon = tab.selectedIcon,
                 label = tab.label,
-                badge = if (index == 0 && unreadCount > 0) Badge.Count(unreadCount) else null
+                badge = if (index == 0 && unreadCount > 0) unreadCount else null
             )
         }
     }
+
+    // The bar floats over the navigation content, so it can sample a capture of
+    // it: the screens genuinely refract through the pill and its selected lens.
+    // The bar is a sibling of the NavHost, never inside it, so there is no
+    // feedback loop.
+    val navBackdrop = rememberLayerGlassBackdrop()
+    val isDarkSurface = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
     // The bottom bar deliberately is *not* a `Scaffold` `bottomBar` slot: a slot would reserve a
     // strip at the bottom of the window and push every screen up above it. Instead the navigation
@@ -201,7 +208,9 @@ fun MainNavigation(
         NavHost(
             navController = navController,
             startDestination = MainRoute.Home.route,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .layerGlassBackdrop(navBackdrop),
             enterTransition = { EnterTransition.None },
             exitTransition = { ExitTransition.None },
             popEnterTransition = { EnterTransition.None },
@@ -238,10 +247,10 @@ fun MainNavigation(
             }
         }
 
-        AnimatedBottomBar(
-            items = barItems,
+        LiquidBottomBar(
+            items = barTabs,
             selectedIndex = selectedIndex,
-            onItemSelected = { index ->
+            onSelect = { index ->
                 tabs.getOrNull(index)?.let { tab ->
                     navController.navigate(tab.route) {
                         popUpTo(navController.graph.findStartDestination().id) {
@@ -252,6 +261,14 @@ fun MainNavigation(
                     }
                 }
             },
+            backdrop = navBackdrop,
+            // Everything tinted from the live colour palette, exactly like the rest of the app.
+            accent = palette.primary,
+            surface = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.55f),
+            selectedSheen = Color.White.copy(alpha = if (isDarkSurface) 0.14f else 0.55f),
+            unselectedTint = MaterialTheme.colorScheme.onSurfaceVariant,
+            badgeColor = palette.colorAt(2),
+            barHeight = BottomBarHeight,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 // Keep the floating pill clear of the system navigation bar, then inset it from the
@@ -260,22 +277,7 @@ fun MainNavigation(
                 .padding(
                     horizontal = BottomBarHorizontalPadding,
                     vertical = BottomBarVerticalPadding
-                ),
-            style = BottomBarDefaults.style(
-                // Liquid glass: translucent so the feed shows through the pill,
-                // with the highlight + hairline border drawn by AnimatedBottomBar.
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.72f),
-                // Everything tinted from the live colour palette, exactly like the rest of the app.
-                indicatorColor = palette.primary.copy(alpha = 0.22f),
-                selectedIconColor = palette.primary,
-                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                badgeColor = palette.colorAt(2),
-                badgeContentColor = Color.White,
-                containerShapeRadius = 24.dp,
-                iconSize = 24.dp,
-                barHeight = BottomBarHeight,
-                contentPadding = 14.dp
-            )
+                )
         )
     }
 }

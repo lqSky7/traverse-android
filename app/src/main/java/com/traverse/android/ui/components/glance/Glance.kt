@@ -39,6 +39,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,10 +58,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.traverse.android.ui.components.glass.GlassBackdrop
+import com.traverse.android.ui.components.glass.GlassDefaults
 import com.traverse.android.ui.components.glass.Glur
 import com.traverse.android.ui.components.glass.GlurSegment
+import com.traverse.android.ui.components.glass.LocalGlassBackdrop
 import com.traverse.android.ui.components.glass.ProgressiveHeaderScrim
+import com.traverse.android.ui.components.glass.isLiquidGlassEnabled
 import com.traverse.android.ui.components.glass.liquidGlass
+import com.traverse.android.ui.components.glass.rememberSolidGlassBackdrop
 import com.traverse.android.ui.theme.RingiftFamily
 import com.traverse.android.ui.theme.rememberPalette
 
@@ -140,7 +145,11 @@ fun GlanceScreenHeader(
     onBack: (() -> Unit)? = null
 ) {
     Box(modifier = modifier.fillMaxWidth()) {
-        if (backdrop != null) {
+        // `isLiquidGlassEnabled` rather than just `backdrop != null`: in
+        // performance mode, or below Android 12 where there is no GPU blur, a
+        // Glur would paint the feed *sharp* under a fade — worse than the
+        // scrim, not better.
+        if (backdrop != null && isLiquidGlassEnabled) {
             // The Glur: the live feed scrolling underneath is blurred and
             // ramped out toward the header's bottom edge, so it dissolves
             // under the header instead of stopping at a hard black band.
@@ -151,7 +160,7 @@ fun GlanceScreenHeader(
                 segment = GlurSegment.Single
             )
         } else {
-            // No capture to blur: fall back to the flat scrim, which at least
+            // No blur available: fall back to the flat scrim, which at least
             // keeps the header legible over the feed. It draws a little past
             // the header's bottom edge (drawing isn't clipped), so the fade
             // never ends on a hard line.
@@ -175,54 +184,61 @@ fun GlanceScreenHeader(
                     }
             )
         }
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(top = 6.dp, bottom = 10.dp)
-        ) {
-            Row(
+
+        // The cards are drawn *outside* the feed's capture, so they can sample
+        // it: content genuinely refracts through them as it scrolls under the
+        // header. Providing it here keeps every card in the row on the same
+        // backdrop without threading a parameter through each one.
+        CompositionLocalProvider(LocalGlassBackdrop provides backdrop) {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(40.dp)
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .statusBarsPadding()
+                    .padding(top = 6.dp, bottom = 10.dp)
             ) {
-                if (onBack != null) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .clickable(onClick = onBack),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp)
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (onBack != null) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .clickable(onClick = onBack),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
+
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontFamily = RingiftFamily,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color.White,
+                        maxLines = 1
+                    )
+
+                    Spacer(Modifier.weight(1f))
                 }
 
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontFamily = RingiftFamily,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = Color.White,
-                    maxLines = 1
-                )
+                Spacer(Modifier.height(8.dp))
 
-                Spacer(Modifier.weight(1f))
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            if (cards.isNotEmpty()) {
-                GlanceCardRow(cards = cards)
+                if (cards.isNotEmpty()) {
+                    GlanceCardRow(cards = cards)
+                }
             }
         }
     }
@@ -257,7 +273,7 @@ private fun GlanceCardView(card: GlanceCard) {
     Row(
         modifier = Modifier
             .size(width = CardWidth, height = CardHeight)
-            .liquidGlass(shape = RoundedCornerShape(18.dp))
+            .liquidGlass(shape = GlassDefaults.CardShape)
             .then(if (card.onClick != null) Modifier.clickable(onClick = card.onClick) else Modifier)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -345,11 +361,18 @@ fun ActionChipRow(chips: List<ActionChip>, modifier: Modifier = Modifier) {
 
 @Composable
 private fun ActionChipView(chip: ActionChip) {
+    // The chips are the first item of the scrolling feed, so they sit *inside*
+    // the layer their screen captures. Sampling that layer would feed their own
+    // output back in — the blurs compound frame over frame. Behind a chip there
+    // is nothing but the app background anyway, so this is the same pixels
+    // through the same glass pipeline, with no loop.
+    val flatBackdrop = rememberSolidGlassBackdrop(MaterialTheme.colorScheme.background)
+
     Row(
         modifier = Modifier
             // Normalized: every chip is identical, sized for the biggest label.
             .size(width = ChipWidth, height = ChipHeight)
-            .liquidGlass(shape = RoundedCornerShape(18.dp))
+            .liquidGlass(backdrop = flatBackdrop, shape = GlassDefaults.CardShape)
             .clickable(onClick = chip.onClick)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -419,6 +442,10 @@ fun TraverseRefreshIndicator(
     modifier: Modifier = Modifier
 ) {
     val palette = rememberPalette()
+    // Overlays the content rather than living in it, but it is drawn in the
+    // PullToRefresh slot where no screen-level capture is in scope: a solid
+    // backdrop keeps it real glass without reaching for a layer.
+    val flatBackdrop = rememberSolidGlassBackdrop(MaterialTheme.colorScheme.background)
 
     // The sweep runs continuously; the whole capsule only exists while
     // refreshing, so there is nothing to keep in sync.
@@ -449,7 +476,7 @@ fun TraverseRefreshIndicator(
         Row(
             modifier = Modifier
                 .padding(top = 8.dp)
-                .liquidGlass(shape = RoundedCornerShape(50))
+                .liquidGlass(backdrop = flatBackdrop, shape = GlassDefaults.Capsule)
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)

@@ -14,6 +14,7 @@ import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.platform.InspectorInfo
+import com.traverse.android.ui.components.glass.isLiquidGlassEnabled
 import com.traverse.android.ui.components.glass.recordLayer
 
 fun Modifier.layerGlassBackdrop(backdrop: LayerGlassBackdrop): Modifier =
@@ -60,6 +61,10 @@ private class LayerGlassBackdropNode(
 
     override fun ContentDrawScope.draw() {
         drawContent()
+        // Nothing will sample this capture when glass is off (performance mode,
+        // or a device that cannot blur), and recording it is a full offscreen
+        // pass per frame — so skip it entirely.
+        if (!isLiquidGlassEnabled) return
         recordLayer(this@LayerGlassBackdropNode, backdrop.graphicsLayer) { backdrop.onDraw(this@draw) }
     }
 
