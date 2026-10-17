@@ -726,7 +726,8 @@ private fun ProfileBody(
             end = 16.dp,
             bottom = floatingBottomBarContentInset()
         ),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        // iOS `VStack(spacing: 24)`, and the same section order.
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         // Profile Header
         item {
@@ -1456,7 +1457,8 @@ private fun DifficultyBadge(
     ) {
         Text(
             text = "$count",
-            style = MaterialTheme.typography.titleMedium.copy(
+            // iOS `.title3` here too, same as the header's headline numbers.
+            style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.Bold,
                 color = color
             )
