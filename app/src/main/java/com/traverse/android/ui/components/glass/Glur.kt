@@ -56,14 +56,20 @@ private fun GlurSegment.fadeStops(): Array<Pair<Float, Color>> = when (this) {
 
     GlurSegment.Bottom -> arrayOf(
         0f to Color.White.copy(alpha = 0.65f),
-        0.5f to Color.White.copy(alpha = 0.3f),
+        0.5f to Color.White.copy(alpha = 0.4f),
         1f to Color.Transparent
     )
 
+    // iOS shapes the blur by multiplying the *radius*, so the whole band stays
+    // frosted and only softens toward the bottom. Android's RenderEffect blur is
+    // uniform, so the ramp has to ride on how much of the blurred copy survives
+    // instead — which means the stops must stay near-opaque well past the
+    // halfway point, or the sharp feed shows through the ramp and the whole
+    // header reads as barely blurred.
     GlurSegment.Single -> arrayOf(
         0f to Color.White,
-        0.45f to Color.White.copy(alpha = 0.6f),
-        0.8f to Color.White.copy(alpha = 0.25f),
+        0.5f to Color.White.copy(alpha = 0.94f),
+        0.82f to Color.White.copy(alpha = 0.62f),
         1f to Color.Transparent
     )
 }
@@ -104,11 +110,16 @@ private fun GlurSegment.tintStops(): Array<Pair<Float, Color>> = when (this) {
  *   The caller owns it — see [Glur].
  * @param radius the blur radius where the ramp is fully applied.
  * @param segment which slice of the ramp this surface covers.
+ * @param tint whether to lay the dark tint under the blur. It exists so a blur
+ *   over the app's black background is visible at all; a surface that already
+ *   paints its own overlay (the profile banner) turns it off so the two do not
+ *   stack into a gradient nobody asked for.
  */
 fun Modifier.glurBackdrop(
     backdrop: GlassBackdrop,
     radius: Dp = 16.dp,
-    segment: GlurSegment = GlurSegment.Single
+    segment: GlurSegment = GlurSegment.Single,
+    tint: Boolean = true
 ): Modifier = this.drawPlainGlassBackdrop(
     backdrop = backdrop,
     shape = { RectangleShape },
@@ -130,7 +141,9 @@ fun Modifier.glurBackdrop(
         )
 
         // Then the tint, over what survived.
-        drawRect(brush = Brush.verticalGradient(*segment.tintStops()))
+        if (tint) {
+            drawRect(brush = Brush.verticalGradient(*segment.tintStops()))
+        }
     }
 )
 
@@ -153,11 +166,12 @@ fun Glur(
     backdrop: GlassBackdrop,
     modifier: Modifier = Modifier,
     radius: Dp = 16.dp,
-    segment: GlurSegment = GlurSegment.Single
+    segment: GlurSegment = GlurSegment.Single,
+    tint: Boolean = true
 ) {
     // Deliberately empty: this only paints, it has nothing to lay out. Give it
     // `Modifier.matchParentSize()` to size it to the surface it backs.
-    Box(modifier = modifier.glurBackdrop(backdrop, radius, segment)) {}
+    Box(modifier = modifier.glurBackdrop(backdrop, radius, segment, tint)) {}
 }
 
 /*

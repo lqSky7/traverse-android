@@ -1,5 +1,6 @@
 package com.traverse.android.ui.friends
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -67,13 +67,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.traverse.android.R
+import com.traverse.android.ui.components.glass.Glur
+import com.traverse.android.ui.components.glass.GlurSegment
+import com.traverse.android.ui.components.glass.backdrops.layerGlassBackdrop
+import com.traverse.android.ui.components.glass.backdrops.rememberLayerGlassBackdrop
+import com.traverse.android.ui.components.glass.isLiquidGlassEnabled
 import com.traverse.android.ui.theme.CardBackground
 import com.traverse.android.data.CacheManager
 import com.traverse.android.data.FriendStreak
@@ -1149,50 +1158,78 @@ private fun ProfileHeader(
     profile: UserProfile,
     statistics: UserStatisticsData?
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground)
+    // iOS `ProfileHeaderView`: a 180pt banner of the profile artwork behind a
+    // downward progressive blur (`GlurView(radius: 12, direction: .down)`), a
+    // 0.4 black overlay for legibility, the identity left-aligned at the top
+    // and the three headline numbers pinned to the bottom edge. It is not a
+    // centred avatar card — that was the whole difference.
+    val bannerBackdrop = rememberLayerGlassBackdrop()
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            // iOS: `.shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 4)`.
+            // Before the clip, so the shadow is drawn outside the rounded edge.
+            .shadow(
+                elevation = 10.dp,
+                shape = RoundedCornerShape(16.dp),
+                ambientColor = Color.Black.copy(alpha = 0.1f),
+                spotColor = Color.Black.copy(alpha = 0.1f)
+            )
+            .height(180.dp)
+            .clip(RoundedCornerShape(16.dp))
     ) {
+        Image(
+            painter = painterResource(R.drawable.def_user),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .matchParentSize()
+                .layerGlassBackdrop(bannerBackdrop)
+        )
+
+        // The same Glur as the pinned headers, at the radius iOS uses here, so
+        // the artwork softens behind the text instead of competing with it.
+        // No tint: this banner paints its own uniform 0.4 black below, and iOS
+        // does not stack a gradient under it either.
+        if (isLiquidGlassEnabled) {
+            Glur(
+                backdrop = bannerBackdrop,
+                modifier = Modifier.matchParentSize(),
+                radius = 12.dp,
+                segment = GlurSegment.Single,
+                tint = false
+            )
+        }
+
+        // Dark overlay for legibility.
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(Color.Black.copy(alpha = 0.4f))
+        )
+
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .matchParentSize()
+                .padding(16.dp)
         ) {
-            // Avatar
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(palettePrimary, paletteColorAt(1))
-                        )
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = profile.username.first().uppercase(),
-                    style = MaterialTheme.typography.headlineLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Username
+            // iOS: `.font(.title).fontWeight(.bold)` — `.title` is 28pt, which is
+            // Material's `headlineMedium`, not `titleLarge` (22sp).
             Text(
                 text = profile.username,
-                style = MaterialTheme.typography.headlineSmall.copy(
+                style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+                    color = Color.White.copy(alpha = 0.8f)
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
 
+            Spacer(Modifier.height(4.dp))
+
             // Visibility badge — iOS: Label(visibility.capitalized, globe/lock/person.2)
+            // at `.caption` (12pt), which is Material's `labelMedium`.
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -1205,7 +1242,7 @@ private fun ProfileHeader(
                     },
                     contentDescription = null,
                     tint = Color.White.copy(alpha = 0.75f),
-                    modifier = Modifier.size(14.dp)
+                    modifier = Modifier.size(13.dp)
                 )
                 Text(
                     text = profile.visibility.replaceFirstChar { it.uppercase() },
@@ -1215,7 +1252,7 @@ private fun ProfileHeader(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.weight(1f))
 
             // Stats row — iOS ProfileHeaderView: coloured value on top, then Label(icon + text)
             Row(
@@ -1281,7 +1318,7 @@ private fun StatColumn(
     ) {
         Text(
             text = value,
-            style = MaterialTheme.typography.titleMedium.copy(
+            style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.Bold,
                 color = valueColor
             )
@@ -1300,7 +1337,7 @@ private fun StatColumn(
             }
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall.copy(
+                style = MaterialTheme.typography.labelMedium.copy(
                     color = Color.White.copy(alpha = 0.7f)
                 )
             )

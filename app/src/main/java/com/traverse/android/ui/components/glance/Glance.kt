@@ -11,7 +11,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.foundation.background
@@ -22,7 +21,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -49,7 +47,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -156,7 +153,10 @@ fun GlanceScreenHeader(
             Glur(
                 backdrop = backdrop,
                 modifier = Modifier.matchParentSize(),
-                radius = 16.dp,
+                // iOS uses radius 16 with a mask that keeps it near full
+                // strength across the header; the alpha ramp here cannot reach
+                // that, so the radius carries a little extra.
+                radius = 20.dp,
                 segment = GlurSegment.Single
             )
         } else {
@@ -467,43 +467,54 @@ fun TraverseRefreshIndicator(
         palette.primary
     )
 
+    // `PullToRefreshBox` lays its `indicator` slot out with the box's own
+    // `contentAlignment`, which defaults to `TopStart` — Material's stock
+    // indicator only looks centred because it hardcodes `align(TopCenter)`
+    // itself. A custom indicator inherits nothing, so without the full-width
+    // centring box below it pins itself to the top-left corner. Doing it here
+    // rather than at the call sites keeps every screen correct.
     AnimatedVisibility(
         visible = isRefreshing,
         enter = fadeIn() + slideInVertically { -it },
         exit = fadeOut(),
-        modifier = modifier
+        modifier = modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier
-                .padding(top = 8.dp)
-                .liquidGlass(backdrop = flatBackdrop, shape = GlassDefaults.Capsule)
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.TopCenter
         ) {
-            Canvas(
+            Row(
                 modifier = Modifier
-                    .size(16.dp)
-                    .rotate(angle)
+                    .padding(top = 8.dp)
+                    .liquidGlass(backdrop = flatBackdrop, shape = GlassDefaults.Capsule)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val stroke = 2.5.dp.toPx()
-                val inset = stroke / 2f
-                drawArc(
-                    brush = Brush.sweepGradient(arcColors),
-                    startAngle = 0f,
-                    sweepAngle = 260f,
-                    useCenter = false,
-                    topLeft = Offset(inset, inset),
-                    size = Size(size.width - stroke, size.height - stroke),
-                    style = Stroke(width = stroke, cap = StrokeCap.Round)
+                Canvas(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .rotate(angle)
+                ) {
+                    val stroke = 2.5.dp.toPx()
+                    val inset = stroke / 2f
+                    drawArc(
+                        brush = Brush.sweepGradient(arcColors),
+                        startAngle = 0f,
+                        sweepAngle = 260f,
+                        useCenter = false,
+                        topLeft = Offset(inset, inset),
+                        size = Size(size.width - stroke, size.height - stroke),
+                        style = Stroke(width = stroke, cap = StrokeCap.Round)
+                    )
+                }
+
+                Text(
+                    text = "Refreshing",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.7f)
                 )
             }
-
-            Text(
-                text = "Refreshing",
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.7f)
-            )
         }
     }
 }

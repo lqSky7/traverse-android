@@ -31,10 +31,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -42,7 +40,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
@@ -51,15 +48,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastCoerceIn
 import com.traverse.android.ui.components.glass.GlassBackdrop
 import com.traverse.android.ui.components.glass.GlassDefaults
-import com.traverse.android.ui.components.glass.backdrops.layerGlassBackdrop
-import com.traverse.android.ui.components.glass.backdrops.rememberCombinedGlassBackdrop
-import com.traverse.android.ui.components.glass.backdrops.rememberLayerGlassBackdrop
 import com.traverse.android.ui.components.glass.drawGlassBackdrop
 import com.traverse.android.ui.components.glass.effects.blur
 import com.traverse.android.ui.components.glass.effects.lens
 import com.traverse.android.ui.components.glass.effects.vibrancy
-import com.traverse.android.ui.components.glass.highlight.Highlight
 import com.traverse.android.ui.components.glass.glassOpaqueColor
+import com.traverse.android.ui.components.glass.highlight.Highlight
 import com.traverse.android.ui.components.glass.isLiquidGlassEnabled
 import com.traverse.android.ui.components.glass.rememberEffectiveGlassBackdrop
 import com.traverse.android.ui.components.glass.shadow.InnerShadow
@@ -72,14 +66,18 @@ import kotlin.math.sign
 /**
  * The bottom tab bar, ported from ClearPDF's `LiquidBottomTabs`.
  *
- * It is one glass capsule with three layers stacked on it:
+ * One glass capsule, three layers stacked on it:
  *
  * 1. the bar itself — real backdrop glass, so the screen refracts through it;
- * 2. an invisible duplicate of the bar, recorded into its own layer, so the
- *    selected pill can refract the bar's *own* icons rather than just the
- *    screen behind them;
- * 3. the selected pill — a lens with chromatic aberration that slides between
- *    tabs, swells under the finger, and can be dragged.
+ * 2. the selected pill — a lit capsule of the same glass that slides between
+ *    tabs, swells under the finger, and can be dragged;
+ * 3. the icons — crisp, on top of everything.
+ *
+ * The icons are the one place this deliberately departs from ClearPDF. There
+ * the pill is drawn last and refracts a hidden, accent-tinted duplicate of the
+ * bar, so the selected icon is *inside* the pill's backdrop — which blurs it
+ * into mush and, over a black background, leaves it invisible. Putting the pill
+ * underneath keeps the icon sharp while the pill still reads as lit glass.
  *
  * Only the icons are ours; the bar, the pill and the motion are ClearPDF's
  * design.
@@ -116,10 +114,6 @@ fun LiquidBottomBar(
 
     val tabsCount = items.size
     val glassBackdrop = rememberEffectiveGlassBackdrop(backdrop)
-    // The pill refracts the screen *and* the bar's icons: the bar is recorded
-    // into its own layer and combined with the screen capture.
-    val tabsBackdrop = rememberLayerGlassBackdrop()
-    val pillBackdrop = rememberCombinedGlassBackdrop(glassBackdrop, tabsBackdrop)
 
     val contentHeight = (barHeight - 8.dp).coerceAtLeast(0.dp)
     val animationScope = rememberCoroutineScope()
@@ -168,7 +162,7 @@ fun LiquidBottomBar(
             }
         }
 
-        // 1. The bar.
+        // 1. The bar's glass.
         Row(
             modifier = Modifier
                 .graphicsLayer { translationX = panelOffset }
@@ -196,68 +190,15 @@ fun LiquidBottomBar(
                 )
                 .height(barHeight)
                 .fillMaxWidth()
-                .padding(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            items.forEachIndexed { index, item ->
-                BarTab(
-                    item = item,
-                    selected = index == currentIndex,
-                    iconScale = { 1f + 0.18f * pill.pressProgress },
-                    // Every icon is the same tint, exactly as in ClearPDF: the
-                    // selected one reads as accent because the pill's lens
-                    // refracts the accent-tinted ghost recorded below, not
-                    // because the icon itself was recoloured.
-                    tint = unselectedTint,
-                    badgeColor = badgeColor,
-                    onClick = { onSelect(index) }
-                )
-            }
-        }
+                .padding(4.dp)
+        ) {}
 
-        // 2. The invisible duplicate the pill samples. Alpha 0 so it is never
-        // seen, tinted with the accent so the refracted ghost under the pill
-        // reads as the selected tab. Only meaningful with glass on: it exists
-        // purely to be captured into the pill's backdrop.
-        if (glassOn) {
-            Row(
-                modifier = Modifier
-                    .clearAndSetSemantics {}
-                    .alpha(0f)
-                    .layerGlassBackdrop(tabsBackdrop)
-                    .graphicsLayer { translationX = panelOffset }
-                    .drawGlassBackdrop(
-                        backdrop = glassBackdrop,
-                        shape = { GlassDefaults.Capsule },
-                        shadow = null,
-                        effects = {
-                            vibrancy()
-                            blur(4.dp.toPx())
-                            lens(24.dp.toPx(), 24.dp.toPx())
-                        },
-                        highlight = { Highlight.Default },
-                        onDrawSurface = { drawRect(surface) }
-                    )
-                    .height(contentHeight)
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp)
-                    .graphicsLayer(colorFilter = ColorFilter.tint(accent)),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                items.forEachIndexed { index, item ->
-                    BarTab(
-                        item = item,
-                        selected = index == currentIndex,
-                        iconScale = { 1f },
-                        tint = accent,
-                        badgeColor = badgeColor,
-                        onClick = { onSelect(index) }
-                    )
-                }
-            }
-        }
-
-        // 3. The pill.
+        // 2. The selected pill, between the bar's glass and the icons.
+        //
+        // It has to sit *under* the icons. On top, its own frost blurred the
+        // selected tab's icon into mush — the pill was sampling a backdrop that
+        // had the icon in it, and blurring it. Underneath, the icon stays
+        // crisp and the pill still reads as a lit capsule of the same glass.
         Box(
             modifier = Modifier
                 .padding(horizontal = 4.dp)
@@ -266,11 +207,10 @@ fun LiquidBottomBar(
                         if (isLtr) pill.value * tabWidthPx + panelOffset
                         else size.width - (pill.value + 1f) * tabWidthPx + panelOffset
                 }
-                .then(pill.modifier)
                 .then(
                     if (glassOn) {
                         Modifier.drawGlassBackdrop(
-                            backdrop = pillBackdrop,
+                            backdrop = glassBackdrop,
                             shape = { GlassDefaults.Capsule },
                             effects = {
                                 val progress = pill.pressProgress
@@ -282,7 +222,7 @@ fun LiquidBottomBar(
                                     chromaticAberration = true
                                 )
                             },
-                            highlight = { Highlight.Default.copy(alpha = pill.pressProgress) },
+                            highlight = { Highlight.Default },
                             shadow = null,
                             innerShadow = {
                                 val progress = pill.pressProgress
@@ -301,10 +241,11 @@ fun LiquidBottomBar(
                             onDrawSurface = {
                                 val progress = pill.pressProgress
                                 // A lit capsule of the same glass, not a
-                                // pasted-on chip.
-                                drawRect(selectedSheen, alpha = 1f - progress)
-                                drawRect(accent.copy(alpha = 0.16f), alpha = 1f - progress)
-                                drawRect(Color.White.copy(alpha = 0.04f * progress))
+                                // pasted-on chip. Constant, because the pill is
+                                // always the selection; the accent deepens while
+                                // the bar is held.
+                                drawRect(selectedSheen)
+                                drawRect(accent.copy(alpha = 0.16f + 0.10f * progress))
                             }
                         )
                     } else {
@@ -321,6 +262,29 @@ fun LiquidBottomBar(
                 .height(contentHeight)
                 .fillMaxWidth(1f / tabsCount)
         )
+
+        // 3. The icons, crisp, above everything else.
+        Row(
+            modifier = Modifier
+                .height(contentHeight)
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp)
+                // On the padded row, so `size.width` is exactly the tab strip:
+                // one tab is `size.width / tabsCount`.
+                .then(pill.modifier),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            items.forEachIndexed { index, item ->
+                BarTab(
+                    item = item,
+                    selected = index == currentIndex,
+                    iconScale = { 1f + 0.18f * pill.pressProgress },
+                    tint = if (index == currentIndex) accent else unselectedTint,
+                    badgeColor = badgeColor,
+                    onClick = { onSelect(index) }
+                )
+            }
+        }
     }
 }
 
@@ -437,11 +401,13 @@ private class TabPillDrag(
             onDragCancel = { settle() },
             onDrag = { change, dragAmount ->
                 change.consume()
-                val width = size.width.toFloat()
-                if (width > 0f) {
+                // The gesture lives on the tab strip, so one tab is the strip
+                // divided by the tab count.
+                val tabWidth = size.width / tabCount.toFloat()
+                if (tabWidth > 0f) {
                     scope.launch {
                         valueAnimation.snapTo(
-                            (valueAnimation.value + dragAmount.x / width)
+                            (valueAnimation.value + dragAmount.x / tabWidth)
                                 .coerceIn(0f, maxIndex)
                         )
                     }
